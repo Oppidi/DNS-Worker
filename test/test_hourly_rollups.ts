@@ -39,6 +39,7 @@ async function runTests() {
       upstream TEXT,
       latency INTEGER,
       access_point_id TEXT,
+      encrypt_version INTEGER DEFAULT 0,
       PRIMARY KEY (profile_id, timestamp, id)
     ) WITHOUT ROWID;
   `);
