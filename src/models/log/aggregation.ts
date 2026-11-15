@@ -46,14 +46,27 @@ export class LogAggregationModel {
   }
 
   /**
-   * Generates atomic UPSERT statements for in-flight log micro-batches before sensitive data encryption.
+   * Generates atomic UPSERT statements for in-flight log micro-batches.
    * Aggregates occurrences in-memory by (profile_id, metric_type, hour_timestamp, key, sub_key, access_point_id)
    * to drastically reduce database write row count.
+   * When E2EE is active (or key lookup failed), sensitive dimensions (domain, client, dest, isp)
+   * are encrypted or omitted (fail-closed) while non-sensitive action counts remain intact.
    *
    * @param logs - Array of raw unencrypted resolution logs.
+   * @param options - Optional E2EE rollup encryption and fail-closed redaction controls.
    * @returns Array of D1PreparedStatements to be committed atomically with log batch.
    */
-  createRollupUpsertStatements(logs: ResolutionLog[]): D1PreparedStatement[] {
+  async createRollupUpsertStatements(
+    logs: ResolutionLog[],
+    options?: {
+      encryptedProfiles?: Set<string>;
+      redactedProfiles?: Set<string>;
+      encryptRollup?: (
+        profileId: string,
+        payload: { metricType: string; key: string; subKey: string }
+      ) => Promise<string | null>;
+    }
+  ): Promise<D1PreparedStatement[]> {
     if (!logs || logs.length === 0) return [];
 
     interface RollupItem {
@@ -168,6 +181,36 @@ export class LogAggregationModel {
 
     const statements: D1PreparedStatement[] = [];
     for (const item of map.values()) {
+      let finalKey = item.key;
+      let finalSubKey = item.subKey;
+
+      if (item.metricType !== 'action') {
+        if (options?.redactedProfiles?.has(item.profileId)) {
+          // Fail closed when E2EE key status could not be verified
+          continue;
+        }
+        if (options?.encryptedProfiles?.has(item.profileId)) {
+          if (!options.encryptRollup) {
+            continue;
+          }
+          try {
+            const encryptedKey = await options.encryptRollup(item.profileId, {
+              metricType: item.metricType,
+              key: item.key,
+              subKey: item.subKey
+            });
+            if (!encryptedKey) {
+              continue;
+            }
+            finalKey = encryptedKey;
+            finalSubKey = '';
+          } catch {
+            // Fail closed on rollup encryption failure
+            continue;
+          }
+        }
+      }
+
       statements.push(
         this.db.prepare(`
           INSERT INTO hourly_rollups (profile_id, metric_type, hour_timestamp, key, sub_key, access_point_id, count)
@@ -178,8 +221,8 @@ export class LogAggregationModel {
           item.profileId,
           item.metricType,
           item.hourTimestamp,
-          item.key,
-          item.subKey,
+          finalKey,
+          finalSubKey,
           item.accessPointId,
           item.count
         )
@@ -322,6 +365,7 @@ export class LogAggregationModel {
                 COUNT(*) AS count
             FROM logs
             WHERE profile_id = ? AND timestamp >= ? AND timestamp < ?
+              AND (encrypt_version IS NULL OR encrypt_version = 0)
               AND client_ip IS NOT NULL AND client_ip != '' AND client_ip != '[Encrypted]'
             GROUP BY (timestamp / 3600) * 3600, client_ip, COALESCE(geo_country, ''), COALESCE(access_point_id, '')
             ON CONFLICT (profile_id, metric_type, hour_timestamp, key, sub_key, access_point_id)
@@ -349,6 +393,7 @@ export class LogAggregationModel {
                 COUNT(*) AS count
             FROM logs
             WHERE profile_id = ? AND timestamp >= ? AND timestamp < ?
+              AND (encrypt_version IS NULL OR encrypt_version = 0)
               AND (
                 (dest_country_code IS NOT NULL AND dest_country_code != '')
                 OR
@@ -378,6 +423,7 @@ export class LogAggregationModel {
                 COUNT(*) AS count
             FROM logs
             WHERE profile_id = ? AND timestamp >= ? AND timestamp < ?
+              AND (encrypt_version IS NULL OR encrypt_version = 0)
               AND domain IS NOT NULL AND domain != '' AND domain != '[Encrypted]'
             GROUP BY (timestamp / 3600) * 3600, domain, action, COALESCE(access_point_id, '')
             HAVING COUNT(*) >= ?
@@ -406,6 +452,7 @@ export class LogAggregationModel {
                 COUNT(*) AS count
             FROM logs
             WHERE profile_id = ? AND timestamp >= ? AND timestamp < ?
+              AND (encrypt_version IS NULL OR encrypt_version = 0)
               AND (
                 (dest_isp IS NOT NULL AND dest_isp != '')
                 OR

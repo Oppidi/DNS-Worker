@@ -88,7 +88,7 @@ async function runTests() {
   ];
 
   // 3. Test in-memory micro-aggregation & statement generation
-  const rollupStatements = logModel.aggregation.createRollupUpsertStatements(sampleLogs);
+  const rollupStatements = await logModel.aggregation.createRollupUpsertStatements(sampleLogs);
   assert.ok(rollupStatements.length > 0, "Must generate rollup upsert statements");
   console.log(`  PASS: Generated ${rollupStatements.length} rollup upsert statements from 3 logs`);
 
