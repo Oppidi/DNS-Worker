@@ -134,11 +134,14 @@ export async function disableTotp(password: string): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function updateTotpSettings(skipPassword: boolean): Promise<void> {
-  const res = await fetch("/api/account/totp/settings", {
+export async function updateTotpSettings(
+  skipPassword: boolean,
+  reauth?: VerifyIdentityPayload
+): Promise<void> {
+  const res = await fetch("/api/account/mfa/settings", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skip_password: skipPassword })
+    body: JSON.stringify({ skip_password: skipPassword, ...reauth })
   });
   if (!res.ok) throw new Error(await res.text());
 }
