@@ -289,6 +289,8 @@ export class LogAggregationModel {
           FROM logs
           WHERE profile_id = ? AND timestamp >= ? AND timestamp < ?
             AND domain IS NOT NULL AND domain != '' AND domain != '[Encrypted]'
+            AND (encrypt_version IS NULL OR encrypt_version = 0)
+            AND domain NOT LIKE 'enc:%'
           GROUP BY (timestamp / 3600) * 3600, domain, action, COALESCE(access_point_id, '')
           HAVING COUNT(*) >= ?
           ON CONFLICT (profile_id, metric_type, hour_timestamp, key, sub_key, access_point_id)
