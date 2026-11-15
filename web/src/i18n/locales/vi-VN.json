@@ -619,6 +619,7 @@
     "retention10m": "10 phút",
     "retention1h": "1 giờ",
     "retention24h": "24 giờ",
+    "retention3d": "3 ngày",
     "retention7d": "7 ngày",
     "retention30d": "30 ngày",
     "retention90d": "90 ngày",
@@ -1102,7 +1103,19 @@
     "serverfullStepEnvCmd": "sudo nano /etc/dns-worker/.env\n# Đặt JWT_SECRET=<khóa_được_tạo_bên_dưới>",
     "serverfullStepServiceTitle": "3. Khởi động lại và kiểm tra dịch vụ",
     "serverfullStepServiceDesc": "Khởi động lại dịch vụ sau khi lưu cấu hình và kiểm tra trạng thái hoạt động:",
-    "serverfullStepServiceCmd": "sudo dns-worker service restart\nsudo dns-worker status"
+    "serverfullStepServiceCmd": "sudo dns-worker service restart\nsudo dns-worker status",
+    "tursoDbStatus": "Cơ sở dữ liệu Turso / libSQL",
+    "tursoDbMissing": "Kết nối hoặc xác thực thất bại",
+    "tursoStepDbTitle": "1. Cấu hình cơ sở dữ liệu Turso / libSQL",
+    "tursoStepDbDesc": "Lấy URL cơ sở dữ liệu Turso và tạo mã xác thực, sau đó lưu dưới dạng Worker secrets:",
+    "tursoStepDbCommand1": "turso db show <db-name> --url\nturso db tokens create <db-name>\nwrangler secret put TURSO_DATABASE_URL\nwrangler secret put TURSO_AUTH_TOKEN",
+    "tursoStepDbDesc2": "Đảm bảo DATABASE_SERVICE được đặt thành \"Turso\" trong wrangler.toml (mục [vars]) và chạy migration nếu cần:",
+    "tursoStepDbCommand2": "[vars]\nDATABASE_SERVICE = \"Turso\"\n\n# Áp dụng migration lược đồ Turso:\nnpx tsx scripts/migrate-prod.ts",
+    "tursoStepDbDashDesc": "1. Mở Turso Dashboard, sao chép URL cơ sở dữ liệu (libsql://... hoặc https://...) và tạo Auth Token hợp lệ.\n2. Vào Cloudflare Dashboard -> Workers & Pages -> Worker của bạn -> Cài đặt -> Biến và Secret.\n3. Đặt DATABASE_SERVICE = \"Turso\", rồi thêm TURSO_DATABASE_URL và TURSO_AUTH_TOKEN dưới dạng biến Secret.\n4. Lưu lại và triển khai lại Worker.",
+    "tursoDashboardLink": "Turso Dashboard",
+    "tursoServerfullStepTitle": "1. Cấu hình thông tin kết nối Turso trong .env",
+    "tursoServerfullStepDesc": "Kiểm tra DATABASE_SERVICE, TURSO_DATABASE_URL và TURSO_AUTH_TOKEN trong /etc/dns-worker/.env:",
+    "tursoServerfullStepCmd": "sudo nano /etc/dns-worker/.env\n# DATABASE_SERVICE=Turso\n# TURSO_DATABASE_URL=libsql://<your-db>.turso.io\n# TURSO_AUTH_TOKEN=<your-valid-token>"
   },
   "meta": {
     "defaultDesc": "Phân giải DNS an toàn, nhanh chóng và có thể tùy chỉnh cho tất cả các thiết bị của bạn. Dựa trên Cloudflare Workers, mã nguồn mở và tập trung vào quyền riêng tư.",
@@ -1139,5 +1152,18 @@
     "subtitle": "Quản lý người dùng, danh sách bộ lọc hệ thống, cấu hình và cơ sở dữ liệu",
     "accessDenied": "Truy cập bị từ chối",
     "accessDeniedDesc": "Trang này chỉ dành cho quản trị viên."
+  },
+  "migrationAlert": {
+    "title": "Di chuyển cơ sở dữ liệu chưa hoàn tất",
+    "summary": "Đã áp dụng {{applied}}/{{total}}, còn {{pending}} mục chờ",
+    "engine": "Công cụ CSDL",
+    "lastApplied": "Áp dụng gần nhất",
+    "pendingList": "Di chuyển đang chờ",
+    "moreFiles": "... và {{count}} tệp khác",
+    "cliHint": "Nếu di chuyển trực tuyến bị hạn chế, hãy chạy trong terminal:",
+    "runNow": "Chạy di chuyển ngay",
+    "migrating": "Đang di chuyển...",
+    "openSystem": "Mở Quản trị Hệ thống",
+    "migrateFailed": "Di chuyển cơ sở dữ liệu thất bại"
   }
 }
