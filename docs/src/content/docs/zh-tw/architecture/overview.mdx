@@ -129,8 +129,8 @@ DNS-Worker/
 │       │   ├── SetupView/             # 裝置接入精靈（DoH / DoT / DoQ / 路由器設定）
 │       │   ├── SystemView/            # 系統級設定與管理員控制台
 │       │   └── NotFoundView/          # 404 兜底頁面
-│       ├── worker/                    # PWA Service Worker（靜態資源與受控快取策略）
-│       └── workers/                   # 背景 Web Worker（sqlite/：承載 SQLite WASM 與 OPFS 驅動）
+│       ├── service-worker/            # PWA Service Worker（靜態資源與受控快取策略）
+│       └── web-worker/                # 背景 Web Worker（sqlite/：承載 SQLite WASM 與 OPFS 驅動）
 │
 ├── migrations/                        # 版本化 SQL 数据库结构迁移脚本
 └── test/                              # 自动化测试矩阵（Turnstile 门控、Turso 协议、Serverfull 守护进程集成测试）

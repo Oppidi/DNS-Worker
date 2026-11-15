@@ -129,8 +129,8 @@ DNS-Worker/
 │       │   ├── SetupView/             # Client setup wizard (DoH / DoT / DoQ / router guides)
 │       │   ├── SystemView/            # System-level configuration and admin console
 │       │   └── NotFoundView/          # 404 fallback view
-│       ├── worker/                    # PWA Service Worker (static assets and controlled caching)
-│       └── workers/                   # Background Web Workers (sqlite/: hosting SQLite WASM + OPFS)
+│       ├── service-worker/            # PWA Service Worker (static assets and controlled caching)
+│       └── web-worker/                # Background Web Workers (sqlite/: hosting SQLite WASM + OPFS)
 │
 ├── migrations/                        # Versioned SQL database schema migrations
 └── test/                              # Automated test suites (Turnstile, Turso, Serverfull daemon)
