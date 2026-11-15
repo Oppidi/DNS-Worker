@@ -195,7 +195,9 @@ export interface VerifyPasskeyResponse {
   recovery_keys?: string[];
 }
 
-export async function verifyPasskeyRegistration(payload: { name: string; credential: any }): Promise<VerifyPasskeyResponse> {
+export async function verifyPasskeyRegistration(
+  payload: VerifyIdentityPayload & { name: string; credential: unknown }
+): Promise<VerifyPasskeyResponse> {
   const res = await fetch("/api/account/passkeys/register/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
