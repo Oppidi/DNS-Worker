@@ -11,6 +11,7 @@ import { LocalRetentionCard } from "./components/LocalRetentionCard";
 import { AdvancedEcsCard } from "./components/AdvancedEcsCard";
 import { BestEffortEchCard } from "./components/BestEffortEchCard";
 import { TtlOverrideCard } from "./components/TtlOverrideCard";
+import { PauseFilteringCard } from "./components/PauseFilteringCard";
 import { DnsTestCard } from "./components/DnsTestCard";
 import { ProfileDangerZone } from "./components/ProfileDangerZone";
 import {
@@ -305,6 +306,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ profileId, toasterRe
         <AdvancedEcsCard settings={settings} setSettings={handleSettingsChange} />
         <BestEffortEchCard settings={settings} setSettings={handleSettingsChange} />
         <TtlOverrideCard settings={settings} setSettings={handleSettingsChange} />
+        <PauseFilteringCard settings={settings} setSettings={handleSettingsChange} />
       </div>
 
       <DnsTestCard

@@ -102,6 +102,14 @@ export interface TtlOverrideSettings {
   block?: TtlOverrideRule;
 }
 
+export interface PauseFilteringSettings {
+  enabled: boolean;
+  /** Duration in seconds configured for the pause timer (0 = indefinite until manually re-enabled). */
+  duration_seconds: number;
+  /** Unix timestamp in seconds when the pause expires (0 = no automatic expiry). */
+  expires_at: number;
+}
+
 export interface ProfileSettings {
   upstream: string[];
   ecs: {
@@ -121,6 +129,7 @@ export interface ProfileSettings {
     fronting_domain?: string;
   };
   ttl_override?: TtlOverrideSettings;
+  pause_filtering?: PauseFilteringSettings;
 }
 
 export interface Profile {

@@ -13,6 +13,12 @@ export interface TtlOverrideSettings {
   block?: TtlOverrideRule;
 }
 
+export interface PauseFilteringSettings {
+  enabled: boolean;
+  duration_seconds: number;
+  expires_at: number;
+}
+
 export interface ProfileSettings {
   upstream: string[]; // DoH URLs or Classic DNS
   ecs: {
@@ -32,6 +38,7 @@ export interface ProfileSettings {
     fronting_domain?: string;
   };
   ttl_override?: TtlOverrideSettings;
+  pause_filtering?: PauseFilteringSettings;
 }
 
 export interface Profile {
