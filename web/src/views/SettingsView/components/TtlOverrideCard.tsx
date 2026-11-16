@@ -47,7 +47,7 @@ const TTL_ROWS: TtlRowConfig[] = [
   },
 ];
 
-const MAX_DNS_TTL = 2147483647;
+const MAX_DNS_TTL = 86400;
 
 /**
  * Renders the TTL Override settings card allowing per-action (PASS / REDIRECT / BLOCK)
@@ -133,7 +133,8 @@ export const TtlOverrideCard: React.FC<TtlOverrideCardProps> = ({ settings, setS
       <p className="text-xs opacity-70 mb-4">
         {t(
           "settings.ttlOverrideDesc",
-          "按解析结果类型重写返回的 DNS 记录 TTL（支持 0 - 2147483647 秒，0 表示不缓存）。"
+          "按解析结果类型重写返回的 DNS 记录 TTL（支持 0 - {{max}} 秒，0 表示不缓存）。",
+          { max: MAX_DNS_TTL }
         )}
       </p>
 
