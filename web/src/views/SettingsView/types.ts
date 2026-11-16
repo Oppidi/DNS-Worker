@@ -2,6 +2,17 @@ import { OverlayToaster } from "@blueprintjs/core";
 import React from "react";
 import type { UserInfo } from "../../types/auth";
 
+export interface TtlOverrideRule {
+  enabled: boolean;
+  ttl: number;
+}
+
+export interface TtlOverrideSettings {
+  pass?: TtlOverrideRule;
+  redirect?: TtlOverrideRule;
+  block?: TtlOverrideRule;
+}
+
 export interface ProfileSettings {
   upstream: string[]; // DoH URLs or Classic DNS
   ecs: {
@@ -20,6 +31,7 @@ export interface ProfileSettings {
     enabled: boolean;
     fronting_domain?: string;
   };
+  ttl_override?: TtlOverrideSettings;
 }
 
 export interface Profile {

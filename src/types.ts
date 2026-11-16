@@ -91,6 +91,17 @@ export interface UserActivityLog {
   extra: string | null;
 }
 
+export interface TtlOverrideRule {
+  enabled: boolean;
+  ttl: number;
+}
+
+export interface TtlOverrideSettings {
+  pass?: TtlOverrideRule;
+  redirect?: TtlOverrideRule;
+  block?: TtlOverrideRule;
+}
+
 export interface ProfileSettings {
   upstream: string[];
   ecs: {
@@ -109,6 +120,7 @@ export interface ProfileSettings {
     enabled: boolean;
     fronting_domain?: string;
   };
+  ttl_override?: TtlOverrideSettings;
 }
 
 export interface Profile {

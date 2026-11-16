@@ -219,6 +219,25 @@ export async function handleProfilesCoreRequest(
       }
     }
 
+    if (newSettings.ttl_override !== undefined) {
+      if (!newSettings.ttl_override || typeof newSettings.ttl_override !== 'object' || Array.isArray(newSettings.ttl_override)) {
+        return new Response("Invalid ttl_override configuration.", { status: 400 });
+      }
+      const ttlKeys: Array<keyof NonNullable<ProfileSettings['ttl_override']>> = ['pass', 'redirect', 'block'];
+      for (const key of ttlKeys) {
+        const entry = newSettings.ttl_override[key];
+        if (entry === undefined) continue;
+        if (!entry || typeof entry !== 'object' || typeof entry.enabled !== 'boolean') {
+          return new Response(`Invalid ttl_override.${key} configuration.`, { status: 400 });
+        }
+        const ttlNum = Number(entry.ttl);
+        if (!Number.isInteger(ttlNum) || ttlNum < 0 || ttlNum > 2147483647) {
+          return new Response(`Invalid ttl_override.${key}.ttl value. Must be an integer between 0 and 2147483647.`, { status: 400 });
+        }
+        entry.ttl = ttlNum;
+      }
+    }
+
     // 检查旧配置中的 log_retention_days
     const oldProfile = await profileModel.getById(profileId);
     let oldDays = 30;
