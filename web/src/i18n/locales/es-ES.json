@@ -816,7 +816,6 @@
     "createUser": "Crear usuario",
     "role": "Rol",
     "createdAt": "Creado el",
-    "lastActive": "Última actividad el",
     "lastResolve": "Última resolución el",
     "actions": "Acciones",
     "dangerZone": "Zona de peligro",

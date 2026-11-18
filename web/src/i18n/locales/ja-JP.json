@@ -816,7 +816,6 @@
     "createUser": "ユーザー作成",
     "role": "ロール",
     "createdAt": "作成日時",
-    "lastActive": "最終アクティブ時間",
     "lastResolve": "最終解決時間",
     "actions": "操作",
     "dangerZone": "危険ゾーン",

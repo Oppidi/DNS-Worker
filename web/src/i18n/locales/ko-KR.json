@@ -816,7 +816,6 @@
     "createUser": "사용자 생성",
     "role": "역할",
     "createdAt": "생성 시간",
-    "lastActive": "최근 활동 시간",
     "lastResolve": "최근 해석 시간",
     "actions": "작업",
     "dangerZone": "위험 구역",

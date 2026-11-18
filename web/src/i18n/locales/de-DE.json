@@ -816,7 +816,6 @@
     "createUser": "Benutzer erstellen",
     "role": "Rolle",
     "createdAt": "Erstellt am",
-    "lastActive": "Zuletzt aktiv am",
     "lastResolve": "Letzte DNS-Auflösung am",
     "actions": "Aktionen",
     "dangerZone": "Gefahrenbereich",

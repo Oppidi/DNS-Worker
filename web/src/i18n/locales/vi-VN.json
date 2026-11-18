@@ -816,7 +816,6 @@
     "createUser": "Tạo người dùng",
     "role": "Vai trò",
     "createdAt": "Thời gian tạo",
-    "lastActive": "Hoạt động lần cuối",
     "lastResolve": "Phân giải lần cuối",
     "actions": "Thao tác",
     "dangerZone": "Khu vực nguy hiểm",
