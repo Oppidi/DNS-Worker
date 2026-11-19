@@ -257,6 +257,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ profileId, profileKey, pro
       <SetupTabs
         isMobile={isMobile}
         copyToClipboard={copyToClipboard}
+        dohUrl={dohUrl}
         profileKey={activeToken}
         profileName={currentProfileName || undefined}
         accessPointName={activeName}
