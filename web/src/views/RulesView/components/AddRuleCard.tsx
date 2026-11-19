@@ -24,7 +24,6 @@ export const AddRuleCard: React.FC<AddRuleCardProps> = ({ newRule, setNewRule, a
   return (
     <Card elevation={Elevation.ONE} className="mb-8 p-6">
       <form
-        className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault();
           if (!loading) {
@@ -32,6 +31,7 @@ export const AddRuleCard: React.FC<AddRuleCardProps> = ({ newRule, setNewRule, a
           }
         }}
       >
+        <div className="flex flex-col gap-5">
         <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-end">
           <div className="w-full lg:w-48">
             <FormGroup label={t("rules.action")} labelFor="rule-type" className="mb-0">
@@ -130,6 +130,7 @@ export const AddRuleCard: React.FC<AddRuleCardProps> = ({ newRule, setNewRule, a
             </div>
           </div>
         )}
+        </div>
       </form>
     </Card>
   );
