@@ -231,7 +231,7 @@
     "traceDetails": "Cloudflare Trace (/cdn-cgi/trace)",
     "noTraceData": "暫無 Trace 資料",
     "dohUrlTitle": "當前配置 DoH URL",
-    "accessPointTitle": "Access DoH URL",
+    "accessPointTitle": "DoH 存取 URL",
     "defaultAccessPointName": "裝置-1",
     "moreAccessPoints": "更多存取點 ↗",
     "accessPointName": "存取點名稱",

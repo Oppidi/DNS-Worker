@@ -231,7 +231,7 @@
     "traceDetails": "Cloudflare Trace (/cdn-cgi/trace)",
     "noTraceData": "Данные Trace недоступны",
     "dohUrlTitle": "Текущий URL DoH",
-    "accessPointTitle": "Access DoH URL",
+    "accessPointTitle": "URL доступа DoH",
     "defaultAccessPointName": "Устройство-1",
     "moreAccessPoints": "Еще точки доступа ↗",
     "accessPointName": "Имя точки доступа",
