@@ -1,9 +1,50 @@
 ---
 title: API / 應用程式介面
-description: DNS Worker 身分驗證、設定檔、過濾清單、日誌分析、端對端加密與系統管理的 HTTP / WebSocket 介面參考。
+description: DNS Worker 根路徑非前端網路路徑（DoH、Linux 安裝指令碼、地圖代理、DoT/UDP）以及 /api/* HTTP / WebSocket 主控台介面參考。
 ---
 
-DNS Worker 在與控制台 / Worker 相同的網域下提供基於 `/api/*` 的 JSON REST API（以及用於即時查詢日誌的 WebSocket 資料流）。
+DNS Worker 在與控制台 / Worker 相同的網域下同時提供 **根路徑 `/` 下的非前端路徑**（如基於 `/:key` 與 `/dns-query` 的 RFC 8484 DoH 服務、安裝指令碼與拓樸代理等），以及位於 `/api/*` 下的 **JSON REST API / WebSocket 即時介面**。
+
+## 根路徑網路介面（`/` 下非前端路徑）
+
+除前端頁面、靜態資源與 SPA 路由兜底（`handleAssetsRouter`）外，根路徑 `/` 下的網路請求會依下列規則直接分派至 DNS 與網路服務處理器（以下路徑皆無需 Bearer JWT 或 CSRF Token）：
+
+| 路徑 / 傳輸方式 | 方法 / 通訊協定 | 參數與格式要求 | 說明 |
+| --- | --- | --- | --- |
+| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | `key` 符合 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或攜帶 `Accept: application/dns-message`；`POST` 請求主體為原始 DNS 二進位封包（`application/dns-message`，Serverfull 模式上限 64 KB） | **主 DoH 接入端點（RFC 8484）**。優先比對 `access_points.token`（實現依裝置歸因），其次比對 `profiles.profile_key` 或 `profiles.id`。回應傳回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 與全放行 CORS 標頭（`*`）。 |
+| `/dns-query` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | 標準 RFC 8484 路徑（`?dns=<base64url>` 或 `POST application/dns-message`） | 分派至 `handleDoHRequest` 並傳入空 `profileKey`（預設回傳 `404 Invalid Profile Key`，僅當資料庫不可用觸發應急故障開放 `FAIL_OPEN_UPSTREAM` 時回退解析）。 |
+| `/setup.sh` | `GET` | 查詢參數 `key` 須符合 `^[a-zA-Z0-9]{5,12}$`，且 `Host` 須為合法 HTTP/HTTPS 來源 | 動態產生 `text/plain` 格式的 Linux 一鍵安裝指令碼（安裝 `cloudflared` 並註冊 `systemd` 服務 `cloudflared-dns.service`，將 `--upstream <origin>/<key>` 對應至本機 `53` 連接埠）。 |
+| `/world-110m.json` | `GET` | 無 | GeoIP 世界地圖 TopoJSON 代理介面，自動補齊 3 位國家數字 ID 並啟用邊緣快取（`max-age=2592000`，30 天），回應帶 `Access-Control-Allow-Origin: *`。 |
+
+### DoH 協定約束與回應說明（`/:key` 與 `/dns-query`）
+
+- **HTTP/2+ 強制校驗（RFC 8484 §5.2）**：若請求以 `HTTP/1.0` 或 `HTTP/1.1` 到達（透過 `request.cf.httpProtocol` 或 `X-Http-Version` 偵測），伺服器將回傳 `505 HTTP Version Not Supported`。
+- **CORS 預檢（`OPTIONS`）**：回傳 `204 No Content`，攜帶 `Access-Control-Allow-Origin: *`、`Access-Control-Allow-Methods: GET, POST, OPTIONS`、`Access-Control-Allow-Headers: Content-Type, Accept` 與 `Access-Control-Max-Age: 86400`。
+- **例外與故障開放（Fail-Open）**：
+  - `400 Invalid DNS Query`：非標準或損壞的 DNS 線路格式請求封包（要求 `QR=0`、`OPCODE=0`、`QDCOUNT=1`、`QNAME <= 253` 字元）。
+  - `404 Invalid Profile Key`：未比對到有效的接入點權杖或設定檔金鑰。
+  - `413 Payload Too Large`：Serverfull HTTP 處理器拒絕超過 64 KB 的 DoH `POST` 請求主體。
+  - `502 Upstream Resolution Failed` / `500 Internal Server Error`：管線或資料庫異常時會先嘗試透過 `FAIL_OPEN_UPSTREAM` 完成應急解析後再決定是否回傳錯誤。
+
+```bash
+# 範例：透過 HTTP/2 POST 傳送二進位 DNS 查詢封包至指定 Key 的 DoH 端點
+curl --http2 -sS -X POST https://dns.example.com/<accessKey> \
+  -H "Content-Type: application/dns-message" \
+  -H "Accept: application/dns-message" \
+  --data-binary @query.dns -o response.dns
+
+# 範例：取得指定 Key 的 Linux cloudflared 一鍵設定指令碼
+curl -fsSL "https://dns.example.com/setup.sh?key=<accessKey>"
+```
+
+### 非 HTTP DNS 傳輸介面（Serverfull 模式）
+
+在獨立部署的 Serverfull 模式下，除 HTTP / DoH 服務外還會監聽以下原生 DNS 網路連接埠：
+
+- **DNS-over-TLS（DoT，RFC 7858）**：使用 ALPN `dot` 協定並要求設定萬用字元憑證（`*.domain`）。支援從 TLS SNI 中擷取 `5–12` 位英數字金鑰（例如 `<accessKey>.dns.example.com`）以綁定對應設定檔或接入點；直接連線基礎網域時回退至 `resolveDefaultProfile`（`SERVERFULL_DEFAULT_PROFILE_KEY` / `DEFAULT_PROFILE_KEY` / `FAIL_OPEN_UPSTREAM`）。
+- **傳統 UDP DNS（RFC 1035 / RFC 6891）**：原生 UDP 監聽器，內建單 IP 權杖桶限流（突發容量 `120` 封包、速率 `60/s`），統一透過 `resolveDefaultProfile` 解析請求。
+
+---
 
 ## 驗證機制、CSRF 與前置攔截
 

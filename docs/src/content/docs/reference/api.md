@@ -1,9 +1,50 @@
 ---
 title: API Reference
-description: HTTP & WebSocket API reference for DNS Worker authentication, profiles, filter lists, logs, E2EE, and administration.
+description: Network and API reference for DNS Worker root non-frontend paths (DoH, Linux setup script, map proxy, DoT/UDP) and HTTP/WebSocket /api/* routes.
 ---
 
-DNS Worker exposes a JSON REST API (plus a WebSocket stream for live query logs) under `/api/*` on the same origin as your Worker / server deployment.
+DNS Worker exposes both **root-level non-frontend paths** (such as RFC 8484 DNS-over-HTTPS under `/:key` and `/dns-query`, plus provisioning/map endpoints) and a **JSON REST / WebSocket API** under `/api/*` on the same origin as your Worker / Serverfull deployment.
+
+## Root Network Interfaces (`/` Non-Frontend Paths)
+
+Aside from frontend pages, static assets, and SPA fallback (`handleAssetsRouter`), requests under `/` are dispatched directly to the DNS and network helper handlers below (none of these require Bearer JWTs or CSRF tokens):
+
+| Path / Transport | Method / Protocol | Parameters & Format | Description |
+| --- | --- | --- | --- |
+| `/:key` | `GET`, `POST`, `OPTIONS` (HTTPS / HTTP/2+) | `key` matches `^[a-zA-Z0-9]{5,12}$`; `GET ?dns=<base64url>` or `Accept: application/dns-message`; `POST` raw wire DNS packet (`application/dns-message`, max 64 KB in Serverfull) | **Primary DoH endpoint (RFC 8484)**. Resolves `key` first against `access_points.token` (for per-device attribution), then `profiles.profile_key` or `profiles.id`. Returns `application/dns-message` with `Cache-Control: max-age=<ttl>` and permissive CORS (`*`). |
+| `/dns-query` | `GET`, `POST`, `OPTIONS` (HTTPS / HTTP/2+) | Standard RFC 8484 path (`?dns=<base64url>` or `POST application/dns-message`) | Dispatched to `handleDoHRequest` with an empty `profileKey` (returns `404 Invalid Profile Key` unless emergency `FAIL_OPEN_UPSTREAM` fallback is active). |
+| `/setup.sh` | `GET` | Query parameter `key` matching `^[a-zA-Z0-9]{5,12}$` (and valid HTTP/HTTPS `Host` header) | Generates a `text/plain` bash installer script (`cloudflared` + `systemd` `cloudflared-dns.service`) preconfigured with `--upstream <origin>/<key>` on local port `53`. |
+| `/world-110m.json` | `GET` | None | Edge-cached (`max-age=2592000`, 30 days) GeoIP TopoJSON world map proxy with 3-digit zero-padded country IDs and `Access-Control-Allow-Origin: *`. |
+
+### DoH Protocol Behavior (`/:key` & `/dns-query`)
+
+- **HTTP/2+ Requirement (RFC 8484 §5.2)**: Requests arriving over `HTTP/1.0` or `HTTP/1.1` (via `request.cf.httpProtocol` or `X-Http-Version`) are rejected with `505 HTTP Version Not Supported`.
+- **CORS Preflight (`OPTIONS`)**: Returns `204 No Content` with `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, OPTIONS`, `Access-Control-Allow-Headers: Content-Type, Accept`, and `Access-Control-Max-Age: 86400`.
+- **Error & Fail-Open Responses**:
+  - `400 Invalid DNS Query`: Malformed or non-standard wire-format DNS query packet (`QR=0`, `OPCODE=0`, `QDCOUNT=1`, valid `QNAME <= 253` chars).
+  - `404 Invalid Profile Key`: No matching access point token or profile key found.
+  - `413 Payload Too Large`: Serverfull HTTP handler rejects DoH `POST` bodies larger than 64 KB.
+  - `502 Upstream Resolution Failed` / `500 Internal Server Error`: Pipeline/database failure triggers an emergency `FAIL_OPEN_UPSTREAM` resolution attempt before returning an error status.
+
+```bash
+# Example: Query DoH over HTTP/2 POST using a wire-format DNS packet
+curl --http2 -sS -X POST https://dns.example.com/<accessKey> \
+  -H "Content-Type: application/dns-message" \
+  -H "Accept: application/dns-message" \
+  --data-binary @query.dns -o response.dns
+
+# Example: Download the cloudflared Linux setup script for a profile/access point key
+curl -fsSL "https://dns.example.com/setup.sh?key=<accessKey>"
+```
+
+### Non-HTTP DNS Transports (Serverfull Mode)
+
+When running in standalone Serverfull mode, DNS Worker also exposes native non-HTTP DNS listeners alongside the Web/DoH HTTP server:
+
+- **DNS-over-TLS (`DoT`, RFC 7858)**: TLS listener with ALPN `dot` and a required wildcard TLS certificate (`*.domain`). Extracts the `5–12` alphanumeric key from TLS SNI (e.g. `<accessKey>.dns.example.com`), or falls back to `resolveDefaultProfile` (`SERVERFULL_DEFAULT_PROFILE_KEY` / `DEFAULT_PROFILE_KEY` / `FAIL_OPEN_UPSTREAM`) when connecting to the bare base domain.
+- **Classic UDP DNS (RFC 1035 / RFC 6891)**: UDP listener with per-IP token-bucket rate limiting (`120` packet burst, `60/s` refill), resolving through `resolveDefaultProfile`.
+
+---
 
 ## Authentication, CSRF & Error Gates
 
