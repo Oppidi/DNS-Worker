@@ -5,6 +5,7 @@ import { setSystemTimeZone } from "../../utils/date";
 
 import type { SetupViewProps, ClientInfo } from "./types";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { useDeploymentMode } from "../../hooks/useDeploymentMode";
 import { SetupHeader } from "./components/SetupHeader";
 import { VerifyConnectionCard } from "./components/VerifyConnectionCard";
 import { AccessPointCard } from "./components/AccessPointCard";
@@ -25,6 +26,7 @@ import {
 
 export const SetupView: React.FC<SetupViewProps> = ({ profileId, profileKey, profileName, toasterRef }) => {
   const isMobile = useIsMobile();
+  const { isServerfull } = useDeploymentMode();
   const { t } = useTranslation();
 
   const [accessPoints, setAccessPoints] = useState<AccessPoint[]>([]);
@@ -100,7 +102,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ profileId, profileKey, pro
     try {
       const [clientData, traceResult] = await Promise.all([
         getClientInfo(),
-        getTraceInfo(),
+        isServerfull ? Promise.resolve(null) : getTraceInfo(),
       ]);
 
       // Fallback GeoIP lookup if country or city is unknown for a public IP
@@ -255,6 +257,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ profileId, profileKey, pro
       <SetupTabs
         isMobile={isMobile}
         copyToClipboard={copyToClipboard}
+        dohUrl={dohUrl}
         profileKey={activeToken}
         profileName={currentProfileName || undefined}
         accessPointName={activeName}

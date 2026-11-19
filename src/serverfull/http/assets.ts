@@ -76,7 +76,11 @@ export function attachStaticAssetHandler(env: Env, staticDir?: string): void {
           if (!assetEntry || assetEntry.mtimeMs !== stat.mtimeMs || assetEntry.etag !== etag) {
             const ext = path.extname(filePath).toLowerCase();
             const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-            const cacheControl = ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable';
+            // HTML documents carry per-request CSP nonces and runtime config; never allow HTTP caching/304 revalidation.
+            const cacheControl =
+              ext === '.html'
+                ? 'no-store, no-cache, must-revalidate'
+                : 'public, max-age=31536000, immutable';
             const rawBuf = await fs.promises.readFile(filePath);
             const loaded: CachedStaticAsset = {
               content: new Uint8Array(rawBuf.buffer, rawBuf.byteOffset, rawBuf.byteLength),
@@ -92,8 +96,9 @@ export function attachStaticAssetHandler(env: Env, staticDir?: string): void {
           }
         }
 
+        const isHtml = assetEntry.contentType.includes('text/html');
         const ifNoneMatch = req.headers.get('If-None-Match');
-        if (ifNoneMatch && ifNoneMatch.split(',').some((tag) => tag.trim() === assetEntry!.etag)) {
+        if (!isHtml && ifNoneMatch && ifNoneMatch.split(',').some((tag) => tag.trim() === assetEntry!.etag)) {
           return new Response(null, {
             status: 304,
             headers: {
@@ -104,16 +109,19 @@ export function attachStaticAssetHandler(env: Env, staticDir?: string): void {
         }
 
         const bodyBytes = req.method === 'HEAD' ? null : (assetEntry.content as unknown as BodyInit);
+        const responseHeaders: Record<string, string> = {
+          'Content-Type': assetEntry.contentType,
+          'Cache-Control': assetEntry.cacheControl,
+          'Cross-Origin-Opener-Policy': 'same-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+          'Cross-Origin-Resource-Policy': 'same-origin'
+        };
+        if (!isHtml) {
+          responseHeaders['ETag'] = assetEntry.etag;
+        }
         return new Response(bodyBytes, {
           status: 200,
-          headers: {
-            'Content-Type': assetEntry.contentType,
-            'Cache-Control': assetEntry.cacheControl,
-            'ETag': assetEntry.etag,
-            'Cross-Origin-Opener-Policy': 'same-origin',
-            'Cross-Origin-Embedder-Policy': 'credentialless',
-            'Cross-Origin-Resource-Policy': 'same-origin'
-          }
+          headers: responseHeaders
         });
       } catch {
         return new Response('Asset Error', { status: 500 });

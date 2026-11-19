@@ -297,7 +297,7 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
       .trim()
       .replace(/[^a-zA-Z0-9_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
-    const filename = `adguard-rules-${safeProfileLabel || "profile"}.txt`;
+    const filename = `dns-worker-rules-${safeProfileLabel || "profile"}.txt`;
     const exportedCount = downloadAdGuardRulesList(targetRules, filename, profileId);
     if (exportedCount === 0) {
       toasterRef?.current?.show({

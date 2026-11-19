@@ -1,5 +1,4 @@
 import { Env } from '../types';
-import { cacheUtils } from '../utils/cache';
 import { getPresetEchFrontingDomains } from '../utils/ech/constants';
 import { fetchGeoIP } from '../utils/geoip';
 import { isPublicInternetIP } from '../utils/validator';
@@ -9,6 +8,7 @@ import {
   getPresetExternalFilters
 } from '../constants/presets';
 import { detectServerfullMode } from '../router/runtimeConfig';
+import { getActiveDnsConnection } from '../lib/activeDns';
 
 /**
  * Handles system/utility routes like /api/clientinfo and /api/substitute
@@ -19,9 +19,9 @@ export async function handleSystemRequest(request: Request, env: Env): Promise<R
 
   if (url.pathname === '/api/clientinfo') {
     const clientIp = request.headers.get("CF-Connecting-IP") || "127.0.0.1";
-    const connectedProfileId = await cacheUtils.get<string>(cache, `active_dns:${clientIp}`);
-    const cf = (request as { cf?: Record<string, unknown> }).cf;
     const isServerfull = detectServerfullMode(env);
+    const connectedProfileId = await getActiveDnsConnection(cache, clientIp, isServerfull);
+    const cf = (request as { cf?: Record<string, unknown> }).cf;
 
     const isKnownGeoCode = (val?: string): boolean => {
       if (!val) return false;

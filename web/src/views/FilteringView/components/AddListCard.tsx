@@ -40,7 +40,6 @@ export const AddListCard: React.FC<AddListCardProps> = ({ newUrl, setNewUrl, onA
   return (
     <Card elevation={Elevation.ONE} className="mb-6">
       <form
-        className="flex gap-2 flex-col sm:flex-row"
         onSubmit={(e) => {
           e.preventDefault();
           if (!syncing && !loading) {
@@ -48,30 +47,32 @@ export const AddListCard: React.FC<AddListCardProps> = ({ newUrl, setNewUrl, onA
           }
         }}
       >
-        <InputGroup
-          fill
-          size="large"
-          placeholder={t("filtering.urlPlaceholder")}
-          value={newUrl}
-          onChange={(e) => setNewUrl(e.target.value)}
-          leftIcon="globe"
-          rightElement={
-            <PopoverNext content={presetMenu} placement="bottom-end" animation="minimal" arrow={false} usePortal={true}>
-              <Button type="button" variant="minimal" icon="chevron-down" />
-            </PopoverNext>
-          }
-        />
-        <Button
-          type="submit"
-          intent={Intent.PRIMARY}
-          size="large"
-          icon="plus"
-          className="shrink-0"
-          loading={syncing || loading}
-          disabled={syncing || loading}
-        >
-          {t("filtering.addSubscription")}
-        </Button>
+        <div className="flex gap-2 flex-col sm:flex-row">
+          <InputGroup
+            fill
+            size="large"
+            placeholder={t("filtering.urlPlaceholder")}
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+            leftIcon="globe"
+            rightElement={
+              <PopoverNext content={presetMenu} placement="bottom-end" animation="minimal" arrow={false} usePortal={true}>
+                <Button type="button" variant="minimal" icon="chevron-down" />
+              </PopoverNext>
+            }
+          />
+          <Button
+            type="submit"
+            intent={Intent.PRIMARY}
+            size="large"
+            icon="plus"
+            className="shrink-0"
+            loading={syncing || loading}
+            disabled={syncing || loading}
+          >
+            {t("filtering.addSubscription")}
+          </Button>
+        </div>
       </form>
     </Card>
   );

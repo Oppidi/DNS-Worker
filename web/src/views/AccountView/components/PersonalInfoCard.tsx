@@ -73,7 +73,6 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
         <FormGroup label={t("account.username")}>
           {isEditingUsername ? (
             <form
-              className="flex gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!usernameLoading) {
@@ -81,48 +80,50 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
                 }
               }}
             >
-              <Tooltip
-                content={t("account.formatTipUsername")}
-                isOpen={usernameFocused}
-                position={Position.TOP}
-                intent={Intent.PRIMARY}
-                className="w-full"
-              >
-                <div className="w-full block">
-                  <InputGroup
-                    fill
-                    value={editUsername}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEditUsername(e.target.value)
-                    }
-                    onFocus={() => setUsernameFocused(true)}
-                    onBlur={() => setUsernameFocused(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setIsEditingUsername(false);
-                        setEditUsername(me?.username || "");
+              <div className="flex gap-2">
+                <Tooltip
+                  content={t("account.formatTipUsername")}
+                  isOpen={usernameFocused}
+                  position={Position.TOP}
+                  intent={Intent.PRIMARY}
+                  className="w-full"
+                >
+                  <div className="w-full block">
+                    <InputGroup
+                      fill
+                      value={editUsername}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setEditUsername(e.target.value)
                       }
-                    }}
-                    autoFocus
+                      onFocus={() => setUsernameFocused(true)}
+                      onBlur={() => setUsernameFocused(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsEditingUsername(false);
+                          setEditUsername(me?.username || "");
+                        }
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                </Tooltip>
+                <ButtonGroup>
+                  <Button
+                    type="submit"
+                    icon={<Check size={16} />}
+                    intent={Intent.SUCCESS}
+                    loading={usernameLoading}
                   />
-                </div>
-              </Tooltip>
-              <ButtonGroup>
-                <Button
-                  type="submit"
-                  icon={<Check size={16} />}
-                  intent={Intent.SUCCESS}
-                  loading={usernameLoading}
-                />
-                <Button
-                  type="button"
-                  icon={<X size={16} />}
-                  onClick={() => {
-                    setIsEditingUsername(false);
-                    setEditUsername(me?.username || "");
-                  }}
-                />
-              </ButtonGroup>
+                  <Button
+                    type="button"
+                    icon={<X size={16} />}
+                    onClick={() => {
+                      setIsEditingUsername(false);
+                      setEditUsername(me?.username || "");
+                    }}
+                  />
+                </ButtonGroup>
+              </div>
             </form>
           ) : (
             <div className="flex gap-2">

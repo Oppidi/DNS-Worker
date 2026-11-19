@@ -23,6 +23,7 @@ import { formatBanner, formatDiagnostic, formatKeyValueSection } from './format'
 import { checkNodeVersion, parseCli, getActiveRuntimeDescription } from './cli';
 import { tuneV8Engine } from './v8';
 import { getClusterInfo, forkClusterWorkers, shutdownClusterWorkers } from './cluster';
+import { registerActiveDnsSyncPublisher, applySyncedActiveDnsConnection } from '../lib/activeDns';
 
 export * from './cli';
 
@@ -290,6 +291,33 @@ async function bootstrap(): Promise<void> {
   }
 
   // 7. Worker Process (or Single Process Mode): Initialize and start network servers
+  if (clusterInfo.isWorker) {
+    registerActiveDnsSyncPublisher((ip, profileId, expiresAt) => {
+      try {
+        process.send?.({ type: 'ACTIVE_DNS_SYNC', ip, profileId, expiresAt });
+      } catch {
+        // Ignore IPC send errors during worker shutdown
+      }
+    });
+
+    process.on('message', (message: unknown) => {
+      if (
+        message &&
+        typeof message === 'object' &&
+        (message as { type?: string }).type === 'ACTIVE_DNS_SYNC'
+      ) {
+        const payload = message as { ip?: unknown; profileId?: unknown; expiresAt?: unknown };
+        if (
+          typeof payload.ip === 'string' &&
+          typeof payload.profileId === 'string' &&
+          typeof payload.expiresAt === 'number'
+        ) {
+          applySyncedActiveDnsConnection(payload.ip, payload.profileId, payload.expiresAt);
+        }
+      }
+    });
+  }
+
   const certInfo = inspectTlsCertificate(config.tlsCertPath, config.tlsKeyPath);
   const canStartHttps = certInfo.configured && certInfo.filesExist && !config.disableHttps;
   const canStartDot = !config.disableDot && certInfo.configured && certInfo.filesExist && certInfo.isWildcard;
