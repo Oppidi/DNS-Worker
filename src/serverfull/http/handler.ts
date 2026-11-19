@@ -5,9 +5,10 @@
 
 import http from 'node:http';
 import { Buffer } from 'node:buffer';
-import worker from '../../index';
+import worker from '../../app';
 import { Env, ExecutionContext } from '../../types';
 import { extractClientIp } from './clientIp';
+import { ACCESS_KEY_REGEX } from '../../utils/validator';
 
 /**
  * Creates a shared request dispatch handler for Node.js http and https servers.
@@ -101,7 +102,7 @@ export function createHttpRequestHandler(
 
       let body: any = null;
       if (req.method !== 'GET' && req.method !== 'HEAD') {
-        const isDnsQuery = fullUrl.pathname === '/dns-query' || fullUrl.pathname.endsWith('/dns-query');
+        const isDnsQuery = !fullUrl.pathname.startsWith('/api/') && ACCESS_KEY_REGEX.test(fullUrl.pathname.slice(1));
         const maxBodyBytes = isDnsQuery ? MAX_DOH_BODY_BYTES : MAX_API_BODY_BYTES;
         const declaredLength = Number(req.headers['content-length']);
         if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {

@@ -3,7 +3,7 @@ title: API Reference
 description: Network and API reference for DNS Worker root non-frontend paths (DoH, Linux setup script, map proxy, DoT/UDP) and HTTP/WebSocket /api/* routes.
 ---
 
-DNS Worker exposes both **root-level non-frontend paths** (such as RFC 8484 DNS-over-HTTPS under `/:key` and `/dns-query`, plus provisioning/map endpoints) and a **JSON REST / WebSocket API** under `/api/*` on the same origin as your Worker / Serverfull deployment.
+DNS Worker exposes both **root-level non-frontend paths** (such as RFC 8484 DNS-over-HTTPS under `/:key`, plus provisioning/map endpoints) and a **JSON REST / WebSocket API** under `/api/*` on the same origin as your Worker / Serverfull deployment.
 
 ## Root Network Interfaces (`/` Non-Frontend Paths)
 
@@ -11,13 +11,13 @@ Aside from frontend pages, static assets, and SPA fallback (`handleAssetsRouter`
 
 | Path / Transport | Method / Protocol | Parameters & Format | Description |
 | --- | --- | --- | --- |
-| `/:key` | `GET`, `POST`, `OPTIONS` (HTTPS / HTTP/2+) | `key` matches `^[a-zA-Z0-9]{5,12}$`; `GET ?dns=<base64url>` or `Accept: application/dns-message`; `POST` raw wire DNS packet (`application/dns-message`, max 64 KB in Serverfull) | **Primary DoH endpoint (RFC 8484)**. Resolves `key` first against `access_points.token` (for per-device attribution), then `profiles.profile_key` or `profiles.id`. Returns `application/dns-message` with `Cache-Control: max-age=<ttl>` and permissive CORS (`*`). |
-| `/dns-query` | `GET`, `POST`, `OPTIONS` (HTTPS / HTTP/2+) | Standard RFC 8484 path (`?dns=<base64url>` or `POST application/dns-message`) | Dispatched to `handleDoHRequest` with an empty `profileKey` (returns `404 Invalid Profile Key` unless emergency `FAIL_OPEN_UPSTREAM` fallback is active). |
+| `/:key` | `GET`, `POST`, `OPTIONS` (HTTPS / HTTP/2+) | `key` matches `^[a-zA-Z0-9]{5,12}$`; `GET ?dns=<base64url>` or `Accept: application/dns-message`; `POST` raw wire DNS packet (`application/dns-message`, max 64 KB in Serverfull) | **DoH endpoint (RFC 8484)**. Resolves `key` first against `access_points.token` (for per-device attribution), then `profiles.profile_key` or `profiles.id`. Bare `/dns-query` is intentionally unsupported. Returns `application/dns-message` with `Cache-Control: max-age=<ttl>` and permissive CORS (`*`). |
 | `/setup.sh` | `GET` | Query parameter `key` matching `^[a-zA-Z0-9]{5,12}$` (and valid HTTP/HTTPS `Host` header) | Generates a `text/plain` bash installer script (`cloudflared` + `systemd` `cloudflared-dns.service`) preconfigured with `--upstream <origin>/<key>` on local port `53`. |
 | `/world-110m.json` | `GET` | None | Edge-cached (`max-age=2592000`, 30 days) GeoIP TopoJSON world map proxy with 3-digit zero-padded country IDs and `Access-Control-Allow-Origin: *`. |
 
-### DoH Protocol Behavior (`/:key` & `/dns-query`)
+### DoH Protocol Behavior (`/:key`)
 
+- **Access Key Verification & Durable Objects Fail-Open**: Legitimate Access Keys (`access_points.token`, `profiles.profile_key`, and `profiles.id`) are synchronized into SQLite-backed Durable Objects (`ACCESS_KEY_DO`, partitioned into 16 deterministic shards). If D1 or Turso goes offline or hits read quota (`FAIL_OPEN` state), valid Access Keys remain usable via `FAIL_OPEN_UPSTREAM` with profile/access-point attribution preserved, while unregistered or revoked keys are rejected (`404 Invalid Profile Key`).
 - **HTTP/2+ Requirement (RFC 8484 §5.2)**: Requests arriving over `HTTP/1.0` or `HTTP/1.1` (via `request.cf.httpProtocol` or `X-Http-Version`) are rejected with `505 HTTP Version Not Supported`.
 - **CORS Preflight (`OPTIONS`)**: Returns `204 No Content` with `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, OPTIONS`, `Access-Control-Allow-Headers: Content-Type, Accept`, and `Access-Control-Max-Age: 86400`.
 - **Error & Fail-Open Responses**:

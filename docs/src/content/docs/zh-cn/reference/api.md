@@ -3,7 +3,7 @@ title: API / 应用程序接口
 description: DNS Worker 根路径非前端网络路径（DoH、Linux 安装脚本、地图代理、DoT/UDP）以及 /api/* HTTP / WebSocket 控制台接口参考。
 ---
 
-DNS Worker 在与控制台 / Worker 相同的域名下同时提供 **根路径 `/` 下的非前端路径**（如基于 `/:key` 与 `/dns-query` 的 RFC 8484 DoH 服务、安装脚本与拓扑代理等），以及位于 `/api/*` 下的 **JSON REST API / WebSocket 实时接口**。
+DNS Worker 在与控制台 / Worker 相同的域名下同时提供 **根路径 `/` 下的非前端路径**（如基于 `/:key` 的 RFC 8484 DoH 服务、安装脚本与拓扑代理等），以及位于 `/api/*` 下的 **JSON REST API / WebSocket 实时接口**。
 
 ## 根路径网络接口（`/` 下非前端路径）
 
@@ -11,13 +11,13 @@ DNS Worker 在与控制台 / Worker 相同的域名下同时提供 **根路径 `
 
 | 路径 / 传输方式 | 方法 / 协议 | 参数与格式要求 | 说明 |
 | --- | --- | --- | --- |
-| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或携带 `Accept: application/dns-message`；`POST` 请求体为原始 DNS 二进制报文（`application/dns-message`，Serverfull 模式上限 64 KB） | **主 DoH 接入端点（RFC 8484）**。优先匹配 `access_points.token`（实现按设备归因），其次匹配 `profiles.profile_key` 或 `profiles.id`。响应返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 与全放行 CORS 头（`*`）。 |
-| `/dns-query` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | 标准 RFC 8484 路径（`?dns=<base64url>` 或 `POST application/dns-message`） | 路由至 `handleDoHRequest` 并传入空 `profileKey`（默认返回 `404 Invalid Profile Key`，仅当数据库不可用触发应急故障开放 `FAIL_OPEN_UPSTREAM` 时回退解析）。 |
+| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或携带 `Accept: application/dns-message`；`POST` 请求体为原始 DNS 二进制报文（`application/dns-message`，Serverfull 模式上限 64 KB） | **DoH 接入端点（RFC 8484）**。优先匹配 `access_points.token`（实现按设备归因），其次匹配 `profiles.profile_key` 或 `profiles.id`；系统刻意不开放无密钥的 `/dns-query` 路径。响应返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 与全放行 CORS 头（`*`）。 |
 | `/setup.sh` | `GET` | 查询参数 `key` 需匹配 `^[a-zA-Z0-9]{5,12}$`，且 `Host` 须为合法 HTTP/HTTPS 来源 | 动态生成 `text/plain` 格式的 Linux 一键安装脚本（安装 `cloudflared` 并注册 `systemd` 服务 `cloudflared-dns.service`，将 `--upstream <origin>/<key>` 映射到本地 `53` 端口）。 |
 | `/world-110m.json` | `GET` | 无 | GeoIP 世界地图 TopoJSON 代理接口，自动补全 3 位国家数字 ID 并启用边缘缓存（`max-age=2592000`，30 天），响应带 `Access-Control-Allow-Origin: *`。 |
 
-### DoH 协议约束与响应说明（`/:key` 与 `/dns-query`）
+### DoH 协议约束与响应说明（`/:key`）
 
+- **Access Key 校验与 Durable Objects 容灾**：合法的 Access Key（含 `access_points.token`、`profiles.profile_key` 与 `profiles.id`）会同步写入基于 SQLite 的 Durable Objects（`ACCESS_KEY_DO`，分为 16 个确定性分片）。当 D1 或 Turso 下线或达到读取配额进入 `FAIL_OPEN` 状态时，合法 Access Key 仍可通过 `FAIL_OPEN_UPSTREAM` 继续完成解析并保留配置文件 / 接入点归属信息，而未注册或已吊销的无效 Key 将被拒绝（`404 Invalid Profile Key`）。
 - **HTTP/2+ 强制校验（RFC 8484 §5.2）**：若请求以 `HTTP/1.0` 或 `HTTP/1.1` 到达（通过 `request.cf.httpProtocol` 或 `X-Http-Version` 检测），服务端将返回 `505 HTTP Version Not Supported`。
 - **CORS 预检（`OPTIONS`）**：返回 `204 No Content`，携带 `Access-Control-Allow-Origin: *`、`Access-Control-Allow-Methods: GET, POST, OPTIONS`、`Access-Control-Allow-Headers: Content-Type, Accept` 与 `Access-Control-Max-Age: 86400`。
 - **异常与故障开放（Fail-Open）**：

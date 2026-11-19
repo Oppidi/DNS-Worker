@@ -16,6 +16,15 @@ import { isTursoQuotaError, verifyTursoConnection, TursoD1Database } from "../sr
 import { resolveDbConfigStatus } from "../src/router/runtimeConfig";
 import { buildDNSQuery, parseDNSAnswer } from "../src/utils/dns";
 import { Context, Env, ExecutionContext } from "../src/types";
+import {
+  AccessKeyDoNamespace,
+  AccessKeyEntry,
+  AccessKeyLookupResult,
+  AccessKeyRegistryStub,
+  deleteAccessKeysInDo,
+  upsertAccessKeysInDo
+} from "../src/lib/accessKeyRegistry";
+import { routeRequest } from "../src/router";
 
 console.log(">>> [TEST] Running Turso Read-Blocked Fail-Open Fallback Tests...");
 
@@ -242,6 +251,109 @@ async function runTests() {
     await assert.rejects(() => tursoDb.prepare("SELECT * FROM rules WHERE profile_id = ?").bind("b").all());
     assert.strictEqual(tursoFetchCalls, 1, "Subsequent reads within cooldown must fast-fail without hitting Turso HTTP API");
     console.log("  PASS: verifyTursoConnection & TursoD1Database quota circuit breaker passed");
+
+  // Test 11: Durable Object Access Key registry during DB offline / FAIL_OPEN + /dns-query rejection
+  profileKeyMemoryMap.clear();
+  configCache.clear();
+
+  const shardStore = new Map<string, { keys: Map<string, AccessKeyEntry>; populated: boolean }>();
+  const mockDoNamespace: AccessKeyDoNamespace = {
+    getByName(shardName: string): AccessKeyRegistryStub {
+      if (!shardStore.has(shardName)) {
+        shardStore.set(shardName, { keys: new Map(), populated: false });
+      }
+      const shard = shardStore.get(shardName)!;
+      return {
+        async upsertKeys(entries: AccessKeyEntry[]) {
+          for (const e of entries) shard.keys.set(e.accessKey, e);
+          shard.populated = true;
+        },
+        async deleteKeys(keys: string[]) {
+          for (const k of keys) shard.keys.delete(k);
+          shard.populated = true;
+        },
+        async replaceSnapshot(entries: AccessKeyEntry[]) {
+          shard.keys.clear();
+          for (const e of entries) shard.keys.set(e.accessKey, e);
+          shard.populated = true;
+        },
+        async lookupKey(accessKey: string): Promise<AccessKeyLookupResult> {
+          const rec = shard.keys.get(accessKey);
+          return rec
+            ? { found: true, populated: true, record: rec }
+            : { found: false, populated: shard.populated };
+        }
+      };
+    }
+  };
+
+  const doEnv = {
+    DB: mockBlockedDb,
+    ACCESS_KEY_DO: mockDoNamespace,
+    FAIL_OPEN_UPSTREAM: "https://1.1.1.1/dns-query"
+  } as unknown as Env;
+
+  // Seed one legitimate Access Key into DO, and also mark shard for 'badkey9' populated without adding it
+  await upsertAccessKeysInDo(doEnv, [
+    {
+      accessKey: "validk1",
+      profileId: "prof_do_1",
+      ownerId: "user_do_1",
+      accessPointId: "ap_do_1",
+      accessPointName: "Laptop",
+      updatedAt: Math.floor(Date.now() / 1000)
+    }
+  ]);
+  // Ensure shard for 'badkey9' is marked seeded (empty populated shard)
+  await deleteAccessKeysInDo(doEnv, ["badkey9"]);
+
+  const resolvedDoProfile = await resolveProfileByKey("validk1", doEnv, mockCtx);
+  assert.ok(resolvedDoProfile !== null, "Registered Access Key in DO must resolve during DB outage");
+  assert.strictEqual(resolvedDoProfile?.id, "prof_do_1");
+  assert.strictEqual(resolvedDoProfile?.access_point_id, "ap_do_1");
+  assert.strictEqual(resolvedDoProfile?.access_point_name, "Laptop");
+  assert.strictEqual(resolvedDoProfile?.isEmergencyFallback, true);
+
+  const validDoReq = new Request("https://dns.example.com/validk1", {
+    method: "POST",
+    headers: { "Content-Type": "application/dns-message" },
+    body: rawQuery
+  });
+  const validDoRes = await handleDoHRequest(validDoReq, doEnv, mockCtx, "validk1");
+  assert.strictEqual(validDoRes.status, 200, "Valid DO-backed Access Key must resolve DoH query during DB outage");
+
+  const invalidDoRes = await handleDoHRequest(
+    new Request("https://dns.example.com/badkey9", {
+      method: "POST",
+      headers: { "Content-Type": "application/dns-message" },
+      body: rawQuery
+    }),
+    doEnv,
+    mockCtx,
+    "badkey9"
+  );
+  assert.strictEqual(invalidDoRes.status, 404, "Unregistered Access Key must be rejected (404) when DO shard is populated");
+
+  // Revoke validk1 and clear L1 cache -> must now reject with 404
+  await deleteAccessKeysInDo(doEnv, ["validk1"]);
+  profileKeyMemoryMap.delete("validk1");
+  const revokedDoRes = await handleDoHRequest(validDoReq, doEnv, mockCtx, "validk1");
+  assert.strictEqual(revokedDoRes.status, 404, "Revoked Access Key removed from DO must return 404 during DB outage");
+
+  // Verify /dns-query is NOT routed to DoH handler
+  const dnsQueryRouteRes = await routeRequest(
+    new Request("https://dns.example.com/dns-query", {
+      method: "POST",
+      headers: { "Content-Type": "application/dns-message" },
+      body: rawQuery
+    }),
+    { ...doEnv, ASSETS: { fetch: async () => new Response("Not Found", { status: 404 }) } } as unknown as Env,
+    mockCtx,
+    { isServerfull: false, dbService: "D1", nonce: "testnonce" }
+  );
+  assert.strictEqual(dnsQueryRouteRes.response.status, 404);
+  assert.notStrictEqual(await dnsQueryRouteRes.response.text(), "Invalid Profile Key", "/dns-query must not invoke DoH handler");
+  console.log("  PASS: Durable Object Access Key FAIL_OPEN persistence & /dns-query removal verified");
   } finally {
     globalThis.fetch = originalFetch;
   }
