@@ -7,6 +7,9 @@
  */
 
 import assert from "node:assert";
+import http from "node:http";
+import { createHttpRequestHandler } from "../src/serverfull/http/handler";
+import { initNodeGlobals } from "../src/serverfull/cache";
 import { SystemSettingsModel } from "../src/models/systemSettings";
 import { ensureCloudflareIpRangesLoaded, isCloudflareIp } from "../src/utils/ech";
 import { resolveProfileByKey, resolveDefaultProfile, handleDoHRequest } from "../src/api/doh";
@@ -251,6 +254,9 @@ async function runTests() {
     await assert.rejects(() => tursoDb.prepare("SELECT * FROM rules WHERE profile_id = ?").bind("b").all());
     assert.strictEqual(tursoFetchCalls, 1, "Subsequent reads within cooldown must fast-fail without hitting Turso HTTP API");
     console.log("  PASS: verifyTursoConnection & TursoD1Database quota circuit breaker passed");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 
   // Test 11: Durable Object Access Key registry during DB offline / FAIL_OPEN + /dns-query rejection
   profileKeyMemoryMap.clear();
@@ -354,8 +360,75 @@ async function runTests() {
   assert.strictEqual(dnsQueryRouteRes.response.status, 404);
   assert.notStrictEqual(await dnsQueryRouteRes.response.text(), "Invalid Profile Key", "/dns-query must not invoke DoH handler");
   console.log("  PASS: Durable Object Access Key FAIL_OPEN persistence & /dns-query removal verified");
+
+  // Test 12: Serverfull reverse proxy (Caddy/Nginx) X-Http-Version preservation over HTTP/1.1 hop
+  initNodeGlobals();
+  await upsertAccessKeysInDo(doEnv, [
+    {
+      accessKey: "caddyk1",
+      profileId: "prof_caddy_1",
+      ownerId: "user_do_1",
+      accessPointId: "ap_caddy_1",
+      accessPointName: "CaddyClient",
+      updatedAt: Math.floor(Date.now() / 1000)
+    }
+  ]);
+  profileKeyMemoryMap.delete("caddyk1");
+
+  const proxyHandlerEnv = {
+    ...doEnv,
+    SERVERFULL_DB_PATH: ":memory:",
+    DATABASE_SERVICE: "File"
+  } as unknown as Env;
+  const proxyServer = http.createServer(createHttpRequestHandler(proxyHandlerEnv, "http", "127.0.0.1", 0));
+  await new Promise<void>((resolve) => proxyServer.listen(0, "127.0.0.1", resolve));
+  try {
+    const addr = proxyServer.address() as { port: number };
+    const baseUrl = `http://127.0.0.1:${addr.port}/caddyk1`;
+
+    // Without X-Http-Version over HTTP/1.1 hop -> 505
+    const noHeaderRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/dns-message" },
+      body: rawQuery
+    });
+    assert.strictEqual(noHeaderRes.status, 505, "HTTP/1.1 without trusted X-Http-Version must return 505");
+
+    // With Caddy `header_up X-Http-Version HTTP/2.0` -> 200
+    const h2HeaderRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/dns-message",
+        "X-Http-Version": "HTTP/2.0"
+      },
+      body: rawQuery
+    });
+    assert.strictEqual(h2HeaderRes.status, 200, "Trusted loopback proxy with X-Http-Version: HTTP/2.0 must return 200");
+
+    // With Caddy `header_up X-Http-Version HTTP/3.0` -> 200
+    const h3HeaderRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/dns-message",
+        "X-Http-Version": "HTTP/3.0"
+      },
+      body: rawQuery
+    });
+    assert.strictEqual(h3HeaderRes.status, 200, "Trusted loopback proxy with X-Http-Version: HTTP/3.0 must return 200");
+
+    // With Caddy `header_up X-Http-Version HTTP/1.1` (client actually used HTTP/1.1) -> 505
+    const h1HeaderRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/dns-message",
+        "X-Http-Version": "HTTP/1.1"
+      },
+      body: rawQuery
+    });
+    assert.strictEqual(h1HeaderRes.status, 505, "Client HTTP/1.1 forwarded via X-Http-Version must still return 505");
+    console.log("  PASS: Serverfull reverse proxy X-Http-Version (Caddy HTTP/2 & HTTP/3) verified");
   } finally {
-    globalThis.fetch = originalFetch;
+    await new Promise<void>((resolve) => proxyServer.close(() => resolve()));
   }
 
   console.log("\n======================================================");

@@ -84,7 +84,15 @@ export function createHttpRequestHandler(
           headers.set(k, String(v));
         }
       }
-      headers.set('X-Http-Version', req.httpVersion);
+      // Preserve trusted reverse-proxy client protocol (e.g. Caddy `header_up X-Http-Version {http.request.proto}`)
+      // so RFC 8484 §5.2 evaluates the client-to-proxy protocol rather than the proxy-to-origin HTTP/1.1 hop.
+      const rawTrustedProtoHeader = fromTrustedProxy ? req.headers['x-http-version'] : undefined;
+      const trustedHttpVersion =
+        typeof rawTrustedProtoHeader === 'string' &&
+        /^(?:HTTP\/)?\d+(?:\.\d+)?$/i.test(rawTrustedProtoHeader.trim())
+          ? rawTrustedProtoHeader.trim()
+          : undefined;
+      headers.set('X-Http-Version', trustedHttpVersion || req.httpVersion);
 
       // Populate remote client IP (supports direct connections, Cloudflare, Caddy, Nginx)
       const clientIp = extractClientIp(headers, req.socket.remoteAddress, env.TRUSTED_PROXIES);
