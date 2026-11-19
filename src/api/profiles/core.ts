@@ -316,7 +316,17 @@ export async function handleProfilesCoreRequest(
 
   // POST /api/profiles/:id/test
   if (pathParts[3] === 'test' && request.method === 'POST') {
-    const { domain, type } = await request.json() as { domain: string, type: string };
+    let body: { domain?: unknown; type?: unknown };
+    try {
+      body = await request.json() as { domain?: unknown; type?: unknown };
+    } catch {
+      return new Response("Invalid JSON payload", { status: 400 });
+    }
+    const domain = typeof body?.domain === 'string' ? body.domain.trim() : '';
+    const type = typeof body?.type === 'string' && body.type.trim() ? body.type.trim().toUpperCase() : 'A';
+    if (!domain || domain.length > 253) {
+      return new Response("Invalid or missing domain parameter", { status: 400 });
+    }
     const rawQuery = buildDNSQuery(domain, type);
     const result = await pipeline.process(request, { name: domain, type, raw: rawQuery }, { profileId, startTime: Date.now(), env, ctx });
     return new Response(JSON.stringify({
