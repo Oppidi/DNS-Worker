@@ -71,55 +71,68 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
       </div>
       <div className="space-y-4">
         <FormGroup label={t("account.username")}>
-          <div className="flex gap-2">
-            {isEditingUsername ? (
-              <>
-                <Tooltip
-                  content={t("account.formatTipUsername")}
-                  isOpen={usernameFocused}
-                  position={Position.TOP}
-                  intent={Intent.PRIMARY}
-                  className="w-full"
-                >
-                  <div className="w-full block">
-                    <InputGroup
-                      fill
-                      value={editUsername}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        setEditUsername(e.target.value)
+          {isEditingUsername ? (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!usernameLoading) {
+                  onUpdateUsername();
+                }
+              }}
+            >
+              <Tooltip
+                content={t("account.formatTipUsername")}
+                isOpen={usernameFocused}
+                position={Position.TOP}
+                intent={Intent.PRIMARY}
+                className="w-full"
+              >
+                <div className="w-full block">
+                  <InputGroup
+                    fill
+                    value={editUsername}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditUsername(e.target.value)
+                    }
+                    onFocus={() => setUsernameFocused(true)}
+                    onBlur={() => setUsernameFocused(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsEditingUsername(false);
+                        setEditUsername(me?.username || "");
                       }
-                      onFocus={() => setUsernameFocused(true)}
-                      onBlur={() => setUsernameFocused(false)}
-                      autoFocus
-                    />
-                  </div>
-                </Tooltip>
-                <ButtonGroup>
-                  <Button
-                    icon={<Check size={16} />}
-                    intent={Intent.SUCCESS}
-                    loading={usernameLoading}
-                    onClick={onUpdateUsername}
-                  />
-                  <Button
-                    icon={<X size={16} />}
-                    onClick={() => {
-                      setIsEditingUsername(false);
-                      setEditUsername(me?.username || "");
                     }}
+                    autoFocus
                   />
-                </ButtonGroup>
-              </>
-            ) : (
-              <>
-                <InputGroup fill value={me?.username} readOnly />
+                </div>
+              </Tooltip>
+              <ButtonGroup>
                 <Button
-                  icon={<Edit2 size={16} />}
-                  onClick={() => setIsEditingUsername(true)}
+                  type="submit"
+                  icon={<Check size={16} />}
+                  intent={Intent.SUCCESS}
+                  loading={usernameLoading}
                 />
-              </>
-            )}
-          </div>
+                <Button
+                  type="button"
+                  icon={<X size={16} />}
+                  onClick={() => {
+                    setIsEditingUsername(false);
+                    setEditUsername(me?.username || "");
+                  }}
+                />
+              </ButtonGroup>
+            </form>
+          ) : (
+            <div className="flex gap-2">
+              <InputGroup fill value={me?.username} readOnly />
+              <Button
+                icon={<Edit2 size={16} />}
+                onClick={() => setIsEditingUsername(true)}
+              />
+            </div>
+          )}
         </FormGroup>
         <FormGroup label={t("account.userId")}>
           <InputGroup leftIcon="id-number" value={me?.id} disabled />
