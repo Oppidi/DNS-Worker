@@ -789,6 +789,7 @@
       "lockDevice": "Verrouiller cet appareil",
       "lockSuccess": "Verrouillé, clé privée effacée du stockage local",
       "enrollPasskeyBtn": "Associer la clé d'accès actuelle",
+      "enrollMorePasskeyBtn": "Associer d'autres clés d'accès",
       "enrollPasskeySuccess": "Clé d'accès associée avec succès au chiffrement de bout en bout !",
       "enrollPasskeyFailed": "Échec de l'association de la clé d'accès",
       "resetKeypairBtn": "Réinitialiser la paire de clés",

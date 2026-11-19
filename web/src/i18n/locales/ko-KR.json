@@ -789,6 +789,7 @@
       "lockDevice": "이 기기 잠금",
       "lockSuccess": "잠겼습니다. 개인 키가 로컬 저장소에서 삭제되었습니다",
       "enrollPasskeyBtn": "현재 패스키 연결",
+      "enrollMorePasskeyBtn": "추가 패스키 연결",
       "enrollPasskeySuccess": "패스키가 종단간 암호화에 성공적으로 연결되었습니다!",
       "enrollPasskeyFailed": "패스키 연결 실패",
       "resetKeypairBtn": "키 쌍 재설정",

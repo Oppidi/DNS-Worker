@@ -789,6 +789,7 @@
       "lockDevice": "Khóa thiết bị này",
       "lockSuccess": "Đã khóa, khóa riêng đã được xóa khỏi bộ nhớ cục bộ",
       "enrollPasskeyBtn": "Liên kết Passkey hiện tại",
+      "enrollMorePasskeyBtn": "Liên kết thêm Passkey",
       "enrollPasskeySuccess": "Đã liên kết thành công Passkey với mã hóa đầu cuối!",
       "enrollPasskeyFailed": "Liên kết Passkey thất bại",
       "resetKeypairBtn": "Đặt lại cặp khóa",

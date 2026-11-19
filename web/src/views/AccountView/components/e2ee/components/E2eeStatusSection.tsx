@@ -124,8 +124,8 @@ export const E2eeStatusSection: React.FC<E2eeStatusSectionProps> = ({
                   icon={<KeyRound size={12} />}
                   text={
                     (status?.wrappedPasskeys?.length || 0) === 0
-                      ? t("account.e2ee.enrollPasskeyBtn", "关联当前通行密钥")
-                      : t("account.e2ee.enrollMorePasskeyBtn", "关联未绑定通行密钥")
+                      ? t("account.e2ee.enrollPasskeyBtn")
+                      : t("account.e2ee.enrollMorePasskeyBtn")
                   }
                   loading={processing}
                   onClick={onEnrollPasskey}

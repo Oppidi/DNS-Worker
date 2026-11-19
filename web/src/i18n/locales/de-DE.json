@@ -789,6 +789,7 @@
       "lockDevice": "Dieses Gerät sperren",
       "lockSuccess": "Gesperrt, privater Schlüssel wurde aus dem lokalen Speicher gelöscht",
       "enrollPasskeyBtn": "Aktuellen Passkey verknüpfen",
+      "enrollMorePasskeyBtn": "Weitere Passkeys verknüpfen",
       "enrollPasskeySuccess": "Passkey erfolgreich mit E2EE verknüpft!",
       "enrollPasskeyFailed": "Passkey-Verknüpfung fehlgeschlagen",
       "resetKeypairBtn": "Schlüsselpaar zurücksetzen",

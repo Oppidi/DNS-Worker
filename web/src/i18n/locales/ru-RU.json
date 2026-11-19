@@ -789,6 +789,7 @@
       "lockDevice": "Заблокировать это устройство",
       "lockSuccess": "Заблокировано, закрытый ключ удален из локального хранилища",
       "enrollPasskeyBtn": "Связать текущий Passkey",
+      "enrollMorePasskeyBtn": "Связать еще Passkey",
       "enrollPasskeySuccess": "Passkey успешно привязан к E2EE!",
       "enrollPasskeyFailed": "Не удалось привязать Passkey",
       "resetKeypairBtn": "Сбросить пару ключей",

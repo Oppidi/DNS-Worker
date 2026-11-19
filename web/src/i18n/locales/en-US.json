@@ -789,6 +789,7 @@
       "trustBoundaryDesc": "All DNS query traffic inevitably passes through the hosting server (Cloudflare Workers edge nodes or self-hosted server runtime) during resolution, where queries are processed in memory before being encrypted and saved. This feature strictly protects data at rest in the cloud database (D1 / persistent storage) from data leaks or offline analysis; it does not conceal active network traffic from the hosting server processing the request.",
       "initFailed": "Failed to initialize End-to-End Encryption",
       "enrollPasskeyBtn": "Enroll Current Passkey",
+      "enrollMorePasskeyBtn": "Enroll More Passkeys",
       "enrollPasskeySuccess": "Passkey successfully enrolled into E2EE!",
       "enrollPasskeyFailed": "Failed to enroll Passkey",
       "resetKeypairBtn": "Reset Keypair",

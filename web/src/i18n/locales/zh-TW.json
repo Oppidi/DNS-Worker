@@ -789,6 +789,7 @@
       "lockDevice": "鎖定此裝置",
       "lockSuccess": "已鎖定，私鑰已從本機清除",
       "enrollPasskeyBtn": "關聯當前通行金鑰",
+      "enrollMorePasskeyBtn": "關聯更多通行金鑰",
       "enrollPasskeySuccess": "已成功將通行金鑰關聯至端到端加密！",
       "enrollPasskeyFailed": "關聯通行金鑰失敗",
       "resetKeypairBtn": "重置金鑰對",

@@ -789,6 +789,7 @@
       "lockDevice": "Bloquear este dispositivo",
       "lockSuccess": "Bloqueado, clave privada eliminada del almacenamiento local",
       "enrollPasskeyBtn": "Vincular Passkey actual",
+      "enrollMorePasskeyBtn": "Vincular más Passkeys",
       "enrollPasskeySuccess": "¡Passkey vinculada con éxito a E2EE!",
       "enrollPasskeyFailed": "Error al vincular Passkey",
       "resetKeypairBtn": "Restablecer par de claves",
