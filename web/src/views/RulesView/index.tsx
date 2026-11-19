@@ -393,11 +393,6 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
         <Callout title={t("rules.noRulesTitle")}>{t("rules.noRulesDesc")}</Callout>
       ) : (
         <div className="relative">
-          {loading && (
-            <div className="absolute inset-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-10 rounded-lg">
-              <Spinner size={32} />
-            </div>
-          )}
           {selectedRuleIds.length > 0 && (
             <div className="mb-3 px-4 py-2.5 rounded-lg border border-blue-200 dark:border-blue-800/70 bg-blue-50/70 dark:bg-blue-950/30 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
