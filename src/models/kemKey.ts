@@ -74,16 +74,22 @@ export class KemKeyModel {
   }
 
   /**
-   * Checks whether a specific kem_key is referenced by any logs.
+   * Checks whether a specific kem_key is referenced by any logs using clustered PK bounds.
    *
    * @param id The kem_key unique identifier.
    * @returns True if at least one log references this key.
    */
   async hasDependents(id: string): Promise<boolean> {
     try {
+      const key = await this.getById(id);
+      if (!key) {
+        return false;
+      }
       const row = await this.db
-        .prepare("SELECT 1 FROM logs WHERE kem_key_id = ? AND kem_key_id IS NOT NULL LIMIT 1")
-        .bind(id)
+        .prepare(
+          "SELECT 1 FROM logs WHERE profile_id = ? AND timestamp >= ? AND timestamp <= ? AND kem_key_id = ? LIMIT 1"
+        )
+        .bind(key.profile_id, key.created_at - 300, key.expires_at + 3600, id)
         .first<{ 1: number } | null>();
       return row !== null;
     } catch (err) {
@@ -121,22 +127,26 @@ export class KemKeyModel {
         return 0;
       }
 
-      // Bounded clustered-PK seek on logs(profile_id, timestamp, id) around the key's active window
-      // avoids requiring idx_logs_kem_key_id secondary index writes on every DNS log insert.
+      // Bounded candidate batch (oldest batchLimit keys via idx_kem_keys_created_at) +
+      // clustered-PK seek on logs(profile_id, timestamp, id) bounds both read quota and latency.
       const result = await this.db
         .prepare(`
           DELETE FROM kem_keys
           WHERE id IN (
-            SELECT k.id FROM kem_keys k
-            WHERE k.created_at <= ?
-              AND NOT EXISTS (
-                SELECT 1 FROM logs l
-                WHERE l.profile_id = k.profile_id
-                  AND l.timestamp >= k.created_at - 300
-                  AND l.timestamp <= k.expires_at + 3600
-                  AND l.kem_key_id = k.id
-              )
-            LIMIT ?
+            SELECT k.id FROM (
+              SELECT id, profile_id, created_at, expires_at
+              FROM kem_keys
+              WHERE created_at <= ?
+              ORDER BY created_at ASC
+              LIMIT ?
+            ) k
+            WHERE NOT EXISTS (
+              SELECT 1 FROM logs l
+              WHERE l.profile_id = k.profile_id
+                AND l.timestamp >= k.created_at - 300
+                AND l.timestamp <= k.expires_at + 3600
+                AND l.kem_key_id = k.id
+            )
           )
         `)
         .bind(cutoffTimestamp, batchLimit)
