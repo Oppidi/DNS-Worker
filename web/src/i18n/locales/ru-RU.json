@@ -368,7 +368,11 @@
     "includeSubdomains": "Включать поддомены",
     "includeSubdomainsDesc": "Напр., example.com также совпадает с *.example.com; по умолчанию выключено (только точное совпадение)",
     "subdomainsBadge": "+Поддомены",
-    "wildcardDisclaimer": "Для соответствия поддоменам используйте подстановочный знак *.example.com; example.com не будет соответствовать поддоменам."
+    "wildcardDisclaimer": "Для соответствия поддоменам используйте подстановочный знак *.example.com; example.com не будет соответствовать поддоменам.",
+    "exportList": "Экспорт списка",
+    "exportSelected": "Экспорт ({{count}})",
+    "exportSuccess": "Экспортировано правил AdGuard Home: {{count}}",
+    "exportEmpty": "Нет правил для экспорта"
   },
   "analytics": {
     "customRange": "Произвольный период",

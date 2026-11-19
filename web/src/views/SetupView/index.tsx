@@ -103,8 +103,13 @@ export const SetupView: React.FC<SetupViewProps> = ({ profileId, profileKey, pro
         getTraceInfo(),
       ]);
 
-      // Fallback GeoIP lookup if country is still unknown
-      if (clientData.ip && (clientData.country === "UNKNOWN" || !clientData.country)) {
+      // Fallback GeoIP lookup if country or city is unknown for a public IP
+      const isPrivateNetwork = clientData.country === "Private Network";
+      const needsGeoFallback =
+        clientData.country === "UNKNOWN" ||
+        !clientData.country ||
+        (!isPrivateNetwork && (clientData.city === "UNKNOWN" || !clientData.city));
+      if (clientData.ip && needsGeoFallback) {
         try {
           const fallbackRes = await fetch(`/api/geoip?ip=${encodeURIComponent(clientData.ip)}`);
           if (fallbackRes.ok) {

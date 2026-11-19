@@ -368,7 +368,11 @@
     "includeSubdomains": "Incluir subdominios",
     "includeSubdomainsDesc": "P. ej., example.com también coincidirá con *.example.com; desactivado por defecto (solo coincidencia exacta)",
     "subdomainsBadge": "+Subdominios",
-    "wildcardDisclaimer": "Para hacer coincidir subdominios, use el comodín *.example.com; example.com no coincidirá con subdominios."
+    "wildcardDisclaimer": "Para hacer coincidir subdominios, use el comodín *.example.com; example.com no coincidirá con subdominios.",
+    "exportList": "Exportar lista",
+    "exportSelected": "Exportar ({{count}})",
+    "exportSuccess": "Se exportaron {{count}} reglas compatibles con AdGuard Home",
+    "exportEmpty": "No hay reglas disponibles para exportar"
   },
   "analytics": {
     "customRange": "Periodo personalizado",

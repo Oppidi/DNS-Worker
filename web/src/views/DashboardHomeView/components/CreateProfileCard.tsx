@@ -42,7 +42,15 @@ export const CreateProfileCard: React.FC<CreateProfileCardProps> = ({
       elevation={Elevation.TWO}
       className="mb-6 p-4 dark:bg-gray-900 dark:border-gray-800 rounded-xl"
     >
-      <div className="flex items-center gap-2">
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (PROFILE_NAME_REGEX.test(newName)) {
+            onCreate();
+          }
+        }}
+      >
         <Tooltip
           content={t("common.profileNameFormatTip", "Profile Name tip: 1-30 characters, duplicates not allowed")}
           isOpen={nameFocused}
@@ -63,18 +71,19 @@ export const CreateProfileCard: React.FC<CreateProfileCardProps> = ({
           </div>
         </Tooltip>
         <Button
+          type="submit"
           intent={Intent.SUCCESS}
-          onClick={onCreate}
           text={t("common.create")}
           className="whitespace-nowrap"
           disabled={!PROFILE_NAME_REGEX.test(newName)}
         />
         <Button
+          type="button"
           variant="minimal"
           onClick={() => setShowCreate(false)}
           icon="cross"
         />
-      </div>
+      </form>
       {error && (
         <div className="mt-2 text-red-500 text-xs">
           {getErrorMessage(error)}
