@@ -368,7 +368,11 @@
     "includeSubdomains": "Subdomains einschließen",
     "includeSubdomainsDesc": "Z.B. entspricht example.com auch *.example.com; standardmäßig deaktiviert (nur exakte Übereinstimmung)",
     "subdomainsBadge": "+Subdomains",
-    "wildcardDisclaimer": "Verwenden Sie zum Abgleichen von Subdomains den Platzhalter *.example.com; example.com gleicht keine Subdomains ab."
+    "wildcardDisclaimer": "Verwenden Sie zum Abgleichen von Subdomains den Platzhalter *.example.com; example.com gleicht keine Subdomains ab.",
+    "exportList": "Liste exportieren",
+    "exportSelected": "Exportieren ({{count}})",
+    "exportSuccess": "{{count}} AdGuard-Home-Regeln exportiert",
+    "exportEmpty": "Keine exportierbaren Regeln vorhanden"
   },
   "analytics": {
     "customRange": "Benutzerdefinierter Zeitraum",

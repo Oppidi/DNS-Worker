@@ -368,7 +368,11 @@
     "includeSubdomains": "Inclure les sous-domaines",
     "includeSubdomainsDesc": "Ex. : example.com correspondra aussi à *.example.com ; désactivé par défaut (correspondance exacte uniquement)",
     "subdomainsBadge": "+Sous-domaines",
-    "wildcardDisclaimer": "Pour faire correspondre les sous-domaines, utilisez le caractère générique *.example.com ; example.com ne correspondra pas aux sous-domaines."
+    "wildcardDisclaimer": "Pour faire correspondre les sous-domaines, utilisez le caractère générique *.example.com ; example.com ne correspondra pas aux sous-domaines.",
+    "exportList": "Exporter la liste",
+    "exportSelected": "Exporter ({{count}})",
+    "exportSuccess": "{{count}} règles compatibles AdGuard Home exportées",
+    "exportEmpty": "Aucune règle exportable disponible"
   },
   "analytics": {
     "customRange": "Période personnalisée",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Alert, Callout, Intent, ButtonGroup, Button, Tag, PopoverNext, Spinner } from "@blueprintjs/core";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
@@ -9,6 +9,7 @@ import type { Rule, RulesViewProps, ProfileSettings } from "./types";
 import { AddRuleCard } from "./components/AddRuleCard";
 import { RulesTable } from "./components/RulesTable";
 import { EditRuleDialog } from "./components/EditRuleDialog";
+import { downloadAdGuardRulesList } from "./utils/adguardExport";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import {
   getProfileRules,
@@ -291,6 +292,29 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
     }
   };
 
+  const handleExportAdGuardList = (targetRules: Rule[]) => {
+    const safeProfileLabel = profileId
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const filename = `adguard-rules-${safeProfileLabel || "profile"}.txt`;
+    const exportedCount = downloadAdGuardRulesList(targetRules, filename, profileId);
+    if (exportedCount === 0) {
+      toasterRef?.current?.show({
+        message: t("rules.exportEmpty", "没有可导出的规则"),
+        intent: Intent.WARNING,
+      });
+      return;
+    }
+    toasterRef?.current?.show({
+      message: t("rules.exportSuccess", {
+        count: exportedCount,
+        defaultValue: `已导出 ${exportedCount} 条 AdGuard Home 兼容规则`,
+      }),
+      intent: Intent.SUCCESS,
+    });
+  };
+
   useEffect(() => {
     setSelectedRuleIds([]);
     fetchRules();
@@ -328,8 +352,8 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
             <p className="bp6-text-muted mt-2!">{t("rules.subtitle")}</p>
           </div>
 
-          {!loading && !hasSelfRedirect && (
-            <div className="flex items-center gap-3 self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+            {!loading && !hasSelfRedirect && (
               <PopoverNext
                 isOpen={isPromptOpen}
                 onInteraction={setIsPromptOpen}
@@ -366,8 +390,16 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
                   {t("rules.addSelfRedirectTag", "增加本站重定向？")}
                 </Tag>
               </PopoverNext>
-            </div>
-          )}
+            )}
+            <Button
+              type="button"
+              variant="outlined"
+              icon={<Download size={14} />}
+              text={t("rules.exportList", "导出列表")}
+              disabled={loading || rules.length === 0}
+              onClick={() => handleExportAdGuardList(rules)}
+            />
+          </div>
         </div>
       </div>
 
@@ -410,17 +442,34 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
                   disabled={isDeletingBulk}
                 />
               </div>
-              <Button
-                size="small"
-                intent={Intent.DANGER}
-                icon={<Trash2 size={14} />}
-                text={t("rules.deleteSelected", {
-                  count: selectedRuleIds.length,
-                  defaultValue: `删除 (${selectedRuleIds.length})`,
-                })}
-                loading={isDeletingBulk}
-                onClick={() => setIsBulkDeleteAlertOpen(true)}
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="small"
+                  variant="outlined"
+                  icon={<Download size={14} />}
+                  text={t("rules.exportSelected", {
+                    count: selectedRuleIds.length,
+                    defaultValue: `导出 (${selectedRuleIds.length})`,
+                  })}
+                  disabled={isDeletingBulk}
+                  onClick={() =>
+                    handleExportAdGuardList(rules.filter((r) => selectedRuleIds.includes(r.id)))
+                  }
+                />
+                <Button
+                  type="button"
+                  size="small"
+                  intent={Intent.DANGER}
+                  icon={<Trash2 size={14} />}
+                  text={t("rules.deleteSelected", {
+                    count: selectedRuleIds.length,
+                    defaultValue: `删除 (${selectedRuleIds.length})`,
+                  })}
+                  loading={isDeletingBulk}
+                  onClick={() => setIsBulkDeleteAlertOpen(true)}
+                />
+              </div>
             </div>
           )}
           <RulesTable
