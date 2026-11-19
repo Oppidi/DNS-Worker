@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Callout, Intent, ButtonGroup, Button, Tag, PopoverNext, Spinner } from "@blueprintjs/core";
+import { Alert, Callout, Intent, ButtonGroup, Button, Tag, PopoverNext, Spinner } from "@blueprintjs/core";
+import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
@@ -15,6 +16,7 @@ import {
   addProfileRule,
   updateProfileRule,
   deleteProfileRule,
+  deleteProfileRulesBulk,
   getClientInfo,
 } from "../../services";
 
@@ -47,6 +49,9 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
   });
 
   const [editRule, setEditRule] = useState<Rule | null>(null);
+  const [selectedRuleIds, setSelectedRuleIds] = useState<number[]>([]);
+  const [isBulkDeleteAlertOpen, setIsBulkDeleteAlertOpen] = useState(false);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   const [substituteDomain, setSubstituteDomain] = useState<string>("www.wto.org");
   const [isPromptOpen, setIsPromptOpen] = useState(false);
 
@@ -110,6 +115,8 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
       ]);
 
       setRules(rulesData);
+      const validIds = new Set(rulesData.map((r) => r.id));
+      setSelectedRuleIds((prev) => prev.filter((id) => validIds.has(id)));
       setSettings(JSON.parse(profileData.settings || "{}"));
     } catch (e) {
       console.error("Failed to fetch data", e);
@@ -246,7 +253,46 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
     await fetchRules();
   };
 
+  const handleToggleSelectRule = (id: number) => {
+    setSelectedRuleIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    setSelectedRuleIds(checked ? rules.map((r) => r.id) : []);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (selectedRuleIds.length === 0) return;
+    setIsDeletingBulk(true);
+    try {
+      const targetCount = selectedRuleIds.length;
+      const res = await deleteProfileRulesBulk(profileId, selectedRuleIds);
+      const deletedCount = typeof res?.count === "number" ? res.count : targetCount;
+      setSelectedRuleIds([]);
+      setIsBulkDeleteAlertOpen(false);
+      toasterRef?.current?.show({
+        message: t("rules.deleteBulkSuccess", {
+          count: deletedCount,
+          defaultValue: `已删除 ${deletedCount} 条规则`,
+        }),
+        intent: Intent.SUCCESS,
+      });
+      await fetchRules();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "";
+      toasterRef?.current?.show({
+        message: message || t("rules.deleteBulkFailed", "批量删除规则失败"),
+        intent: Intent.DANGER,
+      });
+    } finally {
+      setIsDeletingBulk(false);
+    }
+  };
+
   useEffect(() => {
+    setSelectedRuleIds([]);
     fetchRules();
   }, [profileId]);
 
@@ -352,7 +398,44 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
               <Spinner size={32} />
             </div>
           )}
-          <RulesTable rules={rules} startEdit={startEdit} getBlockDetail={getBlockDetail} />
+          {selectedRuleIds.length > 0 && (
+            <div className="mb-3 px-4 py-2.5 rounded-lg border border-blue-200 dark:border-blue-800/70 bg-blue-50/70 dark:bg-blue-950/30 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {t("rules.selectedCount", {
+                    count: selectedRuleIds.length,
+                    defaultValue: `已选择 ${selectedRuleIds.length} 项`,
+                  })}
+                </span>
+                <Button
+                  size="small"
+                  variant="minimal"
+                  text={t("rules.clearSelection", "取消选择")}
+                  onClick={() => setSelectedRuleIds([])}
+                  disabled={isDeletingBulk}
+                />
+              </div>
+              <Button
+                size="small"
+                intent={Intent.DANGER}
+                icon={<Trash2 size={14} />}
+                text={t("rules.deleteSelected", {
+                  count: selectedRuleIds.length,
+                  defaultValue: `删除 (${selectedRuleIds.length})`,
+                })}
+                loading={isDeletingBulk}
+                onClick={() => setIsBulkDeleteAlertOpen(true)}
+              />
+            </div>
+          )}
+          <RulesTable
+            rules={rules}
+            startEdit={startEdit}
+            getBlockDetail={getBlockDetail}
+            selectedIds={selectedRuleIds}
+            onToggleSelect={handleToggleSelectRule}
+            onToggleSelectAll={handleToggleSelectAll}
+          />
         </div>
       )}
 
@@ -365,6 +448,26 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
         isSaving={isSaving}
         isDeleting={isDeleting}
       />
+
+      <Alert
+        isOpen={isBulkDeleteAlertOpen}
+        confirmButtonText={t("rules.delete", "删除")}
+        cancelButtonText={t("rules.cancel", "取消")}
+        intent={Intent.DANGER}
+        icon="trash"
+        loading={isDeletingBulk}
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={() => {
+          if (!isDeletingBulk) setIsBulkDeleteAlertOpen(false);
+        }}
+      >
+        <p>
+          {t("rules.confirmDeleteBulk", {
+            count: selectedRuleIds.length,
+            defaultValue: `确定要删除选中的 ${selectedRuleIds.length} 条规则吗？`,
+          })}
+        </p>
+      </Alert>
     </div>
   );
 };
