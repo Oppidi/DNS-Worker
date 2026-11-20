@@ -61,7 +61,7 @@ export const AccessPointSection: React.FC<AccessPointSectionProps> = ({
           <span className="truncate">{ap.name}</span>
         </div>
       }
-      className="group relative overflow-hidden shadow-none! rounded-lg! [&_.bp6-section-header]:relative [&_.bp6-section-header]:z-10 [&_.bp6-section-card]:relative [&_.bp6-section-card]:z-10"
+      className="group relative overflow-hidden rounded-lg! [&_.bp6-section-header]:relative [&_.bp6-section-header]:z-10 [&_.bp6-section-card]:relative [&_.bp6-section-card]:z-10"
     >
       <DeviceTypeStamp deviceType={currentDeviceType} />
       <SectionCard>
