@@ -13,6 +13,7 @@ import { VerifyConnectionCard } from "./components/VerifyConnectionCard";
 import { AccessPointCard } from "./components/AccessPointCard";
 import { DohUrlCard } from "./components/DohUrlCard";
 import { SetupTabs } from "./components/SetupTabs";
+import { PAGE_CONTAINER_STANDARD } from "../../constants/layout";
 import type { AccessPoint } from "../../types/auth";
 import {
   getClientInfo,
@@ -234,7 +235,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ profiles, toasterRef }) =>
   }, [domainIps, clientInfo?.substituteDomain]);
 
   return (
-    <div className={`mx-auto space-y-8 pb-24 ${isMobile ? "p-1" : "px-8 max-w-5xl"}`}>
+    <div className={`mx-auto space-y-8 pb-24 ${isMobile ? "p-1" : `px-8 ${PAGE_CONTAINER_STANDARD}`}`}>
       <SetupHeader isMobile={isMobile} />
 
       <VerifyConnectionCard
