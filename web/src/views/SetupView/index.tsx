@@ -278,11 +278,26 @@ export const SetupView: React.FC<SetupViewProps> = ({ profiles, toasterRef }) =>
         </Callout>
       ) : (
         <>
-          <AccessPointCard
-            accessPoints={accessPoints}
-            selectedAp={activeAp}
-            onSelectAp={handleSelectAp}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            <div className={activeToken ? "lg:col-span-5 min-w-0" : "lg:col-span-12 min-w-0"}>
+              <AccessPointCard
+                accessPoints={accessPoints}
+                selectedAp={activeAp}
+                onSelectAp={handleSelectAp}
+              />
+            </div>
+
+            {activeToken && (
+              <div className="lg:col-span-7 min-w-0">
+                <DohUrlCard
+                  dohUrl={dohUrl}
+                  copyToClipboard={copyToClipboard}
+                  isMobile={isMobile}
+                  flashTrigger={apSwitchCount}
+                />
+              </div>
+            )}
+          </div>
 
           {activeAp && !activeAp.profile_id && (
             <Callout
@@ -308,25 +323,16 @@ export const SetupView: React.FC<SetupViewProps> = ({ profiles, toasterRef }) =>
           )}
 
           {activeToken && (
-            <>
-              <DohUrlCard
-                dohUrl={dohUrl}
-                copyToClipboard={copyToClipboard}
-                isMobile={isMobile}
-                flashTrigger={apSwitchCount}
-              />
-
-              <SetupTabs
-                isMobile={isMobile}
-                copyToClipboard={copyToClipboard}
-                dohUrl={dohUrl}
-                profileKey={activeToken}
-                profileName={boundProfile?.name}
-                accessPointName={activeName}
-                currentIps={currentIps}
-                dotDomain={clientInfo?.dotDomain}
-              />
-            </>
+            <SetupTabs
+              isMobile={isMobile}
+              copyToClipboard={copyToClipboard}
+              dohUrl={dohUrl}
+              profileKey={activeToken}
+              profileName={boundProfile?.name}
+              accessPointName={activeName}
+              currentIps={currentIps}
+              dotDomain={clientInfo?.dotDomain}
+            />
           )}
         </>
       )}
