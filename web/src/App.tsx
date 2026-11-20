@@ -155,7 +155,6 @@ function App() {
         <meta name="description" content={pageMeta.description} />
         <html lang={i18n.language} />
       </Helmet>
-      <GitHubCorner />
       <OverlayToaster position="bottom" ref={toasterRef} />
       <IdleSessionLock currentUser={currentUser} handleLogout={handleLogout} onUnlock={fetchProfiles}>
         <Routes>

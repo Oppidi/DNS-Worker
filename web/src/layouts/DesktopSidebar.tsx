@@ -249,15 +249,23 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     { id: "settings", label: t("nav.settings"), icon: <Settings size={18} /> },
   ];
 
-  const renderGroupHeader = (label: string, isFirst = false) =>
+  const renderGroupHeader = (label: string, isFirst = false, badge?: string | null) =>
     showText ? (
       <li
         className={clsx(
-          "px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 select-none",
+          "px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none flex items-center justify-between gap-2",
           isFirst ? "pt-1" : "pt-4"
         )}
       >
-        {label}
+        <span className="shrink-0">{label}</span>
+        {badge && (
+          <span
+            className="truncate max-w-28 rounded px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/50"
+            title={badge}
+          >
+            {badge}
+          </span>
+        )}
       </li>
     ) : !isFirst ? (
       <li className="my-2 border-t border-gray-100 dark:border-gray-800" />
@@ -396,7 +404,11 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             />
 
             {/* Group 2: Profiles */}
-            {renderGroupHeader(t("nav.groupProfiles", "Profiles"))}
+            {renderGroupHeader(
+              t("nav.groupProfiles", "Profiles"),
+              false,
+              (activeId ? profiles.find((p) => p.id === activeId) : undefined)?.name
+            )}
             <MenuItem
               href="/dash"
               icon={<LayoutGrid size={18} />}
