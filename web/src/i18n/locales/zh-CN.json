@@ -71,7 +71,8 @@
     "groupProfiles": "配置",
     "groupPreferences": "偏好设置",
     "manage": "管理",
-    "collections": "配置集"
+    "collections": "配置集",
+    "selectProfileFirst": "请先选择配置"
   },
   "theme": {
     "light": "浅色",

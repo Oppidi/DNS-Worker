@@ -71,7 +71,8 @@
     "groupProfiles": "設定檔",
     "groupPreferences": "偏好設定",
     "manage": "管理",
-    "collections": "設定檔集"
+    "collections": "設定檔集",
+    "selectProfileFirst": "請先選擇設定檔"
   },
   "theme": {
     "light": "淺色",

@@ -71,7 +71,8 @@
     "groupProfiles": "Profile",
     "groupPreferences": "Einstellungen",
     "manage": "Verwalten",
-    "collections": "Sammlungen"
+    "collections": "Sammlungen",
+    "selectProfileFirst": "Bitte wählen Sie zuerst ein Profil aus"
   },
   "theme": {
     "light": "Hell",

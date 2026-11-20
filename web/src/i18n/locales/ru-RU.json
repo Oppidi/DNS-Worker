@@ -71,7 +71,8 @@
     "groupProfiles": "Профили",
     "groupPreferences": "Параметры",
     "manage": "Управление",
-    "collections": "Коллекции"
+    "collections": "Коллекции",
+    "selectProfileFirst": "Пожалуйста, сначала выберите профиль"
   },
   "theme": {
     "light": "Светлая",

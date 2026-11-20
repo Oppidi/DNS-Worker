@@ -137,6 +137,7 @@ function App() {
       handleLogout={handleLogout}
       currentUser={currentUser}
       isSaving={isSaving}
+      toasterRef={toasterRef}
     >
       {content}
     </MainLayout>

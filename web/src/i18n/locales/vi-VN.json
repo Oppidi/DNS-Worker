@@ -71,7 +71,8 @@
     "groupProfiles": "Hồ sơ",
     "groupPreferences": "Tùy chọn",
     "manage": "Quản lý",
-    "collections": "Bộ sưu tập"
+    "collections": "Bộ sưu tập",
+    "selectProfileFirst": "Vui lòng chọn hồ sơ trước"
   },
   "theme": {
     "light": "Sáng",

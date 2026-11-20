@@ -71,7 +71,8 @@
     "groupProfiles": "Profiles",
     "groupPreferences": "Preferences",
     "manage": "Manage",
-    "collections": "Collections"
+    "collections": "Collections",
+    "selectProfileFirst": "Please select a profile first"
   },
   "theme": {
     "light": "Light",

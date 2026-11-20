@@ -71,7 +71,8 @@
     "groupProfiles": "プロファイル",
     "groupPreferences": "設定",
     "manage": "管理",
-    "collections": "コレクション"
+    "collections": "コレクション",
+    "selectProfileFirst": "先にプロファイルを選択してください"
   },
   "theme": {
     "light": "ライト",

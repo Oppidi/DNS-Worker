@@ -71,7 +71,8 @@
     "groupProfiles": "프로필",
     "groupPreferences": "환경설정",
     "manage": "관리",
-    "collections": "컬렉션"
+    "collections": "컬렉션",
+    "selectProfileFirst": "먼저 프로필을 선택해주세요"
   },
   "theme": {
     "light": "라이트 모드",

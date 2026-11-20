@@ -6,6 +6,7 @@ import {
   PopoverNext,
   Intent,
   Tag,
+  type OverlayToaster,
 } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,6 +57,8 @@ interface DesktopSidebarProps {
   handleLogout: () => void;
   /** Current logged in user info. */
   currentUser: UserInfo | null;
+  /** Shared OverlayToaster ref for global notifications. */
+  toasterRef?: React.RefObject<OverlayToaster | null>;
 }
 
 /**
@@ -74,6 +77,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   navigate,
   handleLogout,
   currentUser,
+  toasterRef,
 }) => {
   const { t } = useTranslation();
   const { isDemoMode, demoDomain } = useDeploymentMode();
@@ -236,6 +240,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       setSelectedProfile(profiles[0]);
       navigate(`/dash/${profiles[0].id}/${section}`);
     } else {
+      toasterRef?.current?.show({
+        message: t("nav.selectProfileFirst", "Please select a profile first"),
+        intent: Intent.WARNING,
+      });
       navigate(`/dash?next=${encodeURIComponent(section)}`);
     }
     closeMobileSidebar?.();
