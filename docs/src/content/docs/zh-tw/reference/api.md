@@ -267,7 +267,7 @@ curl -s -b cookies.txt -X POST https://dns.example.com/api/profiles/<profileId>/
 | `DELETE` | `/api/profiles/:id/logs` | Bearer + CSRF | 清空該配置檔案下儲存的查詢日誌。 |
 | `POST` | `/api/profiles/:id/logs/ws-ticket` | Bearer + CSRF | 簽發一次性短期 Ticket，用於建立即時日誌 WebSocket 連線。 |
 | `GET` (WS) | `/api/profiles/:id/logs/ws` | Ticket | WebSocket 升級端點，用於即時接收 DNS 查詢事件流。 |
-| `GET` | `/api/profiles/:id/analytics` | Bearer | 獲取配置檔案綜合統計分析概覽（開啟 `DEMO_MODE=true` 時，按任意預設或 `custom` 時間區間及接入點篩選動態生成自洽演示分析資料）。 |
+| `GET` | `/api/profiles/:id/analytics` | Bearer | 獲取配置檔案綜合統計分析概覽（開啟 `DEMO_MODE=true` 時，按任意預設或自定義時間區間及接入點篩選動態生成自洽演示分析資料）。 |
 | `GET` | `/api/profiles/:id/analytics/summary` | Bearer | 獲取請求總數、攔截量、快取命中及響應延遲彙總。 |
 | `GET` | `/api/profiles/:id/analytics/trend` | Bearer | 獲取按時間分桶的查詢趨勢與攔截率資料。 |
 | `GET` | `/api/profiles/:id/analytics/top_allowed` | Bearer | 獲取最常放行的域名排行榜。 |

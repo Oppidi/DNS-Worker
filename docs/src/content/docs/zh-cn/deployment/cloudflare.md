@@ -56,21 +56,19 @@ npm run deploy
 
 ---
 
-## 核心环境变量与演示模式（Demo Mode）
+## 核心环境变量
 
-除作为 Worker Secrets 存储的 `JWT_SECRET` 与 `KEK_v1` 外，以下常用运行时变量均可在 `wrangler.toml` 的 `[vars]` 或 Cloudflare 控制台环境变量中调整：
+除作为机密变量存储的 `JWT_SECRET` 与 `KEK_v1` 外，以下常用运行时变量均可在 `wrangler.toml` 的 `[vars]` 或 Cloudflare 控制台环境变量中调整：
 
 | 变量名 | 默认值 | 说明 |
 | --- | --- | --- |
 | `FAIL_OPEN_UPSTREAM` | `tls://no-ads-malware-typo.freedns.controld.com` | 数据库离线或接入点处于未绑定状态（`profile_id = null`）时回退的兜底上游解析器。 |
-| `SUBSTITUTE_DOMAIN` | `www.wto.org` | Setup Guide 卡片用于探测展示节点 IPv4/IPv6 的辅助域名。 |
-| `MAX_PROFILES_PER_USER` | `10` | 单个账户允许创建的最大 Profile 数量。 |
-| `MAX_ACCESS_POINTS_PER_PROFILE` | `100` | 账户下允许创建的最大 Access Points 上限。 |
+| `SUBSTITUTE_DOMAIN` | `www.wto.org` | 接入引导卡片用于探测展示节点 IPv4 与 IPv6 连通状态的辅助域名。 |
+| `MAX_PROFILES_PER_USER` | `10` | 单个账户允许创建的最大配置文件数量。 |
+| `MAX_ACCESS_POINTS_PER_PROFILE` | `100` | 账户下允许创建的最大接入点数量上限。 |
 | `MAX_LOG_RETENTION_DAYS` | `30` | 管理员配置文件允许设置的最长日志保留天数上限。 |
-| `INACTIVITY_THRESHOLD_DAYS` | `180` | 账户连续无 DNS 解析活动多少天后由定时任务自动清理。 |
-| `DEMO_MODE` | `false` | 设为 `"true"` 开启演示模式（顶部显示 `Demo Mode` 标识、输出脱敏网络遥测并自动注入演示数据；变量名须全大写）。 |
+| `INACTIVITY_THRESHOLD_DAYS` | `180` | 账户连续无解析活动多少天后由定时任务自动清理。 |
+| `DEMO_MODE` | `false` | 可选演示开关，设为 `"true"` 时开启演示模式（展示状态标签、脱敏网络遥测并自动注入示例数据；变量名须全大写）。 |
 | `DEMO_DOMAIN` | `dns.worker.domain` | 开启 `DEMO_MODE` 后页面统一展示的接入基准域名（变量名须全大写）。 |
 
-开启 `DEMO_MODE=true` 后：
-- 系统信息与 Setup Guide 自动对真实客户端 IP 与部署域名脱敏，接入 URL 与引导命令统一替换为 `DEMO_DOMAIN`（默认 `dns.worker.domain`）。
-- 账号下会自动幂等填充示例 Profile（`Default`、`Office Network`、`Kids Safe`）、10 种常见设备形态的 Access Points（含 1 个 `Unbound` 智能电视示例）、自定义规则、外部过滤订阅列表、示例日志以及支持任意时间范围（`10M` / `1H` / `24H` / `7D` / `30D` / `Custom`）的 `/stats` 动态演示数据。
+开启 `DEMO_MODE=true` 后，接入地址与公共探测信息会自动脱敏并替换为 `DEMO_DOMAIN`，且账号下会自动幂等填充示例配置文件、10 种常见设备形态的接入点（含 1 个未绑定智能电视示例）、自定义规则、外部过滤列表、示例日志及全时间范围动态统计数据。

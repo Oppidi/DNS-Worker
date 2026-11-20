@@ -168,9 +168,9 @@ SERVERFULL_DISABLE_HTTPS=false
 
 ---
 
-## Common `.env` Variables & Demo Mode
+## Common `.env` Variables
 
-In addition to listening ports and TLS paths, `.env` supports all shared resolver, retention, and Demo Mode flags:
+In addition to listening ports and TLS paths, `.env` supports shared resolver fallback, quotas, retention, and optional demo flags:
 
 ```ini
 # Fail-open upstream used for unbound Access Points (profile_id = null) or fallback

@@ -55,23 +55,23 @@ certbot certonly -d *.your.domain -d your.domain --manual --preferred-challenges
 ## 4. 设备接入正常，但过滤规则未生效且没有查询日志？
 
 ### 现象
-客户端使用分配的 DoH URL 或 DoT 域名可以正常上网，但配置的拦截规则不生效，且在 **Logs** 页面看不到对应请求记录。
+客户端使用分配的 DoH 地址或 DoT 域名可以正常上网，但配置的拦截规则不生效，且在 **解析日志** 页面看不到对应请求记录。
 
 ### 原因
-Access Point 与 Profile 采用解耦设计。当某个接入点处于 **Unbound（未绑定）** 状态（例如新建时未绑定，或原本绑定的 Profile 被删除导致 `profile_id` 置空）时，系统为保障不断网会将其路由至 `FAIL_OPEN_UPSTREAM` 应急上游，跳过规则过滤且不写入日志。
+接入点与配置文件采用解耦设计。当某个接入点处于 **未绑定** 状态（例如新建时未绑定，或原本绑定的配置文件被删除导致 `profile_id` 置空）时，系统为保障不断网会将其路由至 `FAIL_OPEN_UPSTREAM` 应急上游，跳过规则过滤且不写入日志。
 
 ### 解决方法
-进入左侧 **Access Points > Manage**（`/access-points/manage`），找到对应设备卡片，在 **Bound Profile** 下拉框中重新绑定目标 Profile 即可立即生效。
+进入左侧 **接入点 > 管理**（`/access-points/manage`），找到对应设备卡片，在 **绑定配置** 下拉框中重新绑定目标配置文件即可立即生效。
 
 ---
 
-## 5. `npm run dev` 本地开发时 Analytics 世界地图不显示（仅见零星圆点）？
+## 5. `npm run dev` 本地开发时统计页世界地图不显示（仅见零星圆点）？
 
 ### 现象
 统计页地图区域能看到微缩地区圆点与图例、缩放按钮，但各大洲地理轮廓未渲染。
 
 ### 原因
-世界地图拓扑依赖 `/world-110m.json`（由 Worker 代理上游并携带 `Cache-Control: max-age=2592000` 缓存）。若本地 `.wrangler/state/v3/cache` 缓存块损坏、浏览器命中此前 30 天旧缓存或开发服务尚未完全启动时请求超时，会导致 TopoJSON 未能加载。
+世界地图数据依赖 `/world-110m.json`（由服务代理上游并携带 `Cache-Control: max-age=2592000` 缓存）。若本地 `.wrangler/state/v3/cache` 缓存块损坏、浏览器命中此前 30 天旧缓存或开发服务尚未完全启动时请求超时，会导致地图轮廓数据未能加载。
 
 ### 解决方法
 1. 停止 `npm run dev`，清理 `.wrangler/state/v3/cache` 目录（保留 `.wrangler/state/v3/d1` 与 `.wrangler/state/v3/do` 数据库数据），重新启动 `npm run dev`。

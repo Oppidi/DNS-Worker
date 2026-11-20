@@ -168,9 +168,9 @@ SERVERFULL_DISABLE_HTTPS=false
 
 ---
 
-## 常用运行时配置与演示模式（Demo Mode）
+## 常用环境变量
 
-除监听端口与 TLS 证书路径外，`.env` 还支持解析兜底、配额保留及演示模式配置：
+除监听端口与 TLS 证书路径外，`.env` 还支持解析兜底、配额保留及可选演示开关等配置：
 
 ```ini
 # 未绑定接入点（profile_id = null）或紧急降级时使用的兜底上游解析器
@@ -182,9 +182,9 @@ MAX_ACCESS_POINTS_PER_PROFILE=100
 MAX_LOG_RETENTION_DAYS=30
 DNS_CACHE_SIZE=20000
 
-# 演示模式（环境变量名须保持全大写）
-# 开启后页眉切换为 Demo Mode 标签、屏蔽真实网络遥测、统一替换域名为 DEMO_DOMAIN，
-# 并自动填充多设备接入点、规则、外部列表、示例日志以及全时间窗口 /stats 数据。
+# 演示模式开关（环境变量名须保持全大写）
+# 开启后页眉切换为演示状态标签、屏蔽真实网络遥测、统一替换域名为 DEMO_DOMAIN，
+# 并自动填充多设备接入点、规则、外部列表、示例日志以及全时间窗口统计数据。
 DEMO_MODE=false
 DEMO_DOMAIN=dns.worker.domain
 ```
