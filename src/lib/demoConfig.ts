@@ -43,12 +43,12 @@ export interface DemoAccessPointSpec {
 
 /** Canonical demo Access Point devices across desktop, mobile, tablet, router, NAS, TV, and browser. */
 export const DEMO_ACCESS_POINT_SPECS: readonly DemoAccessPointSpec[] = [
-  { name: "MacBook-Pro", targetProfileRole: "primary" },
-  { name: "Windows-11-Desktop", targetProfileRole: "primary" },
-  { name: "iPhone-16-Pro", targetProfileRole: "primary" },
-  { name: "Pixel-9-Android", targetProfileRole: "primary" },
   { name: "OpenWrt-Router", targetProfileRole: "primary" },
-  { name: "Synology-NAS", targetProfileRole: "primary" },
+  { name: "MacBook-Pro", targetProfileRole: "primary" },
+  { name: "TrueNAS-NAS", targetProfileRole: "office" },
+  { name: "Windows-11-Desktop", targetProfileRole: "primary" },
+  { name: "iPhone-16", targetProfileRole: "primary" },
+  { name: "Pixel-9-Android", targetProfileRole: "primary" },
   { name: "Linux-Workstation", targetProfileRole: "office" },
   { name: "Chrome-Browser-Work", targetProfileRole: "office" },
   { name: "Kids-iPad", targetProfileRole: "kids" },
@@ -428,10 +428,10 @@ export interface DemoClientProfile {
 export const DEMO_CLIENT_POOL: readonly DemoClientProfile[] = [
   { apName: "MacBook-Pro", clientIp: "203.0.113.10", geoCountry: "JP" },
   { apName: "Windows-11-Desktop", clientIp: "203.0.113.18", geoCountry: "US" },
-  { apName: "iPhone-16-Pro", clientIp: "203.0.113.24", geoCountry: "JP" },
+  { apName: "iPhone-16", clientIp: "203.0.113.24", geoCountry: "JP" },
   { apName: "Pixel-9-Android", clientIp: "198.51.100.88", geoCountry: "SG" },
   { apName: "OpenWrt-Router", clientIp: "2001:db8::42", geoCountry: "US" },
-  { apName: "Synology-NAS", clientIp: "198.51.100.120", geoCountry: "DE" },
+  { apName: "TrueNAS-NAS", clientIp: "198.51.100.120", geoCountry: "DE" },
 ];
 
 export interface DemoClientInfoPayload extends DemoClientInfoDefaults {
