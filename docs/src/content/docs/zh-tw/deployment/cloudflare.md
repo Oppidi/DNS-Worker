@@ -53,3 +53,24 @@ npm run deploy
 ## Cloudflare D1 資料庫 Studio 查驗
 
 部署完成後，所有使用者、接入點、過濾規則及查詢日誌均持久化於 Cloudflare D1 分散式資料庫中。您可以在 Cloudflare 控制台導航至 **Workers & Pages** > **D1** > 目標資料庫 > **Console / Explore Data** 直接檢索表資料與架構。
+
+---
+
+## 核心環境變數與演示模式（Demo Mode）
+
+除作為 Worker Secrets 儲存的 `JWT_SECRET` 與 `KEK_v1` 外，以下常用執行時變數均可在 `wrangler.toml` 的 `[vars]` 或 Cloudflare 控制台環境變數中調整：
+
+| 變數名 | 預設值 | 說明 |
+| --- | --- | --- |
+| `FAIL_OPEN_UPSTREAM` | `tls://no-ads-malware-typo.freedns.controld.com` | 資料庫離線或接入點處於未繫結狀態（`profile_id = null`）時回退的兜底上游解析器。 |
+| `SUBSTITUTE_DOMAIN` | `www.wto.org` | Setup Guide 卡片用於探測展示節點 IPv4/IPv6 的輔助域名。 |
+| `MAX_PROFILES_PER_USER` | `10` | 單個賬戶允許建立的最大 Profile 數量。 |
+| `MAX_ACCESS_POINTS_PER_PROFILE` | `100` | 賬戶下允許建立的最大 Access Points 上限。 |
+| `MAX_LOG_RETENTION_DAYS` | `30` | 管理員配置檔案允許設定的最長日誌保留天數上限。 |
+| `INACTIVITY_THRESHOLD_DAYS` | `180` | 賬戶連續無 DNS 解析活動多少天后由定時任務自動清理。 |
+| `DEMO_MODE` | `false` | 設為 `"true"` 開啟演示模式（頂部顯示 `Demo Mode` 標識、輸出脫敏網路遙測並自動注入演示資料；變數名須全大寫）。 |
+| `DEMO_DOMAIN` | `dns.worker.domain` | 開啟 `DEMO_MODE` 後頁面統一展示的接入基準域名（變數名須全大寫）。 |
+
+開啟 `DEMO_MODE=true` 後：
+- 系統資訊與 Setup Guide 自動對真實客戶端 IP 與部署域名脫敏，接入 URL 與引導命令統一替換為 `DEMO_DOMAIN`（預設 `dns.worker.domain`）。
+- 賬號下會自動冪等填充示例 Profile（`Default`、`Office Network`、`Kids Safe`）、10 種常見裝置形態的 Access Points（含 1 個 `Unbound` 智慧電視示例）、自定義規則、外部過濾訂閱列表、示例日誌以及支援任意時間範圍（`10M` / `1H` / `24H` / `7D` / `30D` / `Custom`）的 `/stats` 動態演示資料。
