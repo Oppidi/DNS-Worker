@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "嘗試次數過多，會話已終結。",
     "loginIdentifier": "用戶名或用戶 ID",
     "loginIdentifierPlaceholder": "請輸入用戶名或用戶 ID",
-    "formatTipLoginIdentifier": "請輸入有效的用戶名或用戶 ID。"
+    "formatTipLoginIdentifier": "請輸入有效的用戶名或用戶 ID。",
+    "forgotUsername": "忘記使用者名稱？透過通行金鑰找回",
+    "findUsernameTitle": "透過通行金鑰找回使用者名稱",
+    "findUsernameDesc": "使用您已綁定的通行金鑰（Passkey）完成驗證，即可檢視該金鑰關聯的所有使用者名稱。",
+    "passkeyUnsupported": "目前瀏覽器或環境不支援通行金鑰（Passkey）。",
+    "passkeyAuthFailed": "通行金鑰驗證失敗或已取消。",
+    "findUsernameNotFound": "找不到與此通行金鑰關聯的帳號。",
+    "findUsernameChallengeExpired": "驗證挑戰已過期，請重試。",
+    "findUsernameSingleFound": "已找到與此通行金鑰關聯的帳號：",
+    "findUsernameMultipleFound": "已找到與此通行金鑰關聯的 {{count}} 個帳號，請選擇要用於登入的帳號：",
+    "useThisUsername": "填入登入",
+    "tryAnotherPasskey": "換一個通行金鑰"
   },
   "setup": {
     "title": "安裝指南",

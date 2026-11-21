@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "Zu viele fehlgeschlagene Versuche. Sitzung beendet.",
     "loginIdentifier": "Benutzername oder Benutzer-ID",
     "loginIdentifierPlaceholder": "Ihr Benutzername oder Ihre Benutzer-ID",
-    "formatTipLoginIdentifier": "Bitte geben Sie einen gültigen Benutzernamen oder eine gültige Benutzer-ID ein."
+    "formatTipLoginIdentifier": "Bitte geben Sie einen gültigen Benutzernamen oder eine gültige Benutzer-ID ein.",
+    "forgotUsername": "Benutzername vergessen? Per Passkey finden",
+    "findUsernameTitle": "Benutzernamen per Passkey finden",
+    "findUsernameDesc": "Bestätigen Sie mit Ihrem registrierten Passkey, um alle mit diesem Anmeldeverfahren verknüpften Benutzernamen anzuzeigen.",
+    "passkeyUnsupported": "Ihr Browser oder Ihre Umgebung unterstützt keine Passkeys.",
+    "passkeyAuthFailed": "Passkey-Überprüfung fehlgeschlagen oder abgebrochen.",
+    "findUsernameNotFound": "Kein Konto für diesen Passkey gefunden.",
+    "findUsernameChallengeExpired": "Die Überprüfungsanfrage ist abgelaufen. Bitte versuchen Sie es erneut.",
+    "findUsernameSingleFound": "Mit diesem Passkey verknüpftes Konto gefunden:",
+    "findUsernameMultipleFound": "{{count}} mit diesem Passkey verknüpfte Konten gefunden. Wählen Sie eines für die Anmeldung aus:",
+    "useThisUsername": "Verwenden",
+    "tryAnotherPasskey": "Anderen Passkey testen"
   },
   "setup": {
     "title": "Installationsanleitung",

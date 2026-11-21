@@ -20,6 +20,8 @@ export interface LoginUsernameStepProps {
   turnstileStatus: "idle" | "verifying" | "success" | "error";
   /** Callback to handle form submission. */
   onSubmit: (e: React.FormEvent) => void;
+  /** Optional callback to open Passkey username lookup modal. */
+  onOpenFindUsername?: () => void;
 }
 
 /**
@@ -36,7 +38,8 @@ export const LoginUsernameStep: React.FC<LoginUsernameStepProps> = ({
   turnstileRef,
   loading,
   turnstileStatus,
-  onSubmit
+  onSubmit,
+  onOpenFindUsername
 }) => {
   const { t } = useTranslation();
 
@@ -79,6 +82,19 @@ export const LoginUsernameStep: React.FC<LoginUsernameStepProps> = ({
           ? t("auth.verifying")
           : t("auth.next", "Next")}
       </Button>
+
+      {onOpenFindUsername && (
+        <div className="pt-1 flex justify-center">
+          <button
+            type="button"
+            onClick={onOpenFindUsername}
+            disabled={loading}
+            className="text-xs text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:underline bg-transparent border-none cursor-pointer p-0 font-normal"
+          >
+            {t("auth.forgotUsername", "Forgot username? Find via Passkey")}
+          </button>
+        </div>
+      )}
     </form>
   );
 };

@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "尝试次数过多，会话已终结。",
     "loginIdentifier": "用户名或用户 ID",
     "loginIdentifierPlaceholder": "请输入用户名或用户 ID",
-    "formatTipLoginIdentifier": "请输入有效的用户名或用户 ID。"
+    "formatTipLoginIdentifier": "请输入有效的用户名或用户 ID。",
+    "forgotUsername": "忘记用户名？通过通行密钥找回",
+    "findUsernameTitle": "通过通行密钥找回用户名",
+    "findUsernameDesc": "使用您已绑定的通行密钥（Passkey）完成验证，即可查看该密钥关联的所有用户名。",
+    "passkeyUnsupported": "当前浏览器或环境不支持通行密钥（Passkey）。",
+    "passkeyAuthFailed": "通行密钥验证失败或已取消。",
+    "findUsernameNotFound": "未找到与此通行密钥关联的账号。",
+    "findUsernameChallengeExpired": "验证挑战已过期，请重试。",
+    "findUsernameSingleFound": "已找到与此通行密钥关联的账号：",
+    "findUsernameMultipleFound": "已找到与此通行密钥关联的 {{count}} 个账号，请选择要用于登录的账号：",
+    "useThisUsername": "填入登录",
+    "tryAnotherPasskey": "换一个通行密钥"
   },
   "setup": {
     "title": "安装指南",

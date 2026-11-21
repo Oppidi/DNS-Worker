@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "Слишком много неудачных попыток. Сессия завершена.",
     "loginIdentifier": "Имя пользователя или ID",
     "loginIdentifierPlaceholder": "Имя пользователя или ID пользователя",
-    "formatTipLoginIdentifier": "Пожалуйста, введите корректное имя пользователя или ID."
+    "formatTipLoginIdentifier": "Пожалуйста, введите корректное имя пользователя или ID.",
+    "forgotUsername": "Забыли имя пользователя? Найти по Passkey",
+    "findUsernameTitle": "Поиск имени пользователя по Passkey",
+    "findUsernameDesc": "Подтвердите вход с помощью зарегистрированного Passkey, чтобы увидеть все связанные имена пользователей.",
+    "passkeyUnsupported": "Ваш браузер или среда не поддерживает Passkey.",
+    "findUsernameChallengeExpired": "Срок действия проверки истёк, повторите попытку.",
+    "findUsernameNotFound": "Не найдено ни одной учётной записи для этого Passkey.",
+    "passkeyAuthFailed": "Проверка Passkey не удалась или была отменена.",
+    "findUsernameSingleFound": "Найдена учётная запись, связанная с этим Passkey:",
+    "findUsernameMultipleFound": "Найдено учётных записей: {{count}}, связанных с этим Passkey. Выберите одну для входа:",
+    "useThisUsername": "Использовать",
+    "tryAnotherPasskey": "Другой Passkey"
   },
   "setup": {
     "title": "Руководство по установке",

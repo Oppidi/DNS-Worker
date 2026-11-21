@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "시도 횟수가 너무 많습니다. 세션이 종료되었습니다.",
     "loginIdentifier": "사용자 이름 또는 사용자 ID",
     "loginIdentifierPlaceholder": "사용자 이름 또는 사용자 ID",
-    "formatTipLoginIdentifier": "올바른 사용자 이름 또는 사용자 ID를 입력해주세요."
+    "formatTipLoginIdentifier": "올바른 사용자 이름 또는 사용자 ID를 입력해주세요.",
+    "forgotUsername": "사용자 이름을 잊으셨나요? 패스키로 찾기",
+    "findUsernameTitle": "패스키로 사용자 이름 찾기",
+    "findUsernameDesc": "등록된 패스키로 인증하여 이 자격 증명에 연결된 모든 사용자 이름을 확인할 수 있습니다.",
+    "passkeyUnsupported": "현재 브라우저 또는 환경에서는 패스키를 지원하지 않습니다.",
+    "passkeyAuthFailed": "패스키 인증에 실패했거나 취소되었습니다.",
+    "findUsernameNotFound": "이 패스키에 연결된 계정을 찾을 수 없습니다.",
+    "findUsernameChallengeExpired": "인증 챌린지가 만료되었습니다. 다시 시도해주세요.",
+    "findUsernameSingleFound": "이 패스키에 연결된 계정을 찾았습니다:",
+    "findUsernameMultipleFound": "이 패스키에 연결된 {{count}}개의 계정을 찾았습니다. 로그인에 사용할 계정을 선택하세요:",
+    "useThisUsername": "로그인에 사용",
+    "tryAnotherPasskey": "다른 패스키 사용"
   },
   "setup": {
     "title": "설치 가이드",

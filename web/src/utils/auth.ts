@@ -313,6 +313,15 @@ export function formatApiErrorMessage(err: any, t: TranslationFunction): string 
   if (bodyText === "Invalid login identifier") {
     return t("auth.formatTipLoginIdentifier", "Please enter a valid username or user ID.");
   }
+  if (bodyText === "No account found for this Passkey") {
+    return t("auth.findUsernameNotFound", "No account found for this Passkey.");
+  }
+  if (bodyText === "Challenge expired, please try again") {
+    return t("auth.findUsernameChallengeExpired", "Verification challenge expired, please try again.");
+  }
+  if (bodyText === "Passkey verification failed") {
+    return t("auth.passkeyAuthFailed", "Passkey verification failed or was cancelled");
+  }
   if (bodyText === "max_users_reached") {
     return t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。");
   }

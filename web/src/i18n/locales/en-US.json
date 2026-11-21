@@ -220,7 +220,18 @@
     "tooManyAttemptsTerminate": "Too many failed attempts. Session terminated.",
     "loginIdentifier": "Username or User ID",
     "loginIdentifierPlaceholder": "Your username or user ID",
-    "formatTipLoginIdentifier": "Please enter a valid username or user ID."
+    "formatTipLoginIdentifier": "Please enter a valid username or user ID.",
+    "forgotUsername": "Forgot username? Find via Passkey",
+    "findUsernameTitle": "Find Username with Passkey",
+    "findUsernameDesc": "Verify with your registered Passkey to view all usernames associated with this credential.",
+    "passkeyUnsupported": "Your browser or environment does not support Passkeys.",
+    "passkeyAuthFailed": "Passkey verification failed or was cancelled.",
+    "findUsernameNotFound": "No account found for this Passkey.",
+    "findUsernameChallengeExpired": "Verification challenge expired, please try again.",
+    "findUsernameSingleFound": "Found the account bound to this Passkey:",
+    "findUsernameMultipleFound": "Found {{count}} accounts bound to this Passkey. Choose one to fill into login:",
+    "useThisUsername": "Use",
+    "tryAnotherPasskey": "Try another Passkey"
   },
   "setup": {
     "title": "Setup Guide",

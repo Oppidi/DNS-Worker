@@ -224,3 +224,53 @@ export async function resetPasswordWithToken(resetToken: string, newPassword: st
   if (!res.ok) throw new ApiError(res.status, await res.text());
   return res.json();
 }
+
+export interface FindUsernameOptionsResponse {
+  challengeToken: string;
+  challenge: string;
+  rpId: string;
+  timeout: number;
+  userVerification?: UserVerificationRequirement;
+}
+
+export interface FoundUsernameAccount {
+  userId: string;
+  username: string;
+  passkeyName: string;
+}
+
+export interface FindUsernameVerifyResponse {
+  success: boolean;
+  accounts: FoundUsernameAccount[];
+}
+
+/**
+ * Requests a WebAuthn discoverable challenge for Passkey-based username lookup.
+ */
+export async function getFindUsernameOptions(
+  turnstileToken?: string | null
+): Promise<FindUsernameOptionsResponse> {
+  const res = await fetch("/api/auth/find-username/options", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ turnstileToken: turnstileToken || undefined })
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json();
+}
+
+/**
+ * Verifies a WebAuthn Passkey assertion and retrieves all associated user accounts.
+ */
+export async function verifyFindUsernamePasskey(
+  challengeToken: string,
+  passkeyAssertion: Record<string, unknown>
+): Promise<FindUsernameVerifyResponse> {
+  const res = await fetch("/api/auth/find-username/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challengeToken, passkeyAssertion })
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json();
+}
