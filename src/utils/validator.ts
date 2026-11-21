@@ -41,15 +41,15 @@ export const USERNAME_REGEX = /^[a-z_][a-z0-9_-]{4,31}$/;
 
 /**
  * Access point name validation regular expression.
- * Requirements: 1-30 characters, containing letters, numbers, underscores, or hyphens.
+ * Requirements: 1-30 Unicode characters, disallowing ASCII/Unicode control characters and whitespace-only names.
  */
-export const AP_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
+export const AP_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 
 /**
  * Passkey name validation regular expression.
- * Requirements: 1-30 characters, containing letters, numbers, underscores, or hyphens (same as AP_NAME_REGEX).
+ * Requirements: 1-30 Unicode characters, disallowing control characters and whitespace-only names (same as AP_NAME_REGEX).
  */
-export const PASSKEY_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
+export const PASSKEY_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 
 /**
  * Validates whether a passkey name conforms to the required format.
@@ -58,14 +58,14 @@ export const PASSKEY_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
  * @returns True if valid.
  */
 export function validatePasskeyName(name: string): boolean {
-  return PASSKEY_NAME_REGEX.test(name);
+  return PASSKEY_NAME_REGEX.test(name.trim());
 }
 
 /**
  * Profile name validation regular expression.
- * Requirements: 1-30 characters, containing letters, numbers, underscores, hyphens, or parentheses.
+ * Requirements: 1-30 Unicode characters, disallowing control characters and whitespace-only names.
  */
-export const PROFILE_NAME_REGEX = /^[\p{L}\p{N}_ ()-]{1,30}$/u;
+export const PROFILE_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 
 /**
  * Access key validation regular expression.

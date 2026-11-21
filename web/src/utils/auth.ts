@@ -9,7 +9,7 @@ declare global {
 
 /**
  * Username validation regular expression.
- * Requirements: 5-15 alphanumeric characters only.
+ * Requirements: 5-32 characters, starting with lowercase letter or underscore, followed by lowercase letters, numbers, underscores, or hyphens.
  */
 export const USERNAME_REGEX = /^[a-z_][a-z0-9_-]{4,31}$/;
 /**
@@ -30,19 +30,19 @@ export const ACCESS_KEY_REGEX = /^[a-zA-Z0-9]{5,12}$/;
 export const TOTP_TOKEN_REGEX = /^\d{6}$/;
 /**
  * Profile name validation regular expression.
- * Requirements: 1-30 characters, allowing letters, numbers, spaces, underscores, hyphens, and parentheses.
+ * Requirements: 1-30 Unicode characters, disallowing control characters and whitespace-only names.
  */
-export const PROFILE_NAME_REGEX = /^[\p{L}\p{N}_ ()-]{1,30}$/u;
+export const PROFILE_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 /**
  * Access Point (AP) name validation regular expression.
- * Requirements: 1-30 characters, allowing letters, numbers, underscores, and hyphens.
+ * Requirements: 1-30 Unicode characters, disallowing control characters and whitespace-only names.
  */
-export const AP_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
+export const AP_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 /**
  * Passkey name validation regular expression.
- * Requirements: 1-30 characters, allowing letters, numbers, underscores, and hyphens (same as AP_NAME_REGEX).
+ * Requirements: 1-30 Unicode characters, disallowing control characters and whitespace-only names (same as AP_NAME_REGEX).
  */
-export const PASSKEY_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
+export const PASSKEY_NAME_REGEX = /^(?!\s+$)[^\p{Cc}]{1,30}$/u;
 /**
  * PIN validation regular expression.
  * Requirements: exactly 4 digits.
@@ -50,17 +50,17 @@ export const PASSKEY_NAME_REGEX = /^[a-zA-Z0-9_-]{1,30}$/;
 export const PIN_REGEX = /^\d{4}$/;
 
 /**
- * Validates whether a passkey name matches the required format (1-30 characters, alphanumeric, underscore, hyphen).
+ * Validates whether a passkey name matches the required format (1-30 Unicode characters).
  *
  * @param name - The passkey name to validate.
  * @returns True if valid.
  */
 export function validatePasskeyName(name: string): boolean {
-  return PASSKEY_NAME_REGEX.test(name);
+  return PASSKEY_NAME_REGEX.test(name.trim());
 }
 
 /**
- * Validates whether a username matches the required alphanumeric 5-15 character format.
+ * Validates whether a username matches the required 5-32 character Unix-style format.
  *
  * @param username - The username to validate.
  * @returns True if valid.
@@ -70,7 +70,7 @@ export function validateUsername(username: string): boolean {
 }
 
 /**
- * Validates whether a password matches the required alphanumeric 12+ character format.
+ * Validates whether a password matches the required 12-128 character Unicode/ASCII format.
  *
  * @param password - The password to validate.
  * @returns True if valid.
