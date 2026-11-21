@@ -82,7 +82,7 @@ export const SettingsHeader: React.FC<SettingsHeaderProps> = ({
         )}
         <p className="bp6-text-muted">{t("settings.subtitle")}</p>
       </div>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center justify-end w-full md:w-auto">
         <Button size="large" icon={<Download size={18} />} text={t("settings.export", "导出配置")} onClick={exportProfile} />
       </div>
     </div>

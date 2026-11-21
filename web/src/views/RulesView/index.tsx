@@ -333,7 +333,7 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
             <p className="bp6-text-muted mt-2!">{t("rules.subtitle")}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {!loading && !hasSelfRedirect && (
               <PopoverNext
                 isOpen={isPromptOpen}
@@ -374,9 +374,10 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
             )}
             <Button
               type="button"
-              variant="outlined"
-              icon={<Download size={14} />}
+              size="large"
+              icon={<Download size={18} />}
               text={t("rules.exportList", "导出列表")}
+              className="ml-auto md:ml-0"
               disabled={loading || rules.length === 0}
               onClick={() => handleExportAdGuardList(rules)}
             />

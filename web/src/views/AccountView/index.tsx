@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Divider, Tag, Intent, type OverlayToaster } from "@blueprintjs/core";
-import { ShieldCheck } from "lucide-react";
+import { Divider, Intent, type OverlayToaster } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
 import { clsx } from "clsx";
 
@@ -23,6 +22,7 @@ import { USERNAME_REGEX, formatApiErrorMessage } from "../../utils/auth";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { PAGE_CONTAINER_STANDARD } from "../../constants/layout";
 import { useStickyHeaderTitle } from "../../layouts/HeaderTitleContext";
+import { UserRoleBadge } from "../../components/UserRoleBadge";
 
 export interface AccountViewProps {
   onSavingChange?: (saving: boolean) => void;
@@ -160,15 +160,9 @@ export const AccountView: React.FC<AccountViewProps> = ({ onSavingChange, toaste
           <p className="bp6-text-muted">{t("account.subtitle")}</p>
         </div>
         {me && (
-          <Tag
-            large
-            round
-            intent={me.role === "admin" ? Intent.DANGER : Intent.PRIMARY}
-            icon={<ShieldCheck size={16} />}
-            className="shrink-0 whitespace-nowrap"
-          >
-            {me.role === "admin" ? t("account.roleAdmin") : t("account.roleUser")}
-          </Tag>
+          <div className="flex items-center justify-end w-full sm:w-auto shrink-0">
+            <UserRoleBadge role={me.role} />
+          </div>
         )}
       </div>
 
