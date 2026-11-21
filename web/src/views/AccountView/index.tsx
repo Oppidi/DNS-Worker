@@ -179,6 +179,7 @@ export const AccountView: React.FC<AccountViewProps> = ({ onSavingChange, toaste
           setUsernameFocused={setUsernameFocused}
           onUpdateUsername={handleUpdateUsername}
           onUpdateTimezone={handleUpdateTimezone}
+          toasterRef={toasterRef}
         />
 
         <ChangePasswordCard me={me} onRefresh={fetchMe} />
