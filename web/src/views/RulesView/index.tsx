@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Alert, Callout, Intent, ButtonGroup, Button, Tag, PopoverNext, Spinner } from "@blueprintjs/core";
+import { Alert, Callout, Intent, Button, Tag, PopoverNext, Spinner } from "@blueprintjs/core";
 import { Trash2, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
 
 import type { Rule, RulesViewProps, ProfileSettings } from "./types";
@@ -24,7 +23,6 @@ import {
 } from "../../services";
 
 export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPrefillUsed, toasterRef }) => {
-  const navigate = useNavigate();
   const [rules, setRules] = useState<Rule[]>([]);
   const [settings, setSettings] = useState<ProfileSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -328,31 +326,9 @@ export const RulesView: React.FC<RulesViewProps> = ({ profileId, prefill, onPref
       <div className="mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="w-full md:w-auto flex-1">
-            <div ref={headerTitleRef}>
-              {isMobile ? (
-                <div className="flex items-center gap-2">
-                  <ButtonGroup minimal fill={isMobile} className="flex-1">
-                    <Button
-                      active={true}
-                      onClick={() => navigate(`/dash/${profileId}/rules`)}
-                      text={t("rules.title")}
-                      large
-                    />
-                    <Button
-                      active={false}
-                      onClick={() => navigate(`/dash/${profileId}/filter`)}
-                      text={t("filtering.title")}
-                      large
-                    />
-                  </ButtonGroup>
-                  {loading && <Spinner size={16} />}
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <h1 className="bp6-heading m-0">{t("rules.title")}</h1>
-                  {loading && <Spinner size={20} />}
-                </div>
-              )}
+            <div ref={headerTitleRef} className="flex items-center gap-3">
+              <h1 className="bp6-heading m-0">{t("rules.title")}</h1>
+              {loading && <Spinner size={20} />}
             </div>
             <p className="bp6-text-muted mt-2!">{t("rules.subtitle")}</p>
           </div>
