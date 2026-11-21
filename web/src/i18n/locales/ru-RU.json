@@ -217,7 +217,10 @@
     "mfaMethodTotp": "Приложение аутентификации (TOTP)",
     "invalidTotp": "Неверный код подтверждения TOTP.",
     "sessionExpiredNotice": "Сессия истекла или недействительна. Пожалуйста, войдите снова.",
-    "tooManyAttemptsTerminate": "Слишком много неудачных попыток. Сессия завершена."
+    "tooManyAttemptsTerminate": "Слишком много неудачных попыток. Сессия завершена.",
+    "loginIdentifier": "Имя пользователя или ID",
+    "loginIdentifierPlaceholder": "Имя пользователя или ID пользователя",
+    "formatTipLoginIdentifier": "Пожалуйста, введите корректное имя пользователя или ID."
   },
   "setup": {
     "title": "Руководство по установке",

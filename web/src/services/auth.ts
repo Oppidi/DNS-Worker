@@ -26,6 +26,7 @@ export interface PreloginPayload {
 }
 
 export interface PreloginResponse {
+  username?: string;
   requires_password: boolean;
   requires_totp: boolean;
   has_passkey?: boolean;

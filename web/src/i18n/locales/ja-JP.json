@@ -217,7 +217,10 @@
     "mfaMethodTotp": "認証アプリ (TOTP)",
     "invalidTotp": "無効なTOTP認証コードです。もう一度お試しください。",
     "sessionExpiredNotice": "セッションが無効または期限切れです。再度ログインしてください。",
-    "tooManyAttemptsTerminate": "試行回数が多すぎます。セッションが終了しました。"
+    "tooManyAttemptsTerminate": "試行回数が多すぎます。セッションが終了しました。",
+    "loginIdentifier": "ユーザー名またはユーザー ID",
+    "loginIdentifierPlaceholder": "ユーザー名またはユーザー ID",
+    "formatTipLoginIdentifier": "有効なユーザー名またはユーザー ID を入力してください。"
   },
   "setup": {
     "title": "インストールガイド",

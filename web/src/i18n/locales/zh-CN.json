@@ -217,7 +217,10 @@
     "mfaMethodTotp": "数字验证器 (TOTP)",
     "invalidTotp": "TOTP 验证码无效，请重试",
     "sessionExpiredNotice": "会话已失效，请重新登录。",
-    "tooManyAttemptsTerminate": "尝试次数过多，会话已终结。"
+    "tooManyAttemptsTerminate": "尝试次数过多，会话已终结。",
+    "loginIdentifier": "用户名或用户 ID",
+    "loginIdentifierPlaceholder": "请输入用户名或用户 ID",
+    "formatTipLoginIdentifier": "请输入有效的用户名或用户 ID。"
   },
   "setup": {
     "title": "安装指南",

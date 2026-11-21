@@ -35,9 +35,30 @@ export function hasLeakedCredentialHeader(request: Request): boolean {
 
 /**
  * Username validation regular expression.
- * Requirements: 5-32 characters, starting with a letter or underscore, followed by letters, numbers, underscores, or hyphens.
+ * Requirements: 5-32 characters, starting with a lowercase letter or underscore, followed by lowercase letters, numbers, underscores, or hyphens.
  */
 export const USERNAME_REGEX = /^[a-z_][a-z0-9_-]{4,31}$/;
+
+/**
+ * Generated user ID validation regular expression (15 lowercase hexadecimal characters).
+ */
+export const GENERATED_USER_ID_REGEX = /^[0-9a-f]{15}$/;
+
+/**
+ * User ID validation regular expression for login identifiers (allows generated 15-char hex IDs and legacy custom IDs).
+ */
+export const USER_ID_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]{3,63}$/;
+
+/**
+ * Validates whether a string is a valid login identifier (either a valid username or user ID).
+ *
+ * @param identifier - Trimmed or raw login identifier entered by the user.
+ * @returns True if valid username or user ID format.
+ */
+export function validateLoginIdentifier(identifier: string): boolean {
+  const trimmed = identifier.trim();
+  return USERNAME_REGEX.test(trimmed) || USER_ID_REGEX.test(trimmed);
+}
 
 /**
  * Access point name validation regular expression.

@@ -13,6 +13,10 @@ declare global {
  */
 export const USERNAME_REGEX = /^[a-z_][a-z0-9_-]{4,31}$/;
 /**
+ * User ID validation regular expression for login identifiers (allows 15-hex generated IDs and legacy IDs).
+ */
+export const USER_ID_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]{3,63}$/;
+/**
  * Password validation regular expression (NIST SP 800-63B-4 § 3.1.1.2).
  * Allows 12-128 characters including spaces and Unicode characters,
  * while disallowing ASCII control characters (0x00-0x1F, 0x7F) and whitespace-only passwords.
@@ -67,6 +71,17 @@ export function validatePasskeyName(name: string): boolean {
  */
 export function validateUsername(username: string): boolean {
   return USERNAME_REGEX.test(username);
+}
+
+/**
+ * Validates whether a string is a valid login identifier (username or user ID).
+ *
+ * @param identifier - Username or user ID entered by the user.
+ * @returns True if valid username or user ID format.
+ */
+export function validateLoginIdentifier(identifier: string): boolean {
+  const trimmed = identifier.trim();
+  return USERNAME_REGEX.test(trimmed) || USER_ID_REGEX.test(trimmed);
 }
 
 /**
@@ -292,8 +307,11 @@ export function formatApiErrorMessage(err: any, t: TranslationFunction): string 
   if (bodyText === "geolocation_missing") {
     return t("auth.geolocationRequired", "Geolocation retrieval failed, please re-enter.");
   }
-  if (bodyText === "username_exists") {
+  if (bodyText === "username_exists" || bodyText === "The username is already taken") {
     return t("auth.usernameExists", "Username already exists.");
+  }
+  if (bodyText === "Invalid login identifier") {
+    return t("auth.formatTipLoginIdentifier", "Please enter a valid username or user ID.");
   }
   if (bodyText === "max_users_reached") {
     return t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。");

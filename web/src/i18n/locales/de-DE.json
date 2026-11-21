@@ -217,7 +217,10 @@
     "mfaMethodTotp": "Authenticator-App (TOTP)",
     "invalidTotp": "Ungültiger TOTP-Bestätigungscode.",
     "sessionExpiredNotice": "Sitzung abgelaufen oder ungültig. Bitte erneut anmelden.",
-    "tooManyAttemptsTerminate": "Zu viele fehlgeschlagene Versuche. Sitzung beendet."
+    "tooManyAttemptsTerminate": "Zu viele fehlgeschlagene Versuche. Sitzung beendet.",
+    "loginIdentifier": "Benutzername oder Benutzer-ID",
+    "loginIdentifierPlaceholder": "Ihr Benutzername oder Ihre Benutzer-ID",
+    "formatTipLoginIdentifier": "Bitte geben Sie einen gültigen Benutzernamen oder eine gültige Benutzer-ID ein."
   },
   "setup": {
     "title": "Installationsanleitung",

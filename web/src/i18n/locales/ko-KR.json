@@ -217,7 +217,10 @@
     "mfaMethodTotp": "인증 앱 (TOTP)",
     "invalidTotp": "잘못된 TOTP 인증 코드입니다. 다시 시도해 주세요.",
     "sessionExpiredNotice": "세션이 만료되었거나 유효하지 않습니다. 다시 로그인해 주세요.",
-    "tooManyAttemptsTerminate": "시도 횟수가 너무 많습니다. 세션이 종료되었습니다."
+    "tooManyAttemptsTerminate": "시도 횟수가 너무 많습니다. 세션이 종료되었습니다.",
+    "loginIdentifier": "사용자 이름 또는 사용자 ID",
+    "loginIdentifierPlaceholder": "사용자 이름 또는 사용자 ID",
+    "formatTipLoginIdentifier": "올바른 사용자 이름 또는 사용자 ID를 입력해주세요."
   },
   "setup": {
     "title": "설치 가이드",

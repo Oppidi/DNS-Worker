@@ -217,7 +217,10 @@
     "mfaMethodTotp": "Aplicación de autenticación (TOTP)",
     "invalidTotp": "Código de verificación TOTP inválido.",
     "sessionExpiredNotice": "Sesión caducada o no válida. Por favor, inicie sesión de nuevo.",
-    "tooManyAttemptsTerminate": "Demasiados intentos fallidos. Sesión finalizada."
+    "tooManyAttemptsTerminate": "Demasiados intentos fallidos. Sesión finalizada.",
+    "loginIdentifier": "Nombre de usuario o ID de usuario",
+    "loginIdentifierPlaceholder": "Tu nombre de usuario o ID de usuario",
+    "formatTipLoginIdentifier": "Por favor, introduce un nombre de usuario o ID de usuario válido."
   },
   "setup": {
     "title": "Guía de instalación",

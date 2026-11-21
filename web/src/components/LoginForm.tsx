@@ -51,6 +51,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const {
     loginStep,
     username,
+    resolvedUsername,
     setUsername,
     password,
     setPassword,
@@ -122,7 +123,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           {getStepTitle()}
         </H3>
         <p className="text-gray-500 mt-2 text-center text-sm leading-relaxed">
-          {loginStep === 1 ? t("auth.protectInternet") : username}
+          {loginStep === 1 ? t("auth.protectInternet") : (resolvedUsername || username)}
         </p>
       </div>
 

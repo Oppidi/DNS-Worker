@@ -217,7 +217,10 @@
     "mfaMethodTotp": "Ứng dụng xác thực (TOTP)",
     "invalidTotp": "Mã xác thực TOTP không hợp lệ.",
     "sessionExpiredNotice": "Phiên đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.",
-    "tooManyAttemptsTerminate": "Quá nhiều lần thử không thành công. Phiên đã kết thúc."
+    "tooManyAttemptsTerminate": "Quá nhiều lần thử không thành công. Phiên đã kết thúc.",
+    "loginIdentifier": "Tên đăng nhập hoặc ID người dùng",
+    "loginIdentifierPlaceholder": "Tên đăng nhập hoặc ID người dùng của bạn",
+    "formatTipLoginIdentifier": "Vui lòng nhập tên đăng nhập hoặc ID người dùng hợp lệ."
   },
   "setup": {
     "title": "Hướng dẫn cài đặt",

@@ -42,11 +42,11 @@ export const LoginUsernameStep: React.FC<LoginUsernameStepProps> = ({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <FormGroup label={t("auth.username")} labelFor="username">
+      <FormGroup label={t("auth.loginIdentifier", "Username or User ID")} labelFor="username">
         <InputGroup
           id="username"
           leftIcon="user"
-          placeholder={t("auth.usernamePlaceholder")}
+          placeholder={t("auth.loginIdentifierPlaceholder", "Your username or user ID")}
           size="large"
           className="rounded-xl w-full"
           value={username}
