@@ -442,7 +442,17 @@
     "exportList": "导出列表",
     "exportSelected": "导出 ({{count}})",
     "exportSuccess": "已导出 {{count}} 条 AdGuard Home 兼容规则",
-    "exportEmpty": "没有可导出的规则"
+    "exportEmpty": "没有可导出的规则",
+    "tableStatus": "状态",
+    "statusActive": "正常",
+    "statusDisabled": "已停用",
+    "ruleEnabled": "启用规则",
+    "ruleEnabledHint": "停用后将暂停应用此规则，但不会删除它。",
+    "enableSelected": "启用 ({{count}})",
+    "disableSelected": "停用 ({{count}})",
+    "enableBulkSuccess": "已启用 {{count}} 条规则",
+    "disableBulkSuccess": "已停用 {{count}} 条规则",
+    "toggleBulkFailed": "批量更新规则状态失败"
   },
   "analytics": {
     "customRange": "自定义时间范围",

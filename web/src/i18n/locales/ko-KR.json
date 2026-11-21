@@ -442,7 +442,17 @@
     "exportList": "목록 내보내기",
     "exportSelected": "내보내기 ({{count}})",
     "exportSuccess": "AdGuard Home 호환 규칙 {{count}}개를 내보냈습니다",
-    "exportEmpty": "내보낼 수 있는 규칙이 없습니다"
+    "exportEmpty": "내보낼 수 있는 규칙이 없습니다",
+    "tableStatus": "상태",
+    "statusActive": "활성",
+    "statusDisabled": "비활성화됨",
+    "ruleEnabled": "규칙 활성화",
+    "ruleEnabledHint": "삭제하지 않고 이 규칙의 적용을 일시 중지하려면 비활성화하세요.",
+    "enableSelected": "활성화 ({{count}})",
+    "disableSelected": "비활성화 ({{count}})",
+    "enableBulkSuccess": "{{count}}개의 규칙을 활성화했습니다",
+    "disableBulkSuccess": "{{count}}개의 규칙을 비활성화했습니다",
+    "toggleBulkFailed": "규칙 상태 업데이트에 실패했습니다"
   },
   "analytics": {
     "customRange": "사용자 지정 범위",

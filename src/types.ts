@@ -160,6 +160,8 @@ export interface Rule {
   v_cname?: string;
   created_at?: number;
   include_subdomains?: boolean | number;
+  /** Whether the rule is active in DNS filtering (1/true = active, 0/false = disabled). */
+  enabled?: boolean | number;
 }
 
 export interface ListMetadataStats {

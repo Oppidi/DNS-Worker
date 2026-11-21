@@ -442,7 +442,17 @@
     "exportList": "Exporter la liste",
     "exportSelected": "Exporter ({{count}})",
     "exportSuccess": "{{count}} règles compatibles AdGuard Home exportées",
-    "exportEmpty": "Aucune règle exportable disponible"
+    "exportEmpty": "Aucune règle exportable disponible",
+    "tableStatus": "Statut",
+    "statusActive": "Actif",
+    "statusDisabled": "Désactivée",
+    "ruleEnabled": "Règle active",
+    "ruleEnabledHint": "Désactiver pour suspendre cette règle sans la supprimer.",
+    "enableSelected": "Activer ({{count}})",
+    "disableSelected": "Désactiver ({{count}})",
+    "enableBulkSuccess": "{{count}} règles activées",
+    "disableBulkSuccess": "{{count}} règles désactivées",
+    "toggleBulkFailed": "Échec de la mise à jour du statut des règles"
   },
   "analytics": {
     "customRange": "Période personnalisée",

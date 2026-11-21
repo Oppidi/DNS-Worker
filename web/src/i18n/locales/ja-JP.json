@@ -442,7 +442,17 @@
     "exportList": "リストをエクスポート",
     "exportSelected": "エクスポート ({{count}})",
     "exportSuccess": "AdGuard Home 互換ルールを {{count}} 件エクスポートしました",
-    "exportEmpty": "エクスポート可能なルールがありません"
+    "exportEmpty": "エクスポート可能なルールがありません",
+    "tableStatus": "ステータス",
+    "statusActive": "有効",
+    "statusDisabled": "無効",
+    "ruleEnabled": "ルールを有効化",
+    "ruleEnabledHint": "無効にすると、削除せずにこのルールの適用を一時停止します。",
+    "enableSelected": "有効化 ({{count}})",
+    "disableSelected": "無効化 ({{count}})",
+    "enableBulkSuccess": "{{count}} 件のルールを有効化しました",
+    "disableBulkSuccess": "{{count}} 件のルールを無効化しました",
+    "toggleBulkFailed": "ルールステータスの更新に失敗しました"
   },
   "analytics": {
     "customRange": "カスタム期間",

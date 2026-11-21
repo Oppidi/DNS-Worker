@@ -442,7 +442,17 @@
     "exportList": "匯出清單",
     "exportSelected": "匯出 ({{count}})",
     "exportSuccess": "已匯出 {{count}} 條 AdGuard Home 相容規則",
-    "exportEmpty": "沒有可匯出的規則"
+    "exportEmpty": "沒有可匯出的規則",
+    "tableStatus": "狀態",
+    "statusActive": "正常",
+    "statusDisabled": "已停用",
+    "ruleEnabled": "啟用規則",
+    "ruleEnabledHint": "停用後將暫停套用此規則，但不會刪除它。",
+    "enableSelected": "啟用 ({{count}})",
+    "disableSelected": "停用 ({{count}})",
+    "enableBulkSuccess": "已啟用 {{count}} 條規則",
+    "disableBulkSuccess": "已停用 {{count}} 條規則",
+    "toggleBulkFailed": "批次更新規則狀態失敗"
   },
   "analytics": {
     "customRange": "自訂時間範圍",

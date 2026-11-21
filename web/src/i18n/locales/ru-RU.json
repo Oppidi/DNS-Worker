@@ -442,7 +442,17 @@
     "exportList": "Экспорт списка",
     "exportSelected": "Экспорт ({{count}})",
     "exportSuccess": "Экспортировано правил AdGuard Home: {{count}}",
-    "exportEmpty": "Нет правил для экспорта"
+    "exportEmpty": "Нет правил для экспорта",
+    "tableStatus": "Статус",
+    "statusActive": "Активно",
+    "statusDisabled": "Отключено",
+    "ruleEnabled": "Правило активно",
+    "ruleEnabledHint": "Отключите, чтобы приостановить действие этого правила без удаления.",
+    "enableSelected": "Включить ({{count}})",
+    "disableSelected": "Отключить ({{count}})",
+    "enableBulkSuccess": "Включено правил: {{count}}",
+    "disableBulkSuccess": "Отключено правил: {{count}}",
+    "toggleBulkFailed": "Не удалось обновить статус правил"
   },
   "analytics": {
     "customRange": "Произвольный период",
