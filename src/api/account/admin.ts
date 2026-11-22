@@ -205,7 +205,9 @@ export async function handleAdminRequest(
 
         const secret = await getOrCreateJwtSecret(env);
         const jwtKey = await importJwtSecret(secret);
-        const expiresIn = 60;
+        // 4-hour download ticket so large snapshots can be retried/resumed cleanly while
+        // every download request still performs real-time DB session & admin role checks.
+        const expiresIn = 14400;
         const ticket = await signJWT(
           {
             purpose: "snapshot_download",
@@ -231,20 +233,38 @@ export async function handleAdminRequest(
         } catch {
           return new Response("Invalid filename encoding", { status: 400 });
         }
-        const download = await snapshotBridge.openSnapshotDownload(decodedName);
+        const download = await snapshotBridge.openSnapshotDownload(decodedName, request.headers.get('Range'));
         if (!download) {
           return new Response("Snapshot not found", { status: 404 });
         }
+        if (download.status === 416) {
+          return new Response(null, {
+            status: 416,
+            headers: {
+              'Content-Range': download.contentRange || `bytes */${download.sizeBytes}`,
+              'Accept-Ranges': 'bytes',
+              'Cache-Control': 'private, no-store, no-transform'
+            }
+          });
+        }
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/zstd',
+          'Content-Disposition': `attachment; filename="${download.filename}"`,
+          'Content-Length': String(download.contentLength),
+          'Accept-Ranges': 'bytes',
+          'ETag': download.etag,
+          'Cache-Control': 'private, no-store, no-transform',
+          'Vary': 'Authorization',
+          'X-Accel-Buffering': 'no'
+        };
+        if (download.status === 206 && download.contentRange) {
+          headers['Content-Range'] = download.contentRange;
+        }
+
         return new Response(download.stream, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/zstd',
-            'Content-Disposition': `attachment; filename="${download.filename}"`,
-            'Content-Length': String(download.sizeBytes),
-            'Cache-Control': 'private, no-store, no-transform',
-            'Vary': 'Authorization',
-            'X-Accel-Buffering': 'no'
-          }
+          status: download.status,
+          headers
         });
       }
 
