@@ -406,7 +406,7 @@ export class ServerfullSnapshotManager implements ServerfullSnapshotBridge {
     }
     const diskUsedBytes = Math.max(0, diskTotalBytes - diskFreeBytes);
 
-    let sameFilesystem = true;
+    let sameFilesystem: boolean;
     let snapshotDiskTotalBytes: number | undefined;
     let snapshotDiskFreeBytes: number | undefined;
 
