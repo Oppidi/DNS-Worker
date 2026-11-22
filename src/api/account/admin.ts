@@ -17,6 +17,8 @@ import {
 } from "../../lib/turso";
 import { detectServerfullMode } from "../../router/runtimeConfig";
 import { buildDemoSnapshotOverview, isDemoMode } from "../../lib/demoConfig";
+import { getOrCreateJwtSecret } from "../../lib/auth";
+import { importJwtSecret, signJWT } from "../../lib/jwt";
 
 /**
  * Allowlist of system setting keys that can be updated via administrative REST APIs.
@@ -183,6 +185,44 @@ export async function handleAdminRequest(
         });
       }
 
+      // POST /api/admin/database/snapshots/:filename/ticket -> short-lived signed download URL for native streaming
+      if (request.method === 'POST' && pathParts[4] && pathParts[5] === 'ticket') {
+        let decodedName = pathParts[4];
+        try {
+          decodedName = decodeURIComponent(pathParts[4]);
+        } catch {
+          return new Response("Invalid filename encoding", { status: 400 });
+        }
+
+        const overview = await snapshotBridge.getOverview();
+        const exists = overview.snapshots.some((snap) => snap.filename === decodedName);
+        if (!exists) {
+          return new Response("Snapshot not found", { status: 404 });
+        }
+        if (!user.sessionId) {
+          return new Response("Active session required", { status: 401 });
+        }
+
+        const secret = await getOrCreateJwtSecret(env);
+        const jwtKey = await importJwtSecret(secret);
+        const expiresIn = 60;
+        const ticket = await signJWT(
+          {
+            purpose: "snapshot_download",
+            filename: decodedName,
+            userId: user.id,
+            sessionId: user.sessionId,
+            exp: Math.floor(Date.now() / 1000) + expiresIn,
+          },
+          jwtKey
+        );
+
+        const downloadUrl = `/api/admin/database/snapshots/${encodeURIComponent(decodedName)}/download?ticket=${encodeURIComponent(ticket)}`;
+        return new Response(JSON.stringify({ ticket, downloadUrl, expiresIn }), {
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+        });
+      }
+
       // GET /api/admin/database/snapshots/:filename/download
       if (request.method === 'GET' && pathParts[4] && pathParts[5] === 'download') {
         let decodedName = pathParts[4];
@@ -202,7 +242,8 @@ export async function handleAdminRequest(
             'Content-Disposition': `attachment; filename="${download.filename}"`,
             'Content-Length': String(download.sizeBytes),
             'Cache-Control': 'private, no-store, no-transform',
-            'Vary': 'Authorization'
+            'Vary': 'Authorization',
+            'X-Accel-Buffering': 'no'
           }
         });
       }

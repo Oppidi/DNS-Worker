@@ -162,28 +162,25 @@ export function getSnapshotDownloadUrl(filename: string): string {
 }
 
 /**
- * Downloads a completed `.sqlite.zst` database snapshot via authenticated `fetch()`
- * so `Authorization: Bearer` injection and transparent token refresh apply, and triggers
- * a browser file save without exposing a DOM `<a href>` to speculative prefetchers.
+ * Requests a short-lived signed download ticket via authenticated `POST` (bypassing browser
+ * speculative prefetching while preserving Bearer + CSRF protection) and immediately hands off
+ * the `.sqlite.zst` URL to the browser's native streaming download manager (zero JS memory buffering).
  */
 export async function downloadDatabaseSnapshot(filename: string): Promise<void> {
-  const res = await fetch(getSnapshotDownloadUrl(filename), {
-    method: "GET",
-    cache: "no-store"
+  const res = await fetch(`/api/admin/database/snapshots/${encodeURIComponent(filename)}/ticket`, {
+    method: "POST"
   });
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(errText || `HTTP ${res.status}`);
   }
-  const blob = await res.blob();
-  const objectUrl = URL.createObjectURL(blob);
+  const { downloadUrl } = (await res.json()) as { downloadUrl: string };
   const link = document.createElement("a");
-  link.href = objectUrl;
+  link.href = downloadUrl;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(objectUrl);
 }
 
 export async function runDatabaseMigrations(): Promise<RunMigrationsResponse> {
