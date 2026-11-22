@@ -201,7 +201,8 @@ export async function handleAdminRequest(
             'Content-Type': 'application/zstd',
             'Content-Disposition': `attachment; filename="${download.filename}"`,
             'Content-Length': String(download.sizeBytes),
-            'Cache-Control': 'no-store'
+            'Cache-Control': 'private, no-store, no-transform',
+            'Vary': 'Authorization'
           }
         });
       }
