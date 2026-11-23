@@ -8,7 +8,7 @@ sidebar:
 import { Image } from 'astro:assets';
 import { Aside } from '@astrojs/starlight/components';
 import loginImg from '../../../../../screenshots/dns.obex-login.webp';
-import settingsImg from '../../../../../screenshots/dns.obex-settings.webp';
+import mfaImg from '../../../../../screenshots/dns.obex-mfa.webp';
 
 DNS Worker 在後臺解析管道與 Web 控制面板中全面踐行零信任深度防禦安全標準。本篇全面解析身份鑑權協議、信封金鑰輪換機制以及核心安全環境變數。
 
@@ -48,7 +48,7 @@ sequenceDiagram
 
 在 **Account & Security Settings**（賬戶與安全設定）卡片中管理主金鑰、通行金鑰及後量子 E2EE：
 
-<Image src={settingsImg} alt="賬戶與安全設定面板" format="webp" />
+<Image src={mfaImg} alt="賬戶安全設定：多因素認證、通行金鑰與後量子 E2EE" format="webp" />
 
 服務端儲存的敏感資料（包括使用者會話令牌與加密查詢日誌）由兩層信封加密機制保護：
 

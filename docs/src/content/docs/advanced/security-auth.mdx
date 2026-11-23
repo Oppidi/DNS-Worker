@@ -8,7 +8,7 @@ sidebar:
 import { Image } from 'astro:assets';
 import { Aside } from '@astrojs/starlight/components';
 import loginImg from '../../../../screenshots/dns.obex-login.webp';
-import settingsImg from '../../../../screenshots/dns.obex-settings.webp';
+import mfaImg from '../../../../screenshots/dns.obex-mfa.webp';
 
 DNS Worker implements defense-in-depth zero-trust security standards across both its backend resolution pipelines and Web Dashboard. This guide details the authentication protocol, key rotation mechanics, and security environment variables.
 
@@ -48,7 +48,7 @@ sequenceDiagram
 
 Configure your master security keys, Passkeys, and Post-Quantum E2EE directly in the **Account & Security Settings** card:
 
-<Image src={settingsImg} alt="Security & Account Settings" format="webp" />
+<Image src={mfaImg} alt="Account Settings: Multi-Factor Authentication, Passkeys and E2EE" format="webp" />
 
 Sensitive data at rest — including client session tokens and private query logs — is protected using two-tier envelope encryption:
 
