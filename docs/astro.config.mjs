@@ -73,6 +73,28 @@ export default defineConfig({
           }
         },
         {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.googleapis.com'
+          }
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.gstatic.com',
+            crossorigin: 'anonymous'
+          }
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'stylesheet',
+            href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400..700&family=Noto+Sans+TC:wght@400..700&family=Noto+Serif+SC:wght@400..700&family=Noto+Serif+TC:wght@400..700&display=swap'
+          }
+        },
+        {
           tag: 'script',
           attrs: {
             src: '/DNS-Worker/scripts/mermaid.min.js',
