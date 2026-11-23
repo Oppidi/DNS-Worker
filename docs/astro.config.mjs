@@ -14,7 +14,7 @@ export default defineConfig({
       title: 'DNS Worker',
       description: 'Privacy-First Protective DNS Resolver & DoH / DoT Server with Dual-Engine Architecture.',
       logo: {
-        src: './src/assets/logo.webp',
+        src: './src/assets/logo.svg',
       },
       social: [
         {
@@ -43,8 +43,8 @@ export default defineConfig({
           tag: 'link',
           attrs: {
             rel: 'icon',
-            type: 'image/webp',
-            href: '/DNS-Worker/favicon.webp'
+            type: 'image/svg+xml',
+            href: '/DNS-Worker/favicon.svg'
           }
         },
         {
