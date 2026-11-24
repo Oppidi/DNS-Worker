@@ -229,8 +229,11 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
       <Card elevation={Elevation.ONE} className="p-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <H4 className="flex items-center space-x-2 text-base font-semibold m-0">
-              <Server className="w-5 h-5 text-emerald-500" />
+            <H4
+              className="flex items-center space-x-2 text-base font-semibold m-0"
+              style={{ margin: 0 }}
+            >
+              <Server className="w-5 h-5 text-emerald-500 shrink-0" />
               <span>{t("system.runtime.title", "版本与服务运行状态 (管理员)")}</span>
             </H4>
             <Tag minimal round intent={Intent.PRIMARY} className="font-mono">

@@ -273,8 +273,8 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
       <Card elevation={Elevation.ONE} className="space-y-4 overflow-hidden">
         <div className="pb-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <H4 className="flex items-center space-x-2 text-base font-semibold m-0">
-              <ShieldCheck className="w-5 h-5 text-red-500" />
+            <H4 className="flex items-center space-x-2 text-base font-semibold m-0" style={{ margin: 0 }}>
+              <ShieldCheck className="w-5 h-5 text-red-500 shrink-0" />
               <span>{t("account.userManagement")}</span>
             </H4>
             {maxUsersLimit > 0 ? (
@@ -373,7 +373,7 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
         <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <H5 className="flex items-center space-x-2 text-sm font-semibold m-0">
+              <H5 className="flex items-center space-x-2 text-sm font-semibold m-0" style={{ margin: 0 }}>
                 <KeyRound className="w-4 h-4 text-blue-500 shrink-0" />
                 <span>{t("account.inviteCodeList", "邀请码列表")}</span>
               </H5>
