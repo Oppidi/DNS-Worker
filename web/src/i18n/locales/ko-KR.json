@@ -495,6 +495,8 @@
     "title": "쿼리 로그",
     "subtitle": "이 설정의 DNS 해석 로그와 차단 기록을 확인합니다.",
     "realtime": "실시간",
+    "customEndHint": "시작 시간은 종료 시간 {{range}} 전으로 자동 설정됩니다.",
+    "resetCustomRange": "재설정",
     "allStatus": "모든 상태",
     "onlyPass": "허용됨",
     "onlyBlock": "차단됨",

@@ -495,6 +495,8 @@
     "title": "Query Logs",
     "subtitle": "View DNS resolution logs and block history.",
     "realtime": "Realtime",
+    "customEndHint": "Start time is set to {{range}} before the end time.",
+    "resetCustomRange": "Reset",
     "allStatus": "All Status",
     "onlyPass": "Allowed",
     "onlyBlock": "Blocked",

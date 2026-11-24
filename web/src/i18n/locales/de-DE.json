@@ -495,6 +495,8 @@
     "title": "Abfrageprotokolle",
     "subtitle": "Überprüfen Sie die DNS-Auflösungsprotokolle und Blockierungsdatensätze für dieses Profil.",
     "realtime": "Echtzeit",
+    "customEndHint": "Die Startzeit wird automatisch auf {{range}} vor der Endzeit festgelegt.",
+    "resetCustomRange": "Zurücksetzen",
     "allStatus": "Alle Status",
     "onlyPass": "Zugelassen",
     "onlyBlock": "Blockiert",

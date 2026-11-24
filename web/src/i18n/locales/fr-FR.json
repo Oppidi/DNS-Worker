@@ -495,6 +495,8 @@
     "title": "Journaux de requêtes",
     "subtitle": "Consultez les journaux de résolution DNS et les enregistrements de blocage pour ce profil.",
     "realtime": "Temps réel",
+    "customEndHint": "L'heure de début est définie automatiquement à {{range}} avant l'heure de fin.",
+    "resetCustomRange": "Réinitialiser",
     "allStatus": "Tous les états",
     "onlyPass": "Autorisées",
     "onlyBlock": "Bloquées",

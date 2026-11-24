@@ -495,6 +495,8 @@
     "title": "Registro de consultas",
     "subtitle": "Consulta los registros de resolución DNS y de bloqueo para este perfil.",
     "realtime": "Tiempo real",
+    "customEndHint": "La hora de inicio se establece automáticamente en {{range}} antes de la hora de fin.",
+    "resetCustomRange": "Restablecer",
     "allStatus": "Todos los estados",
     "onlyPass": "Permitidos",
     "onlyBlock": "Bloqueados",

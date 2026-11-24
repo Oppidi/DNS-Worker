@@ -495,6 +495,8 @@
     "title": "クエリログ",
     "subtitle": "この設定の DNS 解決ログとブロック記録を確認します。",
     "realtime": "リアルタイム",
+    "customEndHint": "開始時刻は終了時刻の {{range}} 前に自動設定されます。",
+    "resetCustomRange": "リセット",
     "allStatus": "すべてのステータス",
     "onlyPass": "許可済み",
     "onlyBlock": "ブロック済み",
