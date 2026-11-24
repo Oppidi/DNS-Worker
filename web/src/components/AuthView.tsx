@@ -3,6 +3,7 @@ import { Card, Elevation, Button } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { GitHubLinkButton } from "./GitHubLinkButton";
 import type { ThemeMode } from "../hooks/useTheme";
 import { clsx } from "clsx";
 import { ScrollingIntro } from "./ScrollingIntro";
@@ -170,6 +171,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
           {theme !== undefined && setTheme !== undefined && (
             <ThemeSwitcher theme={theme} setTheme={setTheme} />
           )}
+          <GitHubLinkButton />
         </div>
 
         <div
