@@ -195,11 +195,11 @@ async function testLifecycleManagerCachingAndRestart(): Promise<void> {
   await manager.getStatus();
   assert.equal(fetchCount, 1);
 
-  // forceRefresh hits registry again and captures error cleanly while keeping stale tags
+  // forceRefresh hits registry again and returns a safe generic error while keeping stale tags
   shouldFailFetch = true;
   const statusErr = await manager.getStatus({ forceRefresh: true });
   assert.equal(fetchCount, 2);
-  assert.ok(statusErr.checkError?.includes('ECONNREFUSED'));
+  assert.equal(statusErr.checkError, 'Failed to reach npm registry');
   assert.equal(statusErr.channels.alpha.version, '1.3.5-alpha.1112223');
 
   // requestRestart is idempotent and invokes onRestart after delay

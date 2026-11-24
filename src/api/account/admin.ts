@@ -607,14 +607,14 @@ export async function handleAdminRequest(
           headers: jsonHeaders
         });
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (msg === 'restart_unsupported') {
+        if (e instanceof Error && e.message === 'restart_unsupported') {
           return new Response(JSON.stringify({ error: "restart_unsupported" }), {
             status: 400,
             headers: jsonHeaders
           });
         }
-        return new Response(JSON.stringify({ error: msg || "Failed to schedule restart" }), {
+        console.error("[Admin API] Failed to schedule service restart:", e);
+        return new Response(JSON.stringify({ error: "Failed to schedule restart" }), {
           status: 500,
           headers: jsonHeaders
         });
