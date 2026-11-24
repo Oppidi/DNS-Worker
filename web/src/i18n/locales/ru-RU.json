@@ -1377,8 +1377,8 @@
       "channelsTitle": "Каналы обновлений и команды для хоста",
       "lastChecked": "Проверено",
       "channelStable": "Стабильная (latest)",
-      "channelAlpha": "Alpha-версия (alpha)",
-      "channelCanary": "Canary-версия (canary)",
+      "channelAlpha": "Альфа (alpha)",
+      "channelCanary": "Canary",
       "currentChannelBadge": "Текущий",
       "updateAvailable": "Доступно обновление",
       "upToDate": "Актуально",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "Перезапустить",
       "channelLatestVersion": "Последняя версия канала",
       "otherChannelBadge": "Другой канал",
-      "channelSwitchHint": "Сейчас используется канал {{current}}. Выполните команду ниже на хосте, чтобы переключиться на канал {{target}}."
+      "channelSwitchHint": "Сейчас используется канал {{current}}. Выполните команду ниже на хосте, чтобы переключиться на канал {{target}}.",
+      "sudoToggle": "Использовать sudo"
     }
   },
   "migrationAlert": {

@@ -1377,8 +1377,8 @@
       "channelsTitle": "Canaux de diffusion et commandes de mise à jour",
       "lastChecked": "Dernière vérification",
       "channelStable": "Stable (latest)",
-      "channelAlpha": "Alpha (alpha)",
-      "channelCanary": "Canary (canary)",
+      "channelAlpha": "Alpha",
+      "channelCanary": "Canary",
       "currentChannelBadge": "Actuel",
       "updateAvailable": "Mise à jour dispo",
       "upToDate": "À jour",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "Redémarrer",
       "channelLatestVersion": "Dernière version du canal",
       "otherChannelBadge": "Autre canal",
-      "channelSwitchHint": "Exécution actuelle sur le canal {{current}}. Exécutez la commande ci-dessous sur l’hôte pour basculer vers {{target}}."
+      "channelSwitchHint": "Exécution actuelle sur le canal {{current}}. Exécutez la commande ci-dessous sur l’hôte pour basculer vers {{target}}.",
+      "sudoToggle": "Utiliser sudo"
     }
   },
   "migrationAlert": {

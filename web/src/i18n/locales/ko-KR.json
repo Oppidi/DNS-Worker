@@ -1377,8 +1377,8 @@
       "channelsTitle": "릴리스 채널 및 호스트 업데이트 명령",
       "lastChecked": "마지막 확인",
       "channelStable": "정식 버전 (latest)",
-      "channelAlpha": "Alpha 버전 (alpha)",
-      "channelCanary": "Canary 버전 (canary)",
+      "channelAlpha": "알파 (alpha)",
+      "channelCanary": "카나리 (canary)",
       "currentChannelBadge": "현재",
       "updateAvailable": "업데이트 가능",
       "upToDate": "최신",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "지금 재시작",
       "channelLatestVersion": "채널 최신 버전",
       "otherChannelBadge": "다른 실행 채널",
-      "channelSwitchHint": "현재 {{current}} 채널에서 실행 중입니다. {{target}} 채널로 전환하려면 호스트에서 아래 명령을 실행하세요."
+      "channelSwitchHint": "현재 {{current}} 채널에서 실행 중입니다. {{target}} 채널로 전환하려면 호스트에서 아래 명령을 실행하세요.",
+      "sudoToggle": "sudo 사용"
     }
   },
   "migrationAlert": {

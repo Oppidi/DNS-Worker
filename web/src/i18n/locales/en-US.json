@@ -1377,8 +1377,8 @@
       "channelsTitle": "Release Channels & Host Update Commands",
       "lastChecked": "Last checked",
       "channelStable": "Stable (latest)",
-      "channelAlpha": "Alpha (alpha)",
-      "channelCanary": "Canary (canary)",
+      "channelAlpha": "Alpha",
+      "channelCanary": "Canary",
       "currentChannelBadge": "Current",
       "updateAvailable": "Update Available",
       "upToDate": "Up to Date",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "Restart Now",
       "channelLatestVersion": "Channel Latest Version",
       "otherChannelBadge": "Different Channel",
-      "channelSwitchHint": "Currently running on the {{current}} channel. Run the command below on the host if you want to switch to {{target}}."
+      "channelSwitchHint": "Currently running on the {{current}} channel. Run the command below on the host if you want to switch to {{target}}.",
+      "sudoToggle": "Use sudo"
     }
   },
   "migrationAlert": {

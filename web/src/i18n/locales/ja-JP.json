@@ -1377,8 +1377,8 @@
       "channelsTitle": "リリースチャネルとホスト更新コマンド",
       "lastChecked": "最終確認",
       "channelStable": "安定版 (latest)",
-      "channelAlpha": "Alpha 版 (alpha)",
-      "channelCanary": "Canary 版 (canary)",
+      "channelAlpha": "アルファ版 (alpha)",
+      "channelCanary": "カナリア版 (canary)",
       "currentChannelBadge": "現在",
       "updateAvailable": "更新あり",
       "upToDate": "最新",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "今すぐ再起動",
       "channelLatestVersion": "チャネル最新バージョン",
       "otherChannelBadge": "別のチャネル",
-      "channelSwitchHint": "現在は {{current}} チャネルで稼働中です。{{target}} チャネルへ切り替える場合はホスト側で以下のコマンドを実行してください。"
+      "channelSwitchHint": "現在は {{current}} チャネルで稼働中です。{{target}} チャネルへ切り替える場合はホスト側で以下のコマンドを実行してください。",
+      "sudoToggle": "sudo を使用"
     }
   },
   "migrationAlert": {

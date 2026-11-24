@@ -1377,8 +1377,8 @@
       "channelsTitle": "Canales de lanzamiento y comandos de actualización",
       "lastChecked": "Última comprobación",
       "channelStable": "Estable (latest)",
-      "channelAlpha": "Alpha (alpha)",
-      "channelCanary": "Canary (canary)",
+      "channelAlpha": "Alpha",
+      "channelCanary": "Canary",
       "currentChannelBadge": "Actual",
       "updateAvailable": "Actualización disponible",
       "upToDate": "Al día",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "Reiniciar ahora",
       "channelLatestVersion": "Última versión del canal",
       "otherChannelBadge": "Otro canal",
-      "channelSwitchHint": "Ejecutándose actualmente en el canal {{current}}. Ejecuta el siguiente comando en el host si deseas cambiar a {{target}}."
+      "channelSwitchHint": "Ejecutándose actualmente en el canal {{current}}. Ejecuta el siguiente comando en el host si deseas cambiar a {{target}}.",
+      "sudoToggle": "Usar sudo"
     }
   },
   "migrationAlert": {

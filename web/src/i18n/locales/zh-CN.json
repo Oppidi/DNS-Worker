@@ -1377,8 +1377,8 @@
       "channelsTitle": "发布通道与宿主机更新命令",
       "lastChecked": "上次检查",
       "channelStable": "正式版 (latest)",
-      "channelAlpha": "Alpha 测试版 (alpha)",
-      "channelCanary": "Canary 金丝雀版 (canary)",
+      "channelAlpha": "测试版 (alpha)",
+      "channelCanary": "金丝雀版 (canary)",
       "currentChannelBadge": "当前",
       "updateAvailable": "有新版本",
       "upToDate": "已是最新",
@@ -1389,7 +1389,8 @@
       "confirmRestartAction": "立即重启",
       "channelLatestVersion": "通道最新版本",
       "otherChannelBadge": "非当前运行通道",
-      "channelSwitchHint": "当前运行在 {{current}} 通道；如需切换至 {{target}} 通道，可在宿主机执行下方命令。"
+      "channelSwitchHint": "当前运行在 {{current}} 通道；如需切换至 {{target}} 通道，可在宿主机执行下方命令。",
+      "sudoToggle": "使用 sudo"
     }
   },
   "migrationAlert": {

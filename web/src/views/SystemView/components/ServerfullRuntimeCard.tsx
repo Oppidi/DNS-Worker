@@ -9,6 +9,7 @@ import {
   Callout,
   Dialog,
   Spinner,
+  Switch,
   Tooltip,
   type OverlayToaster,
 } from "@blueprintjs/core";
@@ -45,6 +46,7 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
   const [submittingRestart, setSubmittingRestart] = useState(false);
   const [copiedChannel, setCopiedChannel] = useState<ReleaseChannel | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<ReleaseChannel | null>(null);
+  const [sudoOverride, setSudoOverride] = useState<boolean | null>(null);
   const pollTimerRef = useRef<number | null>(null);
   const copyTimerRef = useRef<number | null>(null);
 
@@ -65,8 +67,8 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
 
   const getChannelLabel = (channel: ReleaseChannel): string => {
     if (channel === "latest") return t("system.runtime.channelStable", "正式版 (latest)");
-    if (channel === "alpha") return t("system.runtime.channelAlpha", "Alpha 测试版 (alpha)");
-    return t("system.runtime.channelCanary", "Canary 金丝雀版 (canary)");
+    if (channel === "alpha") return t("system.runtime.channelAlpha", "测试版 (alpha)");
+    return t("system.runtime.channelCanary", "金丝雀版 (canary)");
   };
 
   const getInstallMethodLabel = (method: ServerfullRuntimeStatus["installMethod"]): string => {
@@ -326,6 +328,21 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
           const isCurrentChannel = status.currentChannel === activeChannel;
           const hasRemoteVersion = Boolean(activeInfo?.version);
           const hasUpdate = isCurrentChannel && Boolean(activeInfo?.updateAvailable);
+          const supportsSudoToggle = status.platform !== "win32" && status.installMethod !== "source";
+          const defaultUseSudo =
+            supportsSudoToggle &&
+            (status.serviceManager === "systemd" ||
+              status.installMethod === "npm-global" ||
+              status.installMethod === "npx");
+          const useSudo = supportsSudoToggle && (sudoOverride ?? defaultUseSudo);
+          const displayCommand = activeInfo?.updateCommand
+            ? useSudo
+              ? activeInfo.updateCommand
+                  .split(" && ")
+                  .map((part) => (part.startsWith("sudo ") ? part : `sudo ${part}`))
+                  .join(" && ")
+              : activeInfo.updateCommand
+            : "";
 
           return (
             <div className="space-y-3">
@@ -341,35 +358,46 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
               </div>
 
               {/* Channel Track Tabs (Select channel first, defaulting to active running channel) */}
-              <div
-                className="inline-flex flex-wrap items-center gap-1 bg-gray-100/80 dark:bg-gray-800/70 p-1 rounded-lg"
-                role="tablist"
-                aria-label={t("system.runtime.channelsTitle", "发布通道")}
-              >
-                {RELEASE_CHANNELS.map((ch) => {
-                  const selected = activeChannel === ch;
-                  const isRunningChannel = status.currentChannel === ch;
-                  return (
-                    <Button
-                      key={ch}
-                      minimal
-                      small
-                      active={selected}
-                      intent={selected ? Intent.PRIMARY : Intent.NONE}
-                      onClick={() => setSelectedChannel(ch)}
-                      className="text-xs font-medium"
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        <span>{getChannelLabel(ch)}</span>
-                        {isRunningChannel && (
-                          <Tag minimal round intent={Intent.PRIMARY} className="text-[10px] leading-none">
-                            {t("system.runtime.currentChannelBadge", "当前")}
-                          </Tag>
-                        )}
-                      </span>
-                    </Button>
-                  );
-                })}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div
+                  className="inline-flex flex-wrap items-center gap-1 bg-gray-100/80 dark:bg-gray-800/70 p-1 rounded-lg self-start"
+                  role="tablist"
+                  aria-label={t("system.runtime.channelsTitle", "发布通道")}
+                >
+                  {RELEASE_CHANNELS.map((ch) => {
+                    const selected = activeChannel === ch;
+                    const isRunningChannel = status.currentChannel === ch;
+                    return (
+                      <Button
+                        key={ch}
+                        minimal
+                        small
+                        active={selected}
+                        intent={selected ? Intent.PRIMARY : Intent.NONE}
+                        onClick={() => setSelectedChannel(ch)}
+                        className="text-xs font-medium"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <span>{getChannelLabel(ch)}</span>
+                          {isRunningChannel && (
+                            <Tag minimal round intent={Intent.PRIMARY} className="text-[10px] leading-none">
+                              {t("system.runtime.currentChannelBadge", "当前")}
+                            </Tag>
+                          )}
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                {supportsSudoToggle && (
+                  <Switch
+                    checked={useSudo}
+                    label={t("system.runtime.sudoToggle", "使用 sudo")}
+                    onChange={(e) => setSudoOverride(e.currentTarget.checked)}
+                    className="mb-0 text-xs"
+                  />
+                )}
               </div>
 
               {/* Focused Selected Channel Card */}
@@ -411,20 +439,20 @@ export const ServerfullRuntimeCard: React.FC<ServerfullRuntimeCardProps> = ({
                   </div>
                 )}
 
-                {activeInfo?.updateCommand && (
+                {displayCommand && (
                   <div className="flex items-center justify-between gap-2 rounded bg-gray-100 dark:bg-gray-950/70 px-3 py-2 border border-gray-200/80 dark:border-gray-800">
                     <code
                       className="text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-nowrap select-all"
-                      title={activeInfo.updateCommand}
+                      title={displayCommand}
                     >
-                      {activeInfo.updateCommand}
+                      {displayCommand}
                     </code>
                     <Button
                       minimal
                       small
                       icon={copiedChannel === activeChannel ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                       title={t("common.copy", "复制")}
-                      onClick={() => handleCopyCommand(activeChannel, activeInfo.updateCommand)}
+                      onClick={() => handleCopyCommand(activeChannel, displayCommand)}
                     />
                   </div>
                 )}
