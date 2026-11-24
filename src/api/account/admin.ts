@@ -1,4 +1,4 @@
-import { Env, User, ExecutionContext } from "../../types";
+import { Env, User, ExecutionContext, ServerfullRuntimeStatus } from "../../types";
 import { hashPassword } from "../../utils/crypto";
 import { UserModel } from "../../models/user";
 import { ProfileModel } from "../../models/profile";
@@ -576,6 +576,102 @@ export async function handleAdminRequest(
       failedUsernames: result.failedUsernames,
       affectedProfilesCount: result.affectedProfileIds.length
     }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Serverfull 运行时版本检查与优雅重启接口: /api/admin/runtime
+  if (pathParts[2] === 'runtime') {
+    const isServerfull = detectServerfullMode(env);
+    const demoMode = isDemoMode(env);
+    const jsonHeaders = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store'
+    };
+
+    if (request.method === 'POST' && pathParts[3] === 'restart') {
+      if (demoMode) {
+        return new Response(JSON.stringify({ error: "Service restart is disabled in Demo Mode" }), {
+          status: 403,
+          headers: jsonHeaders
+        });
+      }
+      if (!isServerfull || !env.SERVERFULL_LIFECYCLE_BRIDGE) {
+        return new Response(JSON.stringify({ error: "Not supported outside Serverfull mode" }), {
+          status: 404,
+          headers: jsonHeaders
+        });
+      }
+      try {
+        const restartResult = await env.SERVERFULL_LIFECYCLE_BRIDGE.requestRestart();
+        return new Response(JSON.stringify(restartResult), {
+          status: 202,
+          headers: jsonHeaders
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg === 'restart_unsupported') {
+          return new Response(JSON.stringify({ error: "restart_unsupported" }), {
+            status: 400,
+            headers: jsonHeaders
+          });
+        }
+        return new Response(JSON.stringify({ error: msg || "Failed to schedule restart" }), {
+          status: 500,
+          headers: jsonHeaders
+        });
+      }
+    }
+
+    if (request.method === 'GET' && !pathParts[3]) {
+      if (demoMode) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        const demoStatus: ServerfullRuntimeStatus = {
+          supported: true,
+          currentVersion: '1.3.5',
+          currentChannel: 'latest',
+          startedAt: nowSec - 3600,
+          runtime: 'Demo Runtime',
+          platform: 'linux',
+          installMethod: 'docker',
+          serviceManager: 'docker',
+          workersCount: 1,
+          canRestart: false,
+          restartReason: 'demo_mode',
+          checkedAt: nowSec,
+          checkError: null,
+          channels: {
+            latest: {
+              channel: 'latest',
+              version: '1.3.5',
+              updateAvailable: false,
+              updateCommand: 'docker pull hugokoo/dns-worker:latest'
+            },
+            alpha: {
+              channel: 'alpha',
+              version: '1.3.5-alpha.demo001',
+              updateAvailable: true,
+              updateCommand: 'docker pull hugokoo/dns-worker:alpha'
+            },
+            canary: {
+              channel: 'canary',
+              version: '1.3.5-canary.demo002',
+              updateAvailable: true,
+              updateCommand: 'docker pull hugokoo/dns-worker:canary'
+            }
+          }
+        };
+        return new Response(JSON.stringify(demoStatus), { headers: jsonHeaders });
+      }
+
+      if (!isServerfull || !env.SERVERFULL_LIFECYCLE_BRIDGE) {
+        return new Response(JSON.stringify({ supported: false }), { headers: jsonHeaders });
+      }
+
+      const forceRefresh = new URL(request.url).searchParams.get('refresh') === '1';
+      const runtimeStatus = await env.SERVERFULL_LIFECYCLE_BRIDGE.getStatus({ forceRefresh });
+      return new Response(JSON.stringify(runtimeStatus), { headers: jsonHeaders });
+    }
+
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
   return new Response("Not Found", { status: 404 });

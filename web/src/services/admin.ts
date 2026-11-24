@@ -323,3 +323,75 @@ export async function revokeDistributedFilter(url: string): Promise<RevokeFilter
   }
   return res.json();
 }
+
+export type ReleaseChannel = "latest" | "alpha" | "canary";
+
+export type ServerfullInstallMethod = "npm-global" | "docker" | "source" | "npx" | "unknown";
+
+export type ServerfullServiceManager = "systemd" | "docker" | "schtasks" | "none";
+
+export interface ReleaseChannelInfo {
+  channel: ReleaseChannel;
+  version: string | null;
+  updateAvailable: boolean;
+  updateCommand: string;
+}
+
+export interface ServerfullRuntimeStatus {
+  supported: boolean;
+  currentVersion: string;
+  currentChannel: ReleaseChannel;
+  /** Process startup Unix timestamp in seconds. */
+  startedAt: number;
+  runtime: string;
+  platform: string;
+  installMethod: ServerfullInstallMethod;
+  serviceManager: ServerfullServiceManager;
+  workersCount: number;
+  canRestart: boolean;
+  restartReason: string | null;
+  /** Last npm registry check Unix timestamp in seconds. */
+  checkedAt: number | null;
+  checkError: string | null;
+  channels: Record<ReleaseChannel, ReleaseChannelInfo>;
+}
+
+export interface ServerfullRestartResult {
+  accepted: boolean;
+  startedAt: number;
+  estimatedDowntimeSec: number;
+  message: string;
+}
+
+/**
+ * Fetches Serverfull runtime capabilities and 3-channel release status (`latest`, `alpha`, `canary`).
+ */
+export async function getRuntimeStatus(forceRefresh = false): Promise<ServerfullRuntimeStatus> {
+  const query = forceRefresh ? "?refresh=1" : "";
+  const res = await fetch(`/api/admin/runtime${query}`, { cache: "no-store" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Requests a graceful Serverfull service shutdown so the configured supervisor (`systemd` or Docker) restarts it.
+ */
+export async function restartServerfullService(): Promise<ServerfullRestartResult> {
+  const res = await fetch("/api/admin/runtime/restart", {
+    method: "POST"
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text) as { error?: string };
+      if (json.error) throw new Error(json.error);
+    } catch {
+      // fall back to raw text
+    }
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json();
+}

@@ -11,13 +11,16 @@ import {
   getSystemSettings,
   getMe,
   getDatabaseStatus,
+  getRuntimeStatus,
   type DatabaseStatusResponse,
-  type InviteCodeInfo
+  type InviteCodeInfo,
+  type ServerfullRuntimeStatus
 } from "../../services";
 import { UserManagementCard } from "./components/UserManagementCard";
 import { DistributeFilterCard } from "./components/DistributeFilterCard";
 import { SystemSettingsCard } from "./components/SystemSettingsCard";
 import { DatabaseMigrationCard } from "./components/DatabaseMigrationCard";
+import { ServerfullRuntimeCard } from "./components/ServerfullRuntimeCard";
 import { DeploymentModeBadge } from "../../components/DeploymentMode";
 import { UserRoleBadge } from "../../components/UserRoleBadge";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -46,6 +49,7 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
   const [sysSettings, setSysSettings] = useState<Record<string, string>>({});
   const [inviteCodes, setInviteCodes] = useState<InviteCodeInfo[]>([]);
   const [dbStatus, setDbStatus] = useState<DatabaseStatusResponse | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<ServerfullRuntimeStatus | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -83,6 +87,16 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
     }
   }, []);
 
+  const fetchRuntimeStatus = useCallback(async (forceRefresh = false) => {
+    try {
+      const status = await getRuntimeStatus(forceRefresh);
+      setRuntimeStatus(status);
+    } catch (e) {
+      console.error("Failed to fetch runtime status:", e);
+      if (forceRefresh) throw e;
+    }
+  }, []);
+
   const fetchMe = useCallback(async () => {
     try {
       const data = await getMe();
@@ -92,13 +106,14 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
         fetchInviteCodes();
         fetchSystemSettings();
         fetchDbStatus();
+        fetchRuntimeStatus();
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [fetchDbStatus]);
+  }, [fetchDbStatus, fetchRuntimeStatus]);
 
   useEffect(() => {
     fetchMe();
@@ -189,6 +204,17 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
           toasterRef={toasterRef}
         />
       </div>
+
+      {/* Admin: Serverfull Runtime & 3-Channel Release Check (Only shown in Serverfull mode) */}
+      {runtimeStatus?.supported && (
+        <div className="space-y-4">
+          <ServerfullRuntimeCard
+            status={runtimeStatus}
+            onRefresh={fetchRuntimeStatus}
+            toasterRef={toasterRef}
+          />
+        </div>
+      )}
     </div>
   );
 };
