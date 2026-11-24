@@ -1,8 +1,9 @@
 import React from "react";
 import { Button, Navbar, Alignment, Spinner, PopoverNext, Menu, MenuItem } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Monitor, Menu as MenuIcon, ChevronDown, Check } from "lucide-react";
+import { Menu as MenuIcon, ChevronDown, Check } from "lucide-react";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { SessionLockButton } from "../components/SessionLockButton";
 import { MigrationStatusBadge } from "../components/MigrationStatusBadge";
 import type { Profile, UserInfo } from "../types/auth";
@@ -182,29 +183,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           <SessionLockButton currentUser={currentUser} />
           <MigrationStatusBadge currentUser={currentUser} onNavigate={navigate} />
           <LanguageSwitcher />
-          <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-lg">
-            <Button
-              variant="minimal"
-              icon={<Sun size={14} />}
-              size="small"
-              active={theme === "light"}
-              onClick={() => setTheme("light")}
-            />
-            <Button
-              variant="minimal"
-              icon={<Moon size={14} />}
-              size="small"
-              active={theme === "dark"}
-              onClick={() => setTheme("dark")}
-            />
-            <Button
-              variant="minimal"
-              icon={<Monitor size={14} />}
-              size="small"
-              active={theme === "system"}
-              onClick={() => setTheme("system")}
-            />
-          </div>
+          <ThemeSwitcher theme={theme} setTheme={setTheme} />
           <a
             href="https://github.com/Oppidi/DNS-Worker"
             target="_blank"
