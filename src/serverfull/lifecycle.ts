@@ -238,7 +238,10 @@ export class ServerfullLifecycleManager implements ServerfullLifecycleBridge {
       return {
         channel,
         version: remoteVersion,
-        updateAvailable: Boolean(remoteVersion && remoteVersion !== this.currentVersion),
+        // Only flag updates for the active channel the service is actually tracking
+        updateAvailable:
+          channel === this.currentChannel &&
+          Boolean(remoteVersion && remoteVersion !== this.currentVersion),
         updateCommand: buildChannelUpdateCommand(
           channel,
           this.envInfo.installMethod,

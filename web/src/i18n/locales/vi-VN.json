@@ -1386,7 +1386,10 @@
       "restartConfirmTitle": "Xác nhận khởi động lại an toàn",
       "restartConfirmDesc": "Bạn có chắc muốn khởi động lại dịch vụ DNS Worker? Hệ thống sẽ ghi log, checkpoint SQLite WAL rồi thoát gọn để systemd hoặc Docker tự bật lại.",
       "restartConfirmWarning": "UDP / DoT / DoH và giao diện quản trị sẽ gián đoạn khoảng 5–10 giây. Hãy đảm bảo chính sách tự khởi động lại của systemd hoặc Docker đang bật.",
-      "confirmRestartAction": "Khởi động lại ngay"
+      "confirmRestartAction": "Khởi động lại ngay",
+      "channelLatestVersion": "Phiên bản mới nhất của kênh",
+      "otherChannelBadge": "Kênh khác",
+      "channelSwitchHint": "Hiện đang chạy trên kênh {{current}}. Chạy lệnh bên dưới trên máy chủ nếu bạn muốn chuyển sang kênh {{target}}."
     }
   },
   "migrationAlert": {

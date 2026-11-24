@@ -1386,7 +1386,10 @@
       "restartConfirmTitle": "Geordneten Neustart bestätigen",
       "restartConfirmDesc": "Möchten Sie DNS Worker wirklich neu starten? Protokolle und SQLite-WAL-Checkpoints werden sauber geleert, bevor systemd oder Docker den Prozess neu startet.",
       "restartConfirmWarning": "UDP / DoT / DoH und Dashboard sind ca. 5–10 Sekunden nicht erreichbar. Stellen Sie sicher, dass eine systemd- oder Docker-Neustartrichtlinie aktiv ist.",
-      "confirmRestartAction": "Jetzt neu starten"
+      "confirmRestartAction": "Jetzt neu starten",
+      "channelLatestVersion": "Neueste Kanalversion",
+      "otherChannelBadge": "Anderer Kanal",
+      "channelSwitchHint": "Läuft aktuell auf dem Kanal {{current}}. Führen Sie den folgenden Befehl auf dem Host aus, um zu {{target}} zu wechseln."
     }
   },
   "migrationAlert": {

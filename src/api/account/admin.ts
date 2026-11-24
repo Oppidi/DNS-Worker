@@ -648,13 +648,13 @@ export async function handleAdminRequest(
             alpha: {
               channel: 'alpha',
               version: '1.3.5-alpha.demo001',
-              updateAvailable: true,
+              updateAvailable: false,
               updateCommand: 'docker pull hugokoo/dns-worker:alpha'
             },
             canary: {
               channel: 'canary',
               version: '1.3.5-canary.demo002',
-              updateAvailable: true,
+              updateAvailable: false,
               updateCommand: 'docker pull hugokoo/dns-worker:canary'
             }
           }

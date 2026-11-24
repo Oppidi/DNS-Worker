@@ -1386,7 +1386,10 @@
       "restartConfirmTitle": "グレースフル再起動の確認",
       "restartConfirmDesc": "DNS Worker サービスを再起動しますか？ログと SQLite WAL チェックポイントをフラッシュして終了し、systemd または Docker により自動再起動されます。",
       "restartConfirmWarning": "再起動中は UDP / DoT / DoH と Web コンソールが約 5〜10 秒間切断されます。systemd または Docker の再起動ポリシーが有効であることを確認してください。",
-      "confirmRestartAction": "今すぐ再起動"
+      "confirmRestartAction": "今すぐ再起動",
+      "channelLatestVersion": "チャネル最新バージョン",
+      "otherChannelBadge": "別のチャネル",
+      "channelSwitchHint": "現在は {{current}} チャネルで稼働中です。{{target}} チャネルへ切り替える場合はホスト側で以下のコマンドを実行してください。"
     }
   },
   "migrationAlert": {

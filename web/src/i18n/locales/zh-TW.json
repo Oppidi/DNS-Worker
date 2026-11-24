@@ -1386,7 +1386,10 @@
       "restartConfirmTitle": "確認優雅重啟服務",
       "restartConfirmDesc": "確定要重啟 DNS Worker 服務嗎？服務將先寫入日誌與 SQLite WAL 檢查點並優雅結束，隨後由 systemd 或 Docker 自動重新啟動。",
       "restartConfirmWarning": "重啟期間 UDP / DoT / DoH 解析與 Web 控制台將短暫中斷（約 5–10 秒）。請確認目前使用 systemd 或已設定容器自動重啟策略（restart: unless-stopped / always）。",
-      "confirmRestartAction": "立即重啟"
+      "confirmRestartAction": "立即重啟",
+      "channelLatestVersion": "通道最新版本",
+      "otherChannelBadge": "非目前運行通道",
+      "channelSwitchHint": "目前運行於 {{current}} 通道；如需切換至 {{target}} 通道，可於宿主機執行下方指令。"
     }
   },
   "migrationAlert": {
