@@ -127,8 +127,8 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
 
   return (
     <>
-      <Card elevation={Elevation.ONE} className="p-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <Card elevation={Elevation.ONE} className="space-y-4 overflow-hidden">
+        <div className="pb-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <H4 className="flex items-center space-x-2 text-base font-semibold m-0">
               <ShieldCheck className="w-5 h-5 text-red-500" />
