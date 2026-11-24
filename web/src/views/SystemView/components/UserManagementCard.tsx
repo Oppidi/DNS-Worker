@@ -127,41 +127,44 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={20} className="text-red-500" />
-          <H4 style={{ margin: 0 }}>{t("account.userManagement")}</H4>
-          {maxUsersLimit > 0 ? (
-            <Tag minimal intent={isQuotaReached ? Intent.DANGER : Intent.PRIMARY} round>
-              {users.length} / {maxUsersLimit}
-            </Tag>
-          ) : (
-            <Tag minimal round>
-              {users.length}
-            </Tag>
-          )}
+      <Card elevation={Elevation.ONE} className="p-0 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <H4 className="flex items-center space-x-2 text-base font-semibold m-0">
+              <ShieldCheck className="w-5 h-5 text-red-500" />
+              <span>{t("account.userManagement")}</span>
+            </H4>
+            {maxUsersLimit > 0 ? (
+              <Tag minimal intent={isQuotaReached ? Intent.DANGER : Intent.PRIMARY} round>
+                {users.length} / {maxUsersLimit}
+              </Tag>
+            ) : (
+              <Tag minimal round>
+                {users.length}
+              </Tag>
+            )}
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            <Switch
+              label={t("account.enableRegistration", "开放新用户注册")}
+              checked={isRegistrationEnabled}
+              disabled={toggleLoading}
+              onChange={(e) => handleToggleRegistration(e.currentTarget.checked)}
+              className="mb-0"
+            />
+            <Button
+              className="whitespace-nowrap"
+              icon={<UserPlus size={16} />}
+              intent={Intent.SUCCESS}
+              text={t("account.createUser")}
+              disabled={isQuotaReached}
+              title={isQuotaReached ? t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。") : undefined}
+              onClick={() => setIsDialogOpen(true)}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <Switch
-            label={t("account.enableRegistration", "开放新用户注册")}
-            checked={isRegistrationEnabled}
-            disabled={toggleLoading}
-            onChange={(e) => handleToggleRegistration(e.currentTarget.checked)}
-            className="mb-0"
-          />
-          <Button
-            className="whitespace-nowrap"
-            icon={<UserPlus size={16} />}
-            intent={Intent.SUCCESS}
-            text={t("account.createUser")}
-            disabled={isQuotaReached}
-            title={isQuotaReached ? t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。") : undefined}
-            onClick={() => setIsDialogOpen(true)}
-          />
-        </div>
-      </div>
-      <Card elevation={Elevation.ONE} className="p-0 overflow-hidden overflow-x-auto">
-        <HTMLTable interactive striped className="w-full whitespace-nowrap">
+        <div className="overflow-x-auto">
+          <HTMLTable interactive striped className="w-full whitespace-nowrap">
           <thead>
             <tr>
               <th className="whitespace-nowrap">{t("account.username")}</th>
@@ -204,7 +207,8 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
               </tr>
             ))}
           </tbody>
-        </HTMLTable>
+          </HTMLTable>
+        </div>
       </Card>
 
       <Dialog isOpen={isDialogOpen} onClose={() => { setIsDialogOpen(false); setShowNewUserPassword(false); }} title={t("account.createNewUser")} icon="user">
