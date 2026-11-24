@@ -355,6 +355,12 @@ export function formatApiErrorMessage(err: any, t: TranslationFunction): string 
   if (bodyText === "invite_code_exists") {
     return t("account.inviteCodeExists", "该邀请码已存在，请更换其他邀请码。");
   }
+  if (bodyText === "passwordless_cannot_disable") {
+    return t("account.mfa.passwordlessLockedHint", "当前为无密码账号，不可停用无密码登录；如需停用请先增加密码。");
+  }
+  if (bodyText === "cannot_remove_last_mfa_without_password") {
+    return t("account.mfa.cannotRemoveLastWithoutPassword", "无密码账号至少需要保留一种多因素认证方式（通行密钥或 TOTP），请先增加密码后再操作。");
+  }
   if (bodyText === "password_leaked") {
     return t("auth.passwordLeaked", "Your password has been leaked.");
   }

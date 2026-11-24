@@ -238,7 +238,9 @@
     "inviteCodeRequired": "6桁の招待コードを入力してください。",
     "inviteCodeInvalid": "招待コードが無効です。6桁の英大文字・数字かご確認ください。",
     "inviteCodeExpired": "この招待コードは有効期限が切れています。",
-    "inviteCodeExhausted": "この招待コードの使用回数は上限に達しました。"
+    "inviteCodeExhausted": "この招待コードの使用回数は上限に達しました。",
+    "skipPasswordSignup": "パスワードをスキップしてパスワードレスで登録",
+    "passwordlessMfaRequiredHint": "パスワードレス登録が選択されました。続行するには Passkey または TOTP 認証アプリを設定してください。"
   },
   "setup": {
     "title": "インストールガイド",
@@ -1081,7 +1083,9 @@
       "unconfiguredHint": "MFA認証方法がまだ設定されていません。下記よりパスキーまたは認証アプリを設定してください。",
       "password": "パスワード",
       "passkey": "パスキー (Passkey)",
-      "totp": "認証アプリ (TOTP)"
+      "totp": "認証アプリ (TOTP)",
+      "passwordlessLockedHint": "パスワードレスアカウントではパスワードレスログインを無効にできません。無効にする場合は先にパスワードを追加してください。",
+      "cannotRemoveLastWithoutPassword": "パスワードレスアカウントには少なくとも 1 つの MFA（Passkey または TOTP）が必要です。削除する前にパスワードを追加してください。"
     },
     "recoveryKey": {
       "title": "緊急リカバリーキー",
@@ -1222,7 +1226,11 @@
     "inviteExpiry7d": "7日後",
     "inviteExpiry30d": "30日後",
     "inviteExpiryCustom": "カスタム有効期限",
-    "inviteCustomExpiryLabel": "有効期限日時"
+    "inviteCustomExpiryLabel": "有効期限日時",
+    "addPassword": "パスワードを追加",
+    "addPasswordBtn": "パスワードを追加",
+    "addPasswordWithPasskey": "Passkey で認証してパスワードを追加",
+    "passwordAddedSuccess": "パスワードを追加しました！"
   },
   "intro": {
     "item1Title": "DNS Worker 保護DNS",

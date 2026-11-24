@@ -66,6 +66,7 @@ export const SignupWizard: React.FC<SignupWizardProps> = ({
     requiresInviteCode,
     password,
     setPassword,
+    isPasswordlessSignup,
     mfaChoice,
     setMfaChoice,
     passkeyRegLoading,
@@ -93,7 +94,8 @@ export const SignupWizard: React.FC<SignupWizardProps> = ({
     handleSignupUsernameSubmit,
     handleSignupTotpConfirm,
     handleCopySignupRecoveryKeys,
-    handleSignupSubmit
+    handleSignupSubmit,
+    handleSkipPasswordSignup
   } = useSignupWizard({ authConfig, turnstileReady, onSuccess });
 
   const isMaxUsersReached = Boolean(authConfig?.max_users_reached);
@@ -212,6 +214,7 @@ export const SignupWizard: React.FC<SignupWizardProps> = ({
           setPasswordFocused={setPasswordFocused}
           loading={loading}
           onSubmit={handleSignupSubmit}
+          onSkipPassword={handleSkipPasswordSignup}
           isTurnstileEnabled={isTurnstileEnabled}
           turnstileRef={turnstileRef}
           turnstileStatus={turnstileStatus}
@@ -233,7 +236,9 @@ export const SignupWizard: React.FC<SignupWizardProps> = ({
           totpSetupError={totpSetupError}
           totpSetupLoading={totpSetupLoading}
           onTotpSubmit={handleSignupTotpConfirm}
+          requireMfa={isPasswordlessSignup}
           onSkip={() => {
+            if (isPasswordlessSignup) return;
             if (totpRecoveryKeys && totpRecoveryKeys.length > 0) {
               setSignupStep("recovery");
             } else {

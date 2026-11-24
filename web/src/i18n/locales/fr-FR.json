@@ -238,7 +238,9 @@
     "inviteCodeRequired": "Veuillez saisir un code d'invitation à 6 caractères.",
     "inviteCodeInvalid": "Code d'invitation invalide. Vérifiez les 6 caractères majuscules ou chiffres.",
     "inviteCodeExpired": "Ce code d'invitation a expiré.",
-    "inviteCodeExhausted": "Ce code d'invitation n'a plus d'utilisations disponibles."
+    "inviteCodeExhausted": "Ce code d'invitation n'a plus d'utilisations disponibles.",
+    "skipPasswordSignup": "Ignorer le mot de passe et créer un compte sans mot de passe",
+    "passwordlessMfaRequiredHint": "Inscription sans mot de passe sélectionnée. Veuillez configurer une clé Passkey ou TOTP pour continuer."
   },
   "setup": {
     "title": "Guide d'installation",
@@ -1081,7 +1083,9 @@
       "unconfiguredHint": "Aucune méthode MFA n'est encore configurée. Configurez un Passkey ou une application d'authentification ci-dessous.",
       "password": "Mot de passe",
       "passkey": "Passkey",
-      "totp": "TOTP"
+      "totp": "TOTP",
+      "passwordlessLockedHint": "La connexion sans mot de passe ne peut pas être désactivée sur un compte sans mot de passe. Ajoutez d’abord un mot de passe.",
+      "cannotRemoveLastWithoutPassword": "Un compte sans mot de passe doit conserver au moins une méthode MFA (Passkey ou TOTP). Ajoutez d’abord un mot de passe."
     },
     "recoveryKey": {
       "title": "Clé de récupération d'urgence",
@@ -1222,7 +1226,11 @@
     "inviteExpiry7d": "Expire dans 7 jours",
     "inviteExpiry30d": "Expire dans 30 jours",
     "inviteExpiryCustom": "Expiration personnalisée",
-    "inviteCustomExpiryLabel": "Date d'expiration"
+    "inviteCustomExpiryLabel": "Date d'expiration",
+    "addPassword": "Ajouter un mot de passe",
+    "addPasswordBtn": "Ajouter le mot de passe",
+    "addPasswordWithPasskey": "Vérifier avec Passkey et ajouter",
+    "passwordAddedSuccess": "Mot de passe ajouté avec succès !"
   },
   "intro": {
     "item1Title": "DNS Worker de protection",

@@ -238,7 +238,9 @@
     "inviteCodeRequired": "請輸入 6 位邀請碼。",
     "inviteCodeInvalid": "邀請碼無效，請檢查是否為正確的 6 位大寫字母或數字。",
     "inviteCodeExpired": "該邀請碼已過期。",
-    "inviteCodeExhausted": "該邀請碼可用次數已耗盡。"
+    "inviteCodeExhausted": "該邀請碼可用次數已耗盡。",
+    "skipPasswordSignup": "略過密碼設定，註冊無密碼帳號",
+    "passwordlessMfaRequiredHint": "您選擇了無密碼帳號註冊，請綁定通行金鑰 (Passkey) 或數字驗證器 (TOTP) 以繼續。"
   },
   "setup": {
     "title": "安裝指南",
@@ -1081,7 +1083,9 @@
       "unconfiguredHint": "目前帳號尚未設定任何多因素驗證。設定通行金鑰或數位驗證器後，可啟用無密碼快速登入並在忘記密碼時安全找回帳號。",
       "password": "密碼",
       "passkey": "通行密鑰 (Passkey)",
-      "totp": "身份驗證器 (TOTP)"
+      "totp": "身份驗證器 (TOTP)",
+      "passwordlessLockedHint": "目前為無密碼帳號，不可停用無密碼登入；如需停用請先於右側「增加密碼」。",
+      "cannotRemoveLastWithoutPassword": "無密碼帳號至少需保留一種多因素認證方式（通行金鑰或 TOTP），請先增加密碼後再操作。"
     },
     "recoveryKey": {
       "title": "緊急修復金鑰",
@@ -1222,7 +1226,11 @@
     "inviteExpiry7d": "7 天後過期",
     "inviteExpiry30d": "30 天後過期",
     "inviteExpiryCustom": "自訂過期時間",
-    "inviteCustomExpiryLabel": "截止時間"
+    "inviteCustomExpiryLabel": "截止時間",
+    "addPassword": "增加密碼",
+    "addPasswordBtn": "新增密碼",
+    "addPasswordWithPasskey": "透過通行金鑰驗證並新增密碼",
+    "passwordAddedSuccess": "密碼新增成功！"
   },
   "intro": {
     "item1Title": "DNS Worker 保護性 DNS",
