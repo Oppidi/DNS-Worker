@@ -5,6 +5,7 @@ import { ProfileModel } from "../../models/profile";
 import { ListModel } from "../../models/list";
 import { ListBloomModel } from "../../models/listBloom";
 import { SystemSettingsModel } from "../../models/systemSettings";
+import { InviteCodeModel } from "../../models/inviteCode";
 import { PASSWORD_REGEX, USERNAME_REGEX, isSafeUrlWithDnsCheck } from "../../utils/validator";
 import { syncGlobalList } from "../../utils/sync/singleListSync";
 import { rebuildProfileBloom } from "../../utils/sync";
@@ -31,6 +32,7 @@ const ALLOWED_ADMIN_SETTINGS_KEYS = new Set<string>([
   'turnstile_enabled_signup',
   'turnstile_enabled_login',
   'registration_enabled',
+  'invite_code_enabled',
   'max_users'
 ]);
 
@@ -113,6 +115,71 @@ export async function handleAdminRequest(
       if (keysToRevoke.length > 0) {
         ctx.waitUntil(deleteAccessKeysInDo(env, keysToRevoke));
       }
+      return new Response(null, { status: 204 });
+    }
+  }
+
+  // 邀请码管理接口: /api/admin/invite-codes
+  if (pathParts[2] === 'invite-codes') {
+    const inviteCodeModel = new InviteCodeModel(env.DB);
+    if (request.method === 'GET') {
+      const codes = await inviteCodeModel.listAll();
+      return new Response(JSON.stringify(codes), { headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (request.method === 'POST') {
+      let body: { code?: string; max_uses?: number; expires_at?: number | null } = {};
+      try {
+        body = (await request.json()) as { code?: string; max_uses?: number; expires_at?: number | null };
+      } catch {
+        return new Response("Invalid JSON payload", { status: 400 });
+      }
+
+      const maxUsesRaw = body.max_uses ?? 1;
+      const maxUses = typeof maxUsesRaw === 'number' ? Math.floor(maxUsesRaw) : parseInt(String(maxUsesRaw), 10);
+      if (!Number.isFinite(maxUses) || maxUses < 1) {
+        return new Response("invalid_max_uses", { status: 400 });
+      }
+
+      let expiresAt: number | null = null;
+      if (body.expires_at !== undefined && body.expires_at !== null) {
+        const parsedExp = Number(body.expires_at);
+        const now = Math.floor(Date.now() / 1000);
+        if (!Number.isFinite(parsedExp) || parsedExp <= now) {
+          return new Response("invalid_expires_at", { status: 400 });
+        }
+        expiresAt = Math.floor(parsedExp);
+      }
+
+      try {
+        const created = await inviteCodeModel.create({
+          code: typeof body.code === 'string' ? body.code : undefined,
+          maxUses,
+          expiresAt,
+          createdBy: user.id
+        });
+        return new Response(JSON.stringify(created), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg === 'invite_code_exists') {
+          return new Response("invite_code_exists", { status: 409 });
+        }
+        if (msg === 'invalid_invite_code_format' || msg === 'invalid_max_uses' || msg === 'invalid_expires_at') {
+          return new Response(msg, { status: 400 });
+        }
+        console.error("[Admin API] Create invite code failed:", msg);
+        return new Response("Failed to create invite code", { status: 400 });
+      }
+    }
+
+    if (request.method === 'DELETE' && pathParts[3]) {
+      const targetCode = decodePathSegment(pathParts[3]);
+      if (!targetCode) return new Response("Invalid invite code", { status: 400 });
+      const deleted = await inviteCodeModel.delete(targetCode);
+      if (!deleted) return new Response("Not Found", { status: 404 });
       return new Response(null, { status: 204 });
     }
   }

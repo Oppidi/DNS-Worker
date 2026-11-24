@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Divider, Intent, Callout, H5, type OverlayToaster } from "@blueprintjs/core";
+import { Intent, Callout, H5, type OverlayToaster } from "@blueprintjs/core";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { clsx } from "clsx";
@@ -7,10 +7,12 @@ import { clsx } from "clsx";
 import type { UserInfo } from "../AccountView/types";
 import {
   getUsers,
+  getInviteCodes,
   getSystemSettings,
   getMe,
   getDatabaseStatus,
-  type DatabaseStatusResponse
+  type DatabaseStatusResponse,
+  type InviteCodeInfo
 } from "../../services";
 import { UserManagementCard } from "./components/UserManagementCard";
 import { DistributeFilterCard } from "./components/DistributeFilterCard";
@@ -42,12 +44,22 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
   const headerTitleRef = useStickyHeaderTitle<HTMLHeadingElement>(t("system.title", "系统管理"));
 
   const [sysSettings, setSysSettings] = useState<Record<string, string>>({});
+  const [inviteCodes, setInviteCodes] = useState<InviteCodeInfo[]>([]);
   const [dbStatus, setDbStatus] = useState<DatabaseStatusResponse | null>(null);
 
   const fetchUsers = async () => {
     try {
       const data = (await getUsers()) as UserInfo[];
       setUsers(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchInviteCodes = async () => {
+    try {
+      const data = await getInviteCodes();
+      setInviteCodes(data);
     } catch (e) {
       console.error(e);
     }
@@ -77,6 +89,7 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
       setMe(data);
       if (data.role === "admin") {
         fetchUsers();
+        fetchInviteCodes();
         fetchSystemSettings();
         fetchDbStatus();
       }
@@ -139,7 +152,10 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
           users={users}
           currentUserId={me.id}
           onRefresh={fetchUsers}
+          inviteCodes={inviteCodes}
+          onRefreshInviteCodes={fetchInviteCodes}
           registrationEnabled={sysSettings.registration_enabled !== "false"}
+          inviteCodeEnabled={sysSettings.invite_code_enabled === "true"}
           maxUsers={sysSettings.max_users}
           onRefreshSettings={fetchSystemSettings}
           onSavingChange={onSavingChange}
@@ -148,7 +164,6 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
       </div>
 
       {/* Admin: System Filter Lists (Admin) */}
-      <Divider />
       <div className="space-y-4">
         <DistributeFilterCard
           onSavingChange={onSavingChange}
@@ -157,7 +172,6 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
       </div>
 
       {/* Admin: System Settings */}
-      <Divider />
       <div className="space-y-4">
         <SystemSettingsCard
           initialSettings={sysSettings}
@@ -168,7 +182,6 @@ export const SystemView: React.FC<SystemViewProps> = ({ onSavingChange, toasterR
       </div>
 
       {/* Admin: Database Management (Shown for all database types) */}
-      <Divider />
       <div className="space-y-4">
         <DatabaseMigrationCard
           status={dbStatus}

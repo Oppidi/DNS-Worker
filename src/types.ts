@@ -143,6 +143,7 @@ export interface User {
   last_resolve_at?: number;
   timezone?: string | null;
   locale?: string | null;
+  invite_code?: string | null;
   password_version?: number;
   pin_hash?: string | null;
   isPaused?: boolean;

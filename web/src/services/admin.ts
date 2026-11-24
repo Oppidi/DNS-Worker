@@ -28,6 +28,45 @@ export async function deleteUser(id: string): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
+export interface InviteCodeInfo {
+  code: string;
+  max_uses: number;
+  remaining_uses: number;
+  expires_at: number | null;
+  last_used_at: number | null;
+  created_at: number;
+  created_by?: string | null;
+}
+
+export interface CreateInviteCodePayload {
+  code?: string;
+  max_uses: number;
+  expires_at?: number | null;
+}
+
+export async function getInviteCodes(): Promise<InviteCodeInfo[]> {
+  const res = await fetch("/api/admin/invite-codes");
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function createInviteCode(payload: CreateInviteCodePayload): Promise<InviteCodeInfo> {
+  const res = await fetch("/api/admin/invite-codes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteInviteCode(code: string): Promise<void> {
+  const res = await fetch(`/api/admin/invite-codes/${encodeURIComponent(code)}`, {
+    method: "DELETE"
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 export async function getSystemSettings(): Promise<Record<string, string>> {
   const res = await fetch("/api/admin/settings");
   if (!res.ok) throw new Error("Failed to fetch system settings");
