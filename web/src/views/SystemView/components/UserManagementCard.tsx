@@ -289,7 +289,7 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <Switch
-              label={t("account.enableRegistration", "开放新用户注册")}
+              label={t("account.enableRegistration", "开放新账号注册")}
               checked={isRegistrationEnabled}
               disabled={toggleLoading}
               onChange={(e) => handleToggleRegistration(e.currentTarget.checked)}
@@ -308,7 +308,7 @@ export const UserManagementCard: React.FC<UserManagementCardProps> = ({
               intent={Intent.SUCCESS}
               text={t("account.createUser")}
               disabled={isQuotaReached}
-              title={isQuotaReached ? t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。") : undefined}
+              title={isQuotaReached ? t("auth.maxUsersReached", "当前系统已达到账号数量上限，无法创建新账号。") : undefined}
               onClick={() => setIsDialogOpen(true)}
             />
           </div>

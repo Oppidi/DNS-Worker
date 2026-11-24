@@ -335,10 +335,10 @@ export function formatApiErrorMessage(err: any, t: TranslationFunction): string 
     return t("auth.passkeyAuthFailed", "Passkey verification failed or was cancelled");
   }
   if (bodyText === "max_users_reached") {
-    return t("auth.maxUsersReached", "当前系统已达到用户数量上限，无法创建新用户。");
+    return t("auth.maxUsersReached", "当前系统已达到账号数量上限，无法创建新账号。");
   }
   if (bodyText === "registration_disabled") {
-    return t("auth.registrationDisabledDesc", "当前系统已暂停开放新用户注册，请联系系统管理员获取账号。");
+    return t("auth.registrationDisabledDesc", "当前系统已暂停开放新账号注册，请联系系统管理员获取账号。");
   }
   if (bodyText === "invite_code_required") {
     return t("auth.inviteCodeRequired", "请输入 6 位邀请码。");
