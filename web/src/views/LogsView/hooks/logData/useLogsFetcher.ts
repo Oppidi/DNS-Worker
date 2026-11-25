@@ -129,6 +129,8 @@ export function useLogsFetcher({
         if (isInitial) {
           if (!isAutoRefresh) setSyncing(true);
 
+          let serverSummaryResolved = false;
+
           // Fetch authoritative server summary stats concurrently to ensure full-dataset accuracy
           const statsParams = new URLSearchParams({ range: currentRange });
           if (currentRange === "custom" && customRange.start && customRange.end) {
@@ -144,6 +146,7 @@ export function useLogsFetcher({
           getProfileAnalytics(profileId, "summary", statsParams.toString(), { signal: controller.signal })
             .then((statsData: Array<{ action: string; count: number }> | null) => {
               if (controller.signal.aborted || !statsData) return;
+              serverSummaryResolved = true;
               const summary = { total: 0, pass: 0, block: 0, redirect: 0 };
               statsData.forEach((item) => {
                 const count = Number(item.count) || 0;
@@ -175,7 +178,7 @@ export function useLogsFetcher({
               if (realtimeRefresh && immediate.rows.length > 0) {
                 logsWs.updateCursor(immediate.rows[0].timestamp, immediate.rows[0].id);
               }
-              if (immediate.stats) {
+              if (immediate.stats && !serverSummaryResolved) {
                 setStats(immediate.stats);
               }
               setLoading(false);
@@ -197,7 +200,7 @@ export function useLogsFetcher({
             if (realtimeRefresh && localResult.result.rows.length > 0) {
               logsWs.updateCursor(localResult.result.rows[0].timestamp, localResult.result.rows[0].id);
             }
-            if (localResult.result.stats) {
+            if (localResult.result.stats && !serverSummaryResolved) {
               setStats(localResult.result.stats);
             }
           }
@@ -252,7 +255,8 @@ export function useLogsFetcher({
           ispFilter,
           searchQuery,
           lastTimestamp,
-          signal: controller.signal
+          signal: controller.signal,
+          skipStats: isInitial
         });
 
         if (controller.signal.aborted) return;
