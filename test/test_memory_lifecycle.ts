@@ -211,6 +211,36 @@ async function main(): Promise<void> {
   assert.ok(persistedRow.kem_key_id);
   assert.ok(persistedRow.encrypted_payload && !persistedRow.encrypted_payload.includes("private-bank"));
 
+  // 3b. Regression test: burst >= 40 logs triggering immediate flushLogBatch inside enqueueLog must never deadlock
+  const burstCtx = createTrackingCtx();
+  for (let i = 0; i < 45; i++) {
+    enqueueLog(
+      {
+        profile_id: plainProfileId,
+        timestamp: nowSec,
+        client_ip: "198.51.100.10",
+        geo_country: "JP",
+        domain: `burst-${i}.example.com`,
+        record_type: "A",
+        action: "PASS",
+        latency: 5,
+      },
+      settings,
+      env,
+      burstCtx.ctx
+    );
+  }
+  await Promise.race([
+    burstCtx.drain(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("enqueueLog immediate flush deadlocked")), 15000)),
+  ]);
+  await flushLogBatch(env, burstCtx.ctx);
+  const burstCountRow = await db
+    .prepare("SELECT COUNT(*) as cnt FROM logs WHERE profile_id = ?")
+    .bind(plainProfileId)
+    .first<{ cnt: number }>();
+  assert.equal(burstCountRow?.cnt, 45, "All 45 burst logs must flush to DB without deadlock");
+
   // 4. recordSuccessAndCache bypasses dnsCache for E2EE and zero-retention profiles, and caps TTL for plain profiles
   dnsCache.clear();
   const sampleQueryRaw = buildDNSQuery("secret-query.example.com", "A");
