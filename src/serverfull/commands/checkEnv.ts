@@ -333,12 +333,26 @@ export function handleRuntimeSwitch(requestedRuntime?: string, options?: Runtime
       return false;
     }
 
+    // Forward termination signals from parent wrapper (e.g. systemd MainPID) to child runtime so graceful shutdown runs cleanly
+    const forwardSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    for (const sig of forwardSignals) {
+      process.on(sig, () => {
+        try {
+          if (!child.killed) {
+            child.kill(sig);
+          }
+        } catch {
+          // Ignore if child already exited
+        }
+      });
+    }
+
     child.on('error', (err) => {
       console.warn(`[Runtime] Failed to execute ${plan.executable}: ${err.message}.`);
     });
 
     child.on('exit', (code, signal) => {
-      if (signal) process.kill(process.pid, signal);
+      if (signal) process.exit(128);
       else process.exit(code ?? 0);
     });
 
