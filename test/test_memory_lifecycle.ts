@@ -279,18 +279,18 @@ async function main(): Promise<void> {
   // 5. Frontend KeyStore & DecryptEngine minimal residency lifecycle checks
   const mockSession = createMockWebStorage();
   const mockLocal = createMockWebStorage();
-  mockSession.setItem("obex_e2ee_sk_account", JSON.stringify({ alg: "P256-MLKEM768", seedBase64: "legacy" }));
+  mockSession.setItem("dns_worker_e2ee_sk_account", JSON.stringify({ alg: "P256-MLKEM768", seedBase64: "legacy" }));
   mockLocal.setItem("obex_e2ee_sk_prof1", JSON.stringify({ alg: "P256-MLKEM768", seedBase64: "legacy" }));
   (globalThis as unknown as { sessionStorage: Storage; localStorage: Storage }).sessionStorage = mockSession;
   (globalThis as unknown as { sessionStorage: Storage; localStorage: Storage }).localStorage = mockLocal;
 
   const keyStore = new KeyStore(1000);
-  assert.equal(mockSession.getItem("obex_e2ee_sk_account"), null, "KeyStore must purge legacy sessionStorage key");
+  assert.equal(mockSession.getItem("dns_worker_e2ee_sk_account"), null, "KeyStore must purge sessionStorage key");
   assert.equal(mockLocal.getItem("obex_e2ee_sk_prof1"), null, "KeyStore must purge legacy localStorage key");
 
   const unlockedObj = { alg: "P256-MLKEM768" as const, seedBase64: pqcPair.secretKeyBase64 };
   keyStore.setPrivateKey("account", unlockedObj);
-  assert.equal(mockSession.getItem("obex_e2ee_sk_account"), null, "KeyStore must never write private key to sessionStorage");
+  assert.equal(mockSession.getItem("dns_worker_e2ee_sk_account"), null, "KeyStore must never write private key to sessionStorage");
   assert.equal(keyStore.isUnlocked(), true);
 
   // Idle expiration purges unlocked key and scrubs seedBase64

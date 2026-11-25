@@ -326,7 +326,7 @@ export const pipelineCache = {
         if (clearBloom) {
           tasks.push(cacheUtils.delete(cache, `bloom-bin:${profileId}`));
           // 防御性清理旧版硬编码 URL
-          tasks.push(cache.delete(`https://obex.local/bloom-bin/${profileId}`));
+          tasks.push(cache.delete(`https://dns-worker.local/bloom-bin/${profileId}`));
         }
         await Promise.all(tasks);
       }

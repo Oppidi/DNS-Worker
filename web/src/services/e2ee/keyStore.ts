@@ -68,7 +68,9 @@ export class KeyStore {
         const sessionKeys: string[] = [];
         for (let i = 0; i < sessionStorage.length; i++) {
           const k = sessionStorage.key(i);
-          if (k?.startsWith("obex_e2ee_sk_")) sessionKeys.push(k);
+          if (k?.startsWith("dns_worker_e2ee_sk_") || k?.startsWith("obex_e2ee_sk_")) {
+            sessionKeys.push(k);
+          }
         }
         sessionKeys.forEach((k) => sessionStorage.removeItem(k));
       }
@@ -81,7 +83,9 @@ export class KeyStore {
         const localKeys: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k?.startsWith("obex_e2ee_sk_")) localKeys.push(k);
+          if (k?.startsWith("dns_worker_e2ee_sk_") || k?.startsWith("obex_e2ee_sk_")) {
+            localKeys.push(k);
+          }
         }
         localKeys.forEach((k) => localStorage.removeItem(k));
       }
