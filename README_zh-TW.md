@@ -51,7 +51,7 @@ dns-worker
 #   sudo dns-worker service enable | disable | start | stop | restart | status | logs | uninstall
 ```
 
-> **執行環境需求與 Bun 自動啟用條件：** 需 **Node.js `>= 22.5.0`** 或 **Bun `>= 1.4.0`**（依賴內建 `node:sqlite`）。預設模式（`--runtime auto`）下，若偵測到 **Bun `>= 1.4.0`**（自動探測 `PATH`、`$BUN_INSTALL/bin`、`~/.bun/bin` 及 `/usr/local/bin/bun`），且未明確開啟多程序叢集（`-w`/`--workers > 1`），Serverfull 會自動切換至 Bun 執行；若未安裝 Bun、版本 `< 1.4.0` 或啟動失敗，將自動無縫回退至 Node.js。亦可透過 `--runtime node|bun|auto` 或環境變數 `DNS_WORKER_RUNTIME` 手動指定。
+> **執行環境需求與 Bun 自動啟用條件：** 需 **Node.js `>= 22.5.0`** 或 **Bun `>= 1.4.0`**（依賴內建 `node:sqlite`）。預設模式（`--runtime auto`）下，若 `PATH` 中存在 `bun` 指令且版本 `>= 1.4.0`，且未明確開啟多程序叢集（`-w`/`--workers > 1`），Serverfull 會自動以 `bun` 指令切換執行；若 `PATH` 中未找到 `bun`、版本 `< 1.4.0` 或啟動失敗，將自動無縫回退至 `node`。亦可透過 `--runtime node|bun|auto` 或環境變數 `DNS_WORKER_RUNTIME` 手動指定。
 
 #### 容器化一鍵部署 (Docker，Beta)
 ```bash

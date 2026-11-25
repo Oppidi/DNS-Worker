@@ -51,7 +51,7 @@ dns-worker
 #   sudo dns-worker service enable | disable | start | stop | restart | status | logs | uninstall
 ```
 
-> **Runtime Requirements & Bun Auto-Selection:** Requires **Node.js `>= 22.5.0`** or **Bun `>= 1.4.0`** (both require native `node:sqlite`). By default (`--runtime auto`), Serverfull detects **Bun `>= 1.4.0`** (from `PATH`, `$BUN_INSTALL/bin`, `~/.bun/bin`, or `/usr/local/bin/bun`) and automatically switches to Bun unless multi-worker clustering (`-w`/`--workers > 1`) is configured. If Bun is missing, outdated (`< 1.4.0`), or fails to spawn, it transparently falls back to Node.js. Force an engine anytime with `--runtime node|bun|auto` or `DNS_WORKER_RUNTIME`.
+> **Runtime Requirements & Bun Auto-Selection:** Requires **Node.js `>= 22.5.0`** or **Bun `>= 1.4.0`** (both require native `node:sqlite`). By default (`--runtime auto`), Serverfull checks if the `bun` command (`>= 1.4.0`) is available in `PATH` and automatically switches to `bun` unless multi-worker clustering (`-w`/`--workers > 1`) is configured. If `bun` is missing from `PATH`, outdated (`< 1.4.0`), or fails to spawn, it transparently falls back to `node`. Force an engine anytime with `--runtime node|bun|auto` or `DNS_WORKER_RUNTIME`.
 
 #### Standalone Server via Docker (Beta)
 ```bash

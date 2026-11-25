@@ -58,9 +58,9 @@ function testRuntimeSelectionAndFallback(): void {
     ['dist/serverfull.mjs', '--status']
   );
 
-  const mockBunOk: RuntimeProbeResult = { executable: '/home/u/.bun/bin/bun', version: '1.4.5', compatible: true };
-  const mockBunOld: RuntimeProbeResult = { executable: '/usr/bin/bun', version: '1.3.8', compatible: false };
-  const mockNodeOk: RuntimeProbeResult = { executable: '/usr/bin/node', version: '24.2.0', compatible: true };
+  const mockBunOk: RuntimeProbeResult = { executable: 'bun', version: '1.4.5', compatible: true };
+  const mockBunOld: RuntimeProbeResult = { executable: 'bun', version: '1.3.8', compatible: false };
+  const mockNodeOk: RuntimeProbeResult = { executable: 'node', version: '24.2.0', compatible: true };
 
   // Default ('auto') under Node prefers Bun >= 1.4.0
   const autoPreferBun = resolveRuntimeSwitchPlan(undefined, {
@@ -364,9 +364,12 @@ async function run(): Promise<void> {
   testRuntimeSpecificHelpers();
   await testServerfullTransportsAndSnapshot();
 
-  // Optional sanity log on live machine probe
+  // Optional sanity log on live machine PATH probe (never uses hardcoded absolute user paths)
   const liveBun = probeRuntimeBinary('bun');
-  console.log(`   ℹ Live Bun probe on host: ${liveBun ? `${liveBun.executable} (v${liveBun.version}, compatible=${liveBun.compatible})` : 'not installed'}`);
+  if (liveBun) {
+    assert.strictEqual(liveBun.executable, 'bun', 'probeRuntimeBinary must resolve command name "bun" from PATH');
+  }
+  console.log(`   ℹ Live Bun probe on PATH: ${liveBun ? `${liveBun.executable} (v${liveBun.version}, compatible=${liveBun.compatible})` : 'not in PATH'}`);
 
   console.log('\n[PASS] All Bun & dual-runtime compatibility tests passed!');
 }
