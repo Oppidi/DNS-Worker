@@ -67,11 +67,6 @@ export async function parseCli(): Promise<ServerfullCliArgs> {
       allowPositionals: true
     });
 
-    if (handleRuntimeSwitch(values.runtime)) {
-      // Switched to requested runtime (Bun/Node), yield current process
-      return new Promise<never>(() => {});
-    }
-
     if (values.help || positionals[0]?.toLowerCase() === 'help') {
       printHelp();
       process.exit(0);
@@ -81,6 +76,13 @@ export async function parseCli(): Promise<ServerfullCliArgs> {
       console.log(`dns-worker v${getPackageVersion()}`);
       process.exit(0);
     }
+
+    if (handleRuntimeSwitch(values.runtime, { workers: values.workers })) {
+      // Switched to preferred/requested runtime (Bun/Node), yield current process
+      return new Promise<never>(() => {});
+    }
+
+    checkNodeVersion();
 
     if (values.status || positionals[0]?.toLowerCase() === 'status') {
       const { config, env } = getServerfullConfig(values as ServerfullCliArgs);
