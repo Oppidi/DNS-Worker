@@ -12,6 +12,7 @@ import { resolveDefaultProfile, resolveProfileByKey } from '../api/doh';
 import { hasAlreadyTriedFailOpen, resolveFailOpenFallback } from '../pipeline/resolver/transport';
 import { recordActiveDnsConnection } from '../lib/activeDns';
 import { formatPortError } from './format';
+import { zeroizeBuffer } from '../utils/memory';
 
 export interface UdpServerOptions {
   port: number;
@@ -190,6 +191,8 @@ export class UdpDnsServer {
       } catch (fallbackErr) {
         console.error('[UDP DNS] Fail-open upstream fallback failed:', fallbackErr);
       }
+    } finally {
+      zeroizeBuffer(msg);
     }
   }
 
