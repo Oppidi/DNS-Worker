@@ -43,7 +43,15 @@ npm install -g dns-worker
 dns-worker config init
 dns-worker
 # 访问控制台: http://localhost:10080
+
+# 注册后台系统服务并启用开机自启：
+#   Linux (systemd)：sudo dns-worker service install   （自动启用开机自启，并授予 53/853 端口 CAP_NET_BIND_SERVICE 权限）
+#   Windows（管理员终端）：dns-worker service install  （注册 SYSTEM /sc onstart 开机计划任务并立即启动）
+# 开机自启开关与日常管理：
+#   sudo dns-worker service enable | disable | start | stop | restart | status | logs | uninstall
 ```
+
+> **运行时要求与 Bun 自动启用条件：** 需 **Node.js `>= 22.5.0`** 或 **Bun `>= 1.4.0`**（依赖内置 `node:sqlite`）。默认模式（`--runtime auto`）下，若检测到 **Bun `>= 1.4.0`**（自动探测 `PATH`、`$BUN_INSTALL/bin`、`~/.bun/bin` 及 `/usr/local/bin/bun`），且未显式开启多进程集群（`-w`/`--workers > 1`），Serverfull 会自动切换至 Bun 运行；若未安装 Bun、版本 `< 1.4.0` 或拉起失败，将自动无缝回退至 Node.js。也可通过 `--runtime node|bun|auto` 或环境变量 `DNS_WORKER_RUNTIME` 手动指定。
 
 #### 容器化一键部署 (Docker，Beta)
 ```bash
