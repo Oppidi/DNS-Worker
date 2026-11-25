@@ -12,6 +12,7 @@ import https from 'node:https';
 import http2 from 'node:http2';
 import os from 'node:os';
 import path from 'node:path';
+import tls from 'node:tls';
 import zlib from 'node:zlib';
 import {
   isCompatibleBunVersion,
@@ -279,18 +280,31 @@ async function testServerfullTransportsAndSnapshot(): Promise<void> {
     });
     assert(httpStatus >= 200 && httpStatus < 500, `Unexpected HTTP status: ${httpStatus}`);
 
-    // 3c. HTTPS HTTP/1.1 + HTTP/2 (ALPN)
+    // 3c. HTTPS HTTP/1.1 + HTTP/2 (ALPN) using pinned test CA certificate
+    const tlsCaPem = fs.readFileSync(certPath);
     const httpsH1Status = await new Promise<number>((resolve, reject) => {
-      const req = https.get(`https://127.0.0.1:${httpsPort}/api/status`, { rejectUnauthorized: false }, (res) => {
-        res.resume();
-        resolve(res.statusCode ?? 0);
-      });
+      const req = https.get(
+        `https://127.0.0.1:${httpsPort}/api/status`,
+        {
+          ca: tlsCaPem,
+          servername: 'dns.local',
+          checkServerIdentity: (_host, cert) => tls.checkServerIdentity('dns.local', cert)
+        },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        }
+      );
       req.on('error', reject);
     });
     assert(httpsH1Status >= 200 && httpsH1Status < 500, `Unexpected HTTPS H1 status: ${httpsH1Status}`);
 
     const h2Status = await new Promise<number>((resolve, reject) => {
-      const client = http2.connect(`https://127.0.0.1:${httpsPort}`, { rejectUnauthorized: false });
+      const client = http2.connect(`https://127.0.0.1:${httpsPort}`, {
+        ca: tlsCaPem,
+        servername: 'dns.local',
+        checkServerIdentity: (_host, cert) => tls.checkServerIdentity('dns.local', cert)
+      });
       client.on('error', reject);
       const req = client.request({ ':path': '/api/status', ':method': 'GET' });
       req.on('response', (headers) => {
