@@ -30,6 +30,7 @@ export interface DotServerOptions {
 export class DotDnsServer {
   private server: tls.Server | null = null;
   private isRunning: boolean = false;
+  private activeSockets = new Set<tls.TLSSocket>();
 
   constructor(private options: DotServerOptions) {}
 
@@ -96,6 +97,10 @@ export class DotDnsServer {
         };
 
         this.server = tls.createServer(tlsOptions, (socket: tls.TLSSocket) => {
+          this.activeSockets.add(socket);
+          socket.once('close', () => {
+            this.activeSockets.delete(socket);
+          });
           this.handleConnection(socket);
         });
 
@@ -318,11 +323,26 @@ export class DotDnsServer {
   stop(): Promise<void> {
     return new Promise((resolve) => {
       if (this.server && this.isRunning) {
-        this.server.close(() => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           this.isRunning = false;
           console.log('[DoT] Service stopped.');
           resolve();
-        });
+        };
+        const timer = setTimeout(() => {
+          for (const sock of this.activeSockets) {
+            try { sock.destroy(); } catch {}
+          }
+          finish();
+        }, 1500);
+
+        this.server.close(finish);
+        for (const sock of this.activeSockets) {
+          try { sock.end(); } catch {}
+        }
       } else {
         resolve();
       }

@@ -3,9 +3,6 @@
  * @description Validates and coordinates runtime execution across Node.js and Bun engines.
  */
 
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { spawnSync, spawn } from 'node:child_process';
 import { formatDiagnostic } from '../format';
 
@@ -133,62 +130,34 @@ export function stripRuntimeFlags(args: string[]): string[] {
 }
 
 /**
- * Probes PATH and standard installation directories for the requested runtime executable.
+ * Probes PATH for the requested runtime command (`'bun'` or `'node'`), matching standard CLI resolution
+ * without invoking hardcoded absolute installation paths.
  *
- * @param runtime - Target runtime executable ('bun' or 'node').
- * @returns Probe metadata if executable works, otherwise null.
+ * @param runtime - Target runtime command ('bun' or 'node').
+ * @returns Probe metadata if executable is available in PATH, otherwise null.
  */
 export function probeRuntimeBinary(runtime: 'bun' | 'node'): RuntimeProbeResult | null {
-  const isWin = process.platform === 'win32';
-  const exeName = isWin ? `${runtime}.exe` : runtime;
-  const candidates: string[] = [runtime];
-
-  if (runtime === 'bun') {
-    if (process.env.BUN_INSTALL) {
-      candidates.push(path.join(process.env.BUN_INSTALL, 'bin', exeName));
+  try {
+    const check = spawnSync(runtime, ['--version'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    if (check.status === 0 && check.stdout) {
+      const version = check.stdout.trim().replace(/^v/i, '');
+      const compatible = runtime === 'bun'
+        ? isCompatibleBunVersion(version)
+        : (() => {
+            const [maj, min] = version.split('.').map(Number);
+            return Number.isFinite(maj) && (maj > 22 || (maj === 22 && (min ?? 0) >= 5));
+          })();
+      return {
+        executable: runtime,
+        version,
+        compatible
+      };
     }
-    const homeDir = os.homedir();
-    if (homeDir) {
-      candidates.push(path.join(homeDir, '.bun', 'bin', exeName));
-    }
-    if (!isWin) {
-      candidates.push('/usr/local/bin/bun', '/usr/bin/bun');
-    }
-  } else if (!isWin) {
-    candidates.push('/usr/local/bin/node', '/usr/bin/node');
-  }
-
-  const seen = new Set<string>();
-  for (const candidate of candidates) {
-    if (!candidate || seen.has(candidate)) continue;
-    seen.add(candidate);
-
-    if (candidate !== runtime && !fs.existsSync(candidate)) {
-      continue;
-    }
-
-    try {
-      const check = spawnSync(candidate, ['--version'], {
-        encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      });
-      if (check.status === 0 && check.stdout) {
-        const version = check.stdout.trim().replace(/^v/i, '');
-        const compatible = runtime === 'bun'
-          ? isCompatibleBunVersion(version)
-          : (() => {
-              const [maj, min] = version.split('.').map(Number);
-              return Number.isFinite(maj) && (maj > 22 || (maj === 22 && (min ?? 0) >= 5));
-            })();
-        return {
-          executable: candidate,
-          version,
-          compatible
-        };
-      }
-    } catch {
-      // Continue trying remaining candidates
-    }
+  } catch {
+    // Runtime command not available in PATH
   }
 
   return null;
@@ -364,12 +333,26 @@ export function handleRuntimeSwitch(requestedRuntime?: string, options?: Runtime
       return false;
     }
 
+    // Forward termination signals from parent wrapper (e.g. systemd MainPID) to child runtime so graceful shutdown runs cleanly
+    const forwardSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    for (const sig of forwardSignals) {
+      process.on(sig, () => {
+        try {
+          if (!child.killed) {
+            child.kill(sig);
+          }
+        } catch {
+          // Ignore if child already exited
+        }
+      });
+    }
+
     child.on('error', (err) => {
       console.warn(`[Runtime] Failed to execute ${plan.executable}: ${err.message}.`);
     });
 
     child.on('exit', (code, signal) => {
-      if (signal) process.kill(process.pid, signal);
+      if (signal) process.exit(128);
       else process.exit(code ?? 0);
     });
 

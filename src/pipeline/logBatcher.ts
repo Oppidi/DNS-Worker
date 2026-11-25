@@ -195,8 +195,8 @@ let memoryCircuitBreakerUntil = 0;
 /** Whether a deferred flush timer has already been scheduled */
 let isFlushScheduled = false;
 
-/** Timestamp of the last successful or attempted flush */
-let lastFlushTime = Date.now();
+/** Timestamp of the last batch flush (0 so first cold-start query persists immediately without waiting 10s) */
+let lastFlushTime = 0;
 
 /**
  * Checks if the D1 write quota circuit breaker is currently active.
@@ -260,9 +260,15 @@ export async function tripWriteCircuitBreaker(cache?: any): Promise<void> {
  */
 export async function flushLogBatch(env: Env, ctx?: ExecutionContext): Promise<void> {
   isFlushScheduled = false;
+
+  if (inFlightLogSeals.size === 0 && logBatchQueue.length === 0) {
+    return;
+  }
+
   lastFlushTime = Date.now();
 
   if (inFlightLogSeals.size > 0) {
+    // Only wait on active ingress sealing tasks; never let flushLogBatch wait on a task that itself awaits flushLogBatch
     await Promise.allSettled(Array.from(inFlightLogSeals));
   }
 
@@ -426,8 +432,9 @@ export function enqueueLog(
     log.id = generateLogId();
   }
 
-  // 5. Immediately seal E2EE logs at ingress so plaintext DNS data does not sit in logBatchQueue
-  const sealPromise = (async () => {
+  // 5. Immediately seal E2EE logs at ingress so plaintext DNS data does not sit in logBatchQueue.
+  // Track only sealTask in inFlightLogSeals and remove it before triggering flushLogBatch to prevent circular deadlock.
+  const sealTask = (async () => {
     try {
       const pubKey = await getProfileLogPublicKey(env.DB, log.profile_id);
       if (pubKey) {
@@ -445,24 +452,26 @@ export function enqueueLog(
     }
 
     logBatchQueue.push(log);
-
-    const now = Date.now();
-    if (
-      logBatchQueue.length >= MAX_BATCH_SIZE ||
-      now - lastFlushTime >= FLUSH_INTERVAL_MS
-    ) {
-      await flushLogBatch(env, ctx);
-    } else {
-      scheduleDeferredFlush(env, ctx);
-    }
   })();
 
-  inFlightLogSeals.add(sealPromise);
-  sealPromise.finally(() => {
-    inFlightLogSeals.delete(sealPromise);
-  });
+  inFlightLogSeals.add(sealTask);
+  const enqueueLifecycle = sealTask
+    .finally(() => {
+      inFlightLogSeals.delete(sealTask);
+    })
+    .then(async () => {
+      const now = Date.now();
+      if (
+        logBatchQueue.length >= MAX_BATCH_SIZE ||
+        now - lastFlushTime >= FLUSH_INTERVAL_MS
+      ) {
+        await flushLogBatch(env, ctx);
+      } else {
+        scheduleDeferredFlush(env, ctx);
+      }
+    });
 
   if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(sealPromise);
+    ctx.waitUntil(enqueueLifecycle);
   }
 }

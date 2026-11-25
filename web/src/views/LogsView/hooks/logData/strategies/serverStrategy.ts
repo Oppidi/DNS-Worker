@@ -21,6 +21,8 @@ export interface ServerStrategyParams {
   searchQuery: string;
   lastTimestamp?: number;
   signal: AbortSignal;
+  /** Skip fetching `/analytics/summary` when caller already requested summary stats concurrently */
+  skipStats?: boolean;
 }
 
 export interface ServerStrategyResult {
@@ -46,7 +48,8 @@ export async function fetchServerLogs(params: ServerStrategyParams): Promise<Ser
     ispFilter,
     searchQuery,
     lastTimestamp,
-    signal
+    signal,
+    skipStats = false
   } = params;
 
   const urlParams = new URLSearchParams({ range: currentRange, limit: String(limit) });
@@ -66,7 +69,7 @@ export async function fetchServerLogs(params: ServerStrategyParams): Promise<Ser
   const fetchLogsPromise = getProfileLogs(profileId, urlParams.toString(), { signal });
   let fetchStatsPromise: Promise<Array<{ action: string; count: number }> | null> = Promise.resolve(null);
 
-  if (isInitial) {
+  if (isInitial && !skipStats) {
     const statsParams = new URLSearchParams({ range: currentRange });
     if (currentRange === "custom" && customRange.start && customRange.end) {
       statsParams.set("start", String(since));
