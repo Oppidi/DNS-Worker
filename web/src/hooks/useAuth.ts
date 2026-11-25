@@ -144,6 +144,7 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
   // Listen for unauthorized events from the API client / interceptor
   useEffect(() => {
     const handleUnauthorized = (e: Event) => {
+      setAccessToken(null);
       e2ee.clearStorage();
       void localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {
@@ -188,11 +189,13 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
 
   const handleLogout = async () => {
     try {
+      setAccessToken(null);
       e2ee.clearStorage();
       await logout();
     } catch (e) {
       console.error("Logout failed", e);
     } finally {
+      setAccessToken(null);
       e2ee.clearStorage();
       await localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {

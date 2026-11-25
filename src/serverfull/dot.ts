@@ -13,6 +13,7 @@ import { resolveProfileByKey, resolveDefaultProfile } from '../api/doh';
 import { hasAlreadyTriedFailOpen, resolveFailOpenFallback } from '../pipeline/resolver/transport';
 import { recordActiveDnsConnection } from '../lib/activeDns';
 import { ACCESS_KEY_REGEX } from '../utils/validator';
+import { zeroizeBuffer } from '../utils/memory';
 import { formatDiagnostic, formatPortError } from './format';
 import { inspectTlsCertificate, getCertbotCommand } from './cert';
 
@@ -297,6 +298,8 @@ export class DotDnsServer {
       } catch (fallbackErr) {
         console.error('[DoT] Fail-open upstream fallback failed:', fallbackErr);
       }
+    } finally {
+      zeroizeBuffer(rawMsg);
     }
   }
 

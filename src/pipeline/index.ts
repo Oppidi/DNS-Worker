@@ -1,7 +1,12 @@
 import { Context, DNSQuery, ProfileSettings, ResolutionResult } from "../types";
 import { DEFAULT_FAIL_OPEN_UPSTREAM } from "../constants/presets";
 import { buildResponse } from "../utils/dns";
-import { dnsCache, pipelineCache, syncDnsCacheSize } from "./cache";
+import {
+  computeDnsCacheKey,
+  getCachedDnsEntry,
+  pipelineCache,
+  syncDnsCacheSize
+} from "./cache";
 import { pipelineConfig } from "./config";
 import { pipelineResolver } from "./resolver";
 import { pipelineFilter } from "./filter";
@@ -46,8 +51,9 @@ export const pipeline = {
       return { answer, ttl: 60, action: "PASS", reason: "Internal Verification", latency: Date.now() - context.startTime, timings: { total: Date.now() - context.startTime } };
     }
 
-    const cached = dnsCache.get(`${context.profileId}:${query.name.toLowerCase()}:${query.type}`);
-    if (cached && Date.now() < cached.expiresAt && cached.answer instanceof Uint8Array) {
+    const dnsCacheKey = await computeDnsCacheKey(context.profileId, query.name, query.type);
+    const cached = getCachedDnsEntry(dnsCacheKey);
+    if (cached) {
       // 这里的 cached.answer 已经是完整的 DNS 报文
       // 关键：DNS ID 必须匹配原始查询。ID 位于报文的前 2 字节。
       const response = new Uint8Array(cached.answer);
