@@ -4,7 +4,7 @@
  */
 
 import type { LogEntry, TimeRange } from "../../../types";
-import { getProfileLogs, getProfileAnalytics } from "../../../../../services";
+import { getProfileLogs, getProfileAnalytics, e2ee } from "../../../../../services";
 
 export interface ServerStrategyParams {
   profileId: string;
@@ -82,6 +82,11 @@ export async function fetchServerLogs(params: ServerStrategyParams): Promise<Ser
 
   const [logsData, statsData] = await Promise.all([fetchLogsPromise, fetchStatsPromise]);
 
+  let logs = logsData || [];
+  if (logs.length > 0 && e2ee.isProfileUnlocked(profileId)) {
+    logs = await e2ee.decryptLogsBatch(profileId, logs);
+  }
+
   let stats: { total: number; pass: number; block: number; redirect: number } | null = null;
   if (statsData) {
     const summary = { total: 0, pass: 0, block: 0, redirect: 0 };
@@ -96,7 +101,7 @@ export async function fetchServerLogs(params: ServerStrategyParams): Promise<Ser
   }
 
   return {
-    logs: logsData || [],
+    logs,
     stats
   };
 }

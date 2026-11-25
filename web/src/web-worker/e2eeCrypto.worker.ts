@@ -58,7 +58,8 @@ function isActiveKeyPqc(): boolean {
   return "seedBase64" in current;
 }
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>): Promise<void> => {
+if (typeof self !== "undefined") {
+  self.onmessage = async (event: MessageEvent<WorkerRequest>): Promise<void> => {
   const { id, type } = event.data;
 
   try {
@@ -230,4 +231,5 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>): Promise<void> => {
       error: err instanceof Error ? err.message : String(err),
     });
   }
-};
+  };
+}
