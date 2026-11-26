@@ -35,17 +35,22 @@ export const pipelineConfig = {
     const inMemAdguard = adguardMemoryMap.get(profileId);
     const cachedConfig = configCache.get(profileId);
     
+    const nowMs = Date.now();
     const bloomMemTtl = Number(env.BLOOM_MEM_TTL) || 600000;
     const configuredMemTtl = Number(env.CONFIG_MEM_TTL) || 300000;
     const configMemTtl = Number.isFinite(configuredMemTtl) && configuredMemTtl > 0
       ? configuredMemTtl
       : 300000;
-    if (cachedConfig && (Date.now() - (cachedConfig.timestamp || 0) < configMemTtl)) {
-      track('load_config_l1_mem');
-      const validBloom = (inMem && Date.now() - inMem.ts < bloomMemTtl) ? inMem.bloom : undefined;
+    if (cachedConfig && (nowMs - (cachedConfig.timestamp || 0) < configMemTtl)) {
+      const validBloom = (inMem && nowMs - inMem.ts < bloomMemTtl) ? inMem.bloom : undefined;
       // 若该配置标记包含 Bloom，但内存中 Bloom 已过期缺失，不盲目短路返回，继续向下恢复 Bloom
       if (!cachedConfig.hasBloom || validBloom) {
-        const validAdguard = inMemAdguard ? inMemAdguard.engine : (cachedConfig.adguard ? new AdGuardProfileEngine(cachedConfig.adguard) : undefined);
+        let validAdguard = inMemAdguard?.engine;
+        if (!validAdguard && cachedConfig.adguard) {
+          validAdguard = new AdGuardProfileEngine(cachedConfig.adguard);
+          adguardMemoryMap.set(profileId, { engine: validAdguard, ts: nowMs });
+        }
+        track('load_config_l1_mem');
         return { ...cachedConfig, bloom: validBloom, adguard: validAdguard };
       }
     }
@@ -162,13 +167,15 @@ export const pipelineConfig = {
         const uint8 = new Uint8Array(buffer);
         bloom = BloomFilter.fromUint8Array(uint8);
 
-        ctx.waitUntil(cache.put(bloomInternalUrl, new Response(uint8, {
-          headers: { 
-            'Content-Type': 'application/octet-stream',
-            'Cache-Control': 'public, max-age=604800',
-            'Cache-Tag': `bloom-${profileId}`
-          }
-        })));
+        if (cache) {
+          ctx.waitUntil(cache.put(bloomInternalUrl, new Response(uint8, {
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Cache-Control': 'public, max-age=604800',
+              'Cache-Tag': `bloom-${profileId}`
+            }
+          })));
+        }
       }
 
       if (adguardPayload) {

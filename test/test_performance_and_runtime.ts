@@ -15,8 +15,13 @@ import {
   configCache,
   DEFAULT_DNS_CACHE_SIZE,
   syncDnsCacheSize,
-  SizeCappedMap
+  SizeCappedMap,
+  computeDnsCacheKey,
+  computeDnsCacheKeySync
 } from '../src/pipeline/cache';
+import { pipeline } from '../src/pipeline';
+import { BloomFilter } from '../src/utils/bloom';
+import { buildDNSQuery } from '../src/utils/dns';
 import { tuneV8Engine } from '../src/serverfull/v8';
 import { getClusterInfo } from '../src/serverfull/cluster';
 import { NodeD1Database } from '../src/serverfull/db';
@@ -208,6 +213,60 @@ async function runAsyncPerfChecks() {
   } finally {
     fs.rmSync(assetTmpDir, { recursive: true, force: true });
   }
+
+  // 11. Validate sync cache key, Bloom testPipePipe, and reconciled pipeline timings
+  console.log('11. Validating sync DNS cache key, Bloom testPipePipe, and reconciled pipeline timings...');
+  const asyncKey = await computeDnsCacheKey('prof-timing', 'Example.COM', 'TXT');
+  const syncKey = computeDnsCacheKeySync('prof-timing', 'Example.COM', 'TXT');
+  assert.strictEqual(syncKey, asyncKey, 'computeDnsCacheKeySync must match async computeDnsCacheKey');
+
+  const bf = BloomFilter.create(1000, 0.0001);
+  bf.addPipePipe('blocked.example.com');
+  assert.strictEqual(bf.testPipePipe('blocked.example.com'), true, 'testPipePipe must hit matching domain');
+  assert.strictEqual(bf.test('||blocked.example.com'), true, 'testPipePipe must match test("||" + domain)');
+  assert.strictEqual(bf.testPipePipe('clean.example.com'), false, 'testPipePipe must not hit unrelated domain');
+
+  const timingProfileId = 'perf-timing-test';
+  configCache.set(timingProfileId, {
+    settings: {
+      upstream: ['https://1.1.1.1/dns-query'],
+      default_policy: 'BLOCK',
+      log_retention_days: 0,
+      ecs: { enabled: false, use_client_ip: false }
+    },
+    rules: [],
+    hasBloom: true,
+    timestamp: Date.now()
+  });
+  bloomMemoryMap.set(timingProfileId, { bloom: bf, ts: Date.now() });
+
+  const testReq = new Request('https://localhost/api/profiles/perf-timing-test/test');
+  const testQueryRaw = buildDNSQuery('o-o.myaddr.l.google.com', 'TXT');
+  const timingRes = await pipeline.process(
+    testReq,
+    { name: 'o-o.myaddr.l.google.com', type: 'TXT', raw: testQueryRaw },
+    {
+      profileId: timingProfileId,
+      startTime: Date.now(),
+      env: { DB: new DatabaseSync(':memory:') } as any,
+      ctx: { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext
+    }
+  );
+  configCache.delete(timingProfileId);
+  bloomMemoryMap.delete(timingProfileId);
+
+  assert(timingRes.timings, 'Pipeline result must include stage timings');
+  const stageSum = Math.round(Object.values(timingRes.timings).reduce((acc, v) => acc + v, 0) * 100) / 100;
+  assert.strictEqual(stageSum, timingRes.latency, `Expected sum(timings) (${stageSum}) === latency (${timingRes.latency})`);
+  assert(
+    (timingRes.timings.load_config_l1_mem ?? 0) < 1,
+    `Expected load_config_l1_mem < 1ms, got ${timingRes.timings.load_config_l1_mem}ms`
+  );
+  assert(
+    (timingRes.timings.bloom_check ?? 0) < 1,
+    `Expected bloom_check < 1ms, got ${timingRes.timings.bloom_check}ms`
+  );
+  console.log(`   ✓ Reconciled pipeline timings passed (latency=${timingRes.latency}ms, timings=${JSON.stringify(timingRes.timings)}).`);
 }
 
 runAsyncPerfChecks()

@@ -305,13 +305,18 @@ export function isSafeUrl(urlString: string): boolean {
   }
 }
 
+const SAFE_HOST_DNS_CACHE_TTL_MS = 60_000;
+const MAX_SAFE_HOST_CACHE_ENTRIES = 256;
+// Positive-only short-TTL cache of public upstream hostnames to avoid per-query OS getaddrinfo overhead.
+const safeHostDnsCache = new Map<string, number>();
+
 /**
  * Asynchronously checks whether a URL is safe to fetch, including DNS pre-resolution
  * in Node.js / Bun environments to guard against DNS rebinding / TOCTOU SSRF (CWE-918 / SEC-02).
  *
  * In Cloudflare Workers, outbound loopback/private RFC 1918 traffic is already blocked by the edge runtime.
  * In Serverfull mode (Node.js/Bun), any domain name is pre-resolved and all resulting IP addresses
- * are checked against isPublicInternetIP.
+ * are checked against isPublicInternetIP (positive public results cached briefly to keep hot-path latency sub-ms).
  *
  * @param urlString - The URL string to validate.
  * @returns Promise resolving to true if safe, false if forbidden or resolves to private IP.
@@ -355,6 +360,15 @@ export async function isSafeUrlWithDnsCheck(urlString: string): Promise<boolean>
         return true;
       }
 
+      const now = Date.now();
+      const cachedUntil = safeHostDnsCache.get(rawHostname);
+      if (cachedUntil !== undefined) {
+        if (now < cachedUntil) {
+          return true;
+        }
+        safeHostDnsCache.delete(rawHostname);
+      }
+
       const dnsPromises = await import('node:dns/promises');
       const addresses = await dnsPromises.lookup(rawHostname, { all: true });
       if (!addresses || addresses.length === 0) {
@@ -366,6 +380,14 @@ export async function isSafeUrlWithDnsCheck(urlString: string): Promise<boolean>
           return false;
         }
       }
+
+      if (safeHostDnsCache.size >= MAX_SAFE_HOST_CACHE_ENTRIES) {
+        const oldestHost = safeHostDnsCache.keys().next().value;
+        if (oldestHost !== undefined) {
+          safeHostDnsCache.delete(oldestHost);
+        }
+      }
+      safeHostDnsCache.set(rawHostname, now + SAFE_HOST_DNS_CACHE_TTL_MS);
     } catch {
       // Resolution error or invalid hostname
       return false;

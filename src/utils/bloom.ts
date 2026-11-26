@@ -74,18 +74,17 @@ export class BloomFilter {
   }
 
   /**
-   * 添加元素
-   * @param element 字符串元素
+   * 内部按指定初始种子写入元素，复用 FNV-1a + MurmurHash3 双重哈希逻辑。
    */
-  add(element: string): void {
-    let h1 = BloomFilter.FNV_SEED_0;
+  private addWithSeed(element: string, initialSeed: number): void {
+    let h1 = initialSeed;
     const len = element.length;
     for (let i = 0; i < len; i++) {
       h1 ^= element.charCodeAt(i) & 0xff;
       h1 = Math.imul(h1, BloomFilter.FNV_PRIME);
     }
     h1 = h1 >>> 0;
-    
+
     // 用 MurmurHash3 fmix32 混淆算法根据 h1 快速派生 h2，减少一半的字符遍历和乘法开销
     let h2 = h1 ^ (h1 >>> 16);
     h2 = Math.imul(h2, 0x85ebca6b);
@@ -106,51 +105,17 @@ export class BloomFilter {
   }
 
   /**
-   * 添加带有 "||" 前缀的域名元素（等价于 add(`||${domain}`)）。
-   * 性能优化：直接使用预计算的 "||" FNV-1a 哈希种子继续流式哈希，
-   * 彻底避免在 V8 堆内存中分配数万至数十万个新字符串模板！
-   *
-   * @param domain 纯域名字符串
+   * 内部按指定初始种子查询元素。
    */
-  addPipePipe(domain: string): void {
-    let h1 = BloomFilter.FNV_SEED_PIPE_PIPE;
-    const len = domain.length;
-    for (let i = 0; i < len; i++) {
-      h1 ^= domain.charCodeAt(i) & 0xff;
-      h1 = Math.imul(h1, BloomFilter.FNV_PRIME);
-    }
-    h1 = h1 >>> 0;
-
-    let h2 = h1 ^ (h1 >>> 16);
-    h2 = Math.imul(h2, 0x85ebca6b);
-    h2 = h2 ^ (h2 >>> 13);
-    h2 = Math.imul(h2, 0xc2b2ae35);
-    h2 = (h2 ^ (h2 >>> 16)) >>> 0;
-
-    const arr = this.bitArray;
-    const size = this.size;
-    const k = this.hashes;
-
-    for (let i = 0; i < k; i++) {
-      const pos = (h1 + i * h2) % size;
-      arr[pos >>> 5] |= (1 << (pos & 31));
-    }
-  }
-
-  /**
-   * 检测元素是否存在 (无假阴性，有极低假阳性)
-   * @param element 待检测字符串
-   */
-  test(element: string): boolean {
-    let h1 = BloomFilter.FNV_SEED_0;
+  private testWithSeed(element: string, initialSeed: number): boolean {
+    let h1 = initialSeed;
     const len = element.length;
     for (let i = 0; i < len; i++) {
       h1 ^= element.charCodeAt(i) & 0xff;
       h1 = Math.imul(h1, BloomFilter.FNV_PRIME);
     }
     h1 = h1 >>> 0;
-    
-    // 同理，在 O(1) 复杂度内派生 h2
+
     let h2 = h1 ^ (h1 >>> 16);
     h2 = Math.imul(h2, 0x85ebca6b);
     h2 = h2 ^ (h2 >>> 13);
@@ -168,6 +133,44 @@ export class BloomFilter {
       }
     }
     return true;
+  }
+
+  /**
+   * 添加元素
+   * @param element 字符串元素
+   */
+  add(element: string): void {
+    this.addWithSeed(element, BloomFilter.FNV_SEED_0);
+  }
+
+  /**
+   * 添加带有 "||" 前缀的域名元素（等价于 add(`||${domain}`)）。
+   * 性能优化：直接使用预计算的 "||" FNV-1a 哈希种子继续流式哈希，
+   * 彻底避免在 V8 堆内存中分配数万至数十万个新字符串模板！
+   *
+   * @param domain 纯域名字符串
+   */
+  addPipePipe(domain: string): void {
+    this.addWithSeed(domain, BloomFilter.FNV_SEED_PIPE_PIPE);
+  }
+
+  /**
+   * 检测元素是否存在 (无假阴性，有极低假阳性)
+   * @param element 待检测字符串
+   */
+  test(element: string): boolean {
+    return this.testWithSeed(element, BloomFilter.FNV_SEED_0);
+  }
+
+  /**
+   * 检测带有 "||" 前缀的域名元素是否存在（等价于 test(`||${domain}`)），
+   * 直接复用预计算的 FNV_SEED_PIPE_PIPE 种子，避免热路径字符串模板分配。
+   *
+   * @param domain 纯域名字符串
+   * @returns 是否命中布隆过滤器
+   */
+  testPipePipe(domain: string): boolean {
+    return this.testWithSeed(domain, BloomFilter.FNV_SEED_PIPE_PIPE);
   }
 
   /**

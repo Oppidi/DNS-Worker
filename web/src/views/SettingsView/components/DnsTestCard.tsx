@@ -68,7 +68,7 @@ export const DnsTestCard: React.FC<DnsTestCardProps> = ({ testInput, setTestInpu
               </div>
               <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-4">
                 <span className="text-[10px] uppercase font-bold opacity-40">{t("settings.parseLatency")}</span>
-                <span className="text-sm font-mono font-bold">{testResult.latency ? `${testResult.latency}ms` : "-"}</span>
+                <span className="text-sm font-mono font-bold">{typeof testResult.latency === "number" ? `${testResult.latency}ms` : "-"}</span>
               </div>
               {testResult.timings && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 border-l border-gray-200 dark:border-gray-700 pl-4 max-w-md">

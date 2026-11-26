@@ -116,6 +116,58 @@ export const dnsCache = new SizeCappedMap<string, DnsCacheEntry>(
 
 let lastDnsSweepAt = 0;
 
+const CACHE_KEY_TEXT_ENCODER = new TextEncoder();
+
+interface NodeCryptoBuiltin {
+  createHash: (algorithm: string) => {
+    update: (data: Uint8Array) => {
+      digest: (encoding: "hex") => string;
+    };
+  };
+}
+
+let cachedNodeCrypto: NodeCryptoBuiltin | null | undefined;
+
+function getNodeCryptoSync(): NodeCryptoBuiltin | null {
+  if (cachedNodeCrypto !== undefined) return cachedNodeCrypto;
+  try {
+    const proc = typeof process !== "undefined"
+      ? (process as unknown as { getBuiltinModule?: (name: string) => unknown })
+      : null;
+    const mod = proc?.getBuiltinModule?.("node:crypto") as NodeCryptoBuiltin | undefined;
+    cachedNodeCrypto = mod && typeof mod.createHash === "function" ? mod : null;
+  } catch {
+    cachedNodeCrypto = null;
+  }
+  return cachedNodeCrypto;
+}
+
+/**
+ * Synchronously computes an opaque SHA-256 hex digest key when `node:crypto` is available
+ * (Node.js / Bun Serverfull), eliminating async WebCrypto IPC overhead on the hot path.
+ * Returns `null` on edge runtimes where only WebCrypto (`crypto.subtle`) is available.
+ *
+ * @param profileId - Active profile identifier.
+ * @param domain - Queried domain name.
+ * @param recordType - DNS record type.
+ * @returns SHA-256 hex key or `null` when synchronous crypto is unavailable.
+ */
+export function computeDnsCacheKeySync(
+  profileId: string,
+  domain: string,
+  recordType: string
+): string | null {
+  const nodeCrypto = getNodeCryptoSync();
+  if (!nodeCrypto) return null;
+
+  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}`);
+  try {
+    return nodeCrypto.createHash("sha256").update(raw).digest("hex");
+  } finally {
+    zeroizeBuffer(raw);
+  }
+}
+
 /**
  * Computes an opaque SHA-256 digest key for the Worker in-memory DNS cache so
  * plaintext queried domain names are not retained as enumerable Map keys.
@@ -125,7 +177,10 @@ export async function computeDnsCacheKey(
   domain: string,
   recordType: string
 ): Promise<string> {
-  const raw = new TextEncoder().encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}`);
+  const syncDigest = computeDnsCacheKeySync(profileId, domain, recordType);
+  if (syncDigest !== null) return syncDigest;
+
+  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}`);
   try {
     const digest = await crypto.subtle.digest("SHA-256", raw);
     const bytes = new Uint8Array(digest);

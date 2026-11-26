@@ -50,12 +50,14 @@ export const pipelineResolver = {
     context: Context,
     settings: ProfileSettings,
     action: "PASS",
-    reason?: string
+    reason?: string,
+    track?: (name: string) => void
   ): Promise<ResolutionResult> {
     const rawUpstreamUrl =
       settings.upstream[0] || getDefaultUpstreamUrl(context.env);
 
     if (!isSafeUrl(rawUpstreamUrl)) {
+      track?.("upstream_prepare");
       return {
         answer: new Uint8Array(),
         ttl: 0,
@@ -73,9 +75,14 @@ export const pipelineResolver = {
     const { queryRaw, ecs } = applyEcs(request, query, settings);
 
     let endpoint: UpstreamEndpointInfo | undefined;
+    let fetchStarted = false;
     try {
       endpoint = resolveUpstreamEndpoint(rawUpstreamUrl);
-      const transportRes = await fetchFromUpstream(endpoint, queryRaw);
+      const transportRes = await fetchFromUpstream(endpoint, queryRaw, () => {
+        fetchStarted = true;
+        track?.("upstream_prepare");
+      });
+      track?.("upstream_fetch");
 
       const initialParsedAnswers = parseDNSAnswer(transportRes.answer);
 
@@ -120,13 +127,15 @@ export const pipelineResolver = {
         ecs
       );
 
+      track?.("post_process");
+
       return {
         answer,
         ttl: minTTL,
         action,
         reason: effectiveReason,
         latency: Date.now() - context.startTime,
-        timings: { upstream_fetch: transportRes.latency },
+        ...(track ? {} : { timings: { upstream_fetch: transportRes.latency } }),
         diagnostics: {
           upstream_url: rawUpstreamUrl.startsWith("sdns://")
             ? `${rawUpstreamUrl} (${transportRes.diagTarget})`
@@ -137,6 +146,7 @@ export const pipelineResolver = {
         }
       };
     } catch (e: unknown) {
+      track?.(fetchStarted ? "upstream_fetch" : "upstream_prepare");
       return recordFailure(
         request,
         query,
@@ -166,6 +176,7 @@ export const pipelineResolver = {
    * @param reason - Explanation for the action.
    * @param customAnswer - Optional custom answer payload (IP or CNAME domain).
    * @param responseType - Optional DNS record type for the answer.
+   * @param track - Optional high-resolution stage timing callback.
    * @returns ResolutionResult.
    */
   async block(
@@ -176,9 +187,10 @@ export const pipelineResolver = {
     action: "BLOCK" | "REDIRECT",
     reason: string,
     customAnswer?: string,
-    responseType?: string
+    responseType?: string,
+    track?: (name: string) => void
   ): Promise<ResolutionResult> {
-    return handleBlockOrRedirect(
+    const result = await handleBlockOrRedirect(
       request,
       query,
       context,
@@ -189,5 +201,7 @@ export const pipelineResolver = {
       responseType,
       pipelineResolver.resolve
     );
+    track?.("block_response");
+    return result;
   }
 };
