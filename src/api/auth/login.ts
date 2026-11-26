@@ -270,7 +270,7 @@ export async function handleLoginRequest(request: Request, env: Env): Promise<Re
             expectedOrigin: `${url.protocol}//${url.host}`,
             expectedRpId: preauthState.rpId || url.hostname,
             previousSignCount: passkey.sign_count,
-            requireUserVerification: skipPasswordAllowed && !password
+            requireUserVerification: skipPasswordAllowed
           });
 
           await passkeyModel.updateUsage(passkey.id, signCount);

@@ -7,17 +7,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { getDefaultDataDir } from './paths';
+import { isUsableJwtSecret } from '../lib/jwt';
 
 /**
  * Resolves or initializes a stable, persistent JWT secret.
  * Precedence:
- * 1. process.env.JWT_SECRET (if explicitly configured)
+ * 1. process.env.JWT_SECRET (if explicitly configured and not a placeholder)
  * 2. <DataDir>/.jwt_secret (if previously generated and persisted)
  * 3. Generates 256-bit cryptographically secure hex string and persists it to <DataDir>/.jwt_secret
  */
 export function getOrInitPersistentJwtSecret(dataDir: string = getDefaultDataDir()): string {
-  if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim().length > 0) {
-    return process.env.JWT_SECRET.trim();
+  if (isUsableJwtSecret(process.env.JWT_SECRET)) {
+    return process.env.JWT_SECRET!.trim();
   }
 
   const secretFile = path.join(dataDir, '.jwt_secret');

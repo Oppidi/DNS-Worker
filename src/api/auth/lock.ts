@@ -73,11 +73,11 @@ export async function handleSessionLockRequest(request: Request, env: Env): Prom
     try {
       const secret = await getOrCreateJwtSecret(env);
       const jwtKey = await importJwtSecret(secret);
-      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number }>(
+      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number; purpose?: string }>(
         accessToken,
         jwtKey
       );
-      if (!payload) return new Response("Unauthorized", { status: 401 });
+      if (!payload || payload.purpose) return new Response("Unauthorized", { status: 401 });
 
       const dbUser = await userModel.getById(payload.userId);
       /**
@@ -118,11 +118,11 @@ export async function handleSessionLockRequest(request: Request, env: Env): Prom
     try {
       const secret = await getOrCreateJwtSecret(env);
       const jwtKey = await importJwtSecret(secret);
-      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number }>(
+      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number; purpose?: string }>(
         accessToken,
         jwtKey
       );
-      if (!payload) return new Response("Unauthorized", { status: 401 });
+      if (!payload || payload.purpose) return new Response("Unauthorized", { status: 401 });
 
       const { pinHash, nonce } = await request.json() as any;
       if (!pinHash) return new Response("Missing pinHash", { status: 400 });
@@ -237,11 +237,11 @@ export async function handleSessionLockRequest(request: Request, env: Env): Prom
     try {
       const secret = await getOrCreateJwtSecret(env);
       const jwtKey = await importJwtSecret(secret);
-      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number }>(
+      const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number; purpose?: string }>(
         accessToken,
         jwtKey
       );
-      if (!payload) return new Response("Unauthorized", { status: 401 });
+      if (!payload || payload.purpose) return new Response("Unauthorized", { status: 401 });
 
       const sessionModel = new SessionModel(env.DB);
       const session = await sessionModel.getSession(payload.sessionId);

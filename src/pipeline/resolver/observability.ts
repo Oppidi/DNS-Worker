@@ -111,7 +111,7 @@ export function recordSuccessAndCache(
             Math.min(minTTL, MAX_DNS_CACHE_TTL_SEC)
           );
           const pauseExpiresMs =
-            effectiveReason === "Filtering Paused" &&
+            settings.pause_filtering?.enabled &&
             settings.pause_filtering?.expires_at &&
             settings.pause_filtering.expires_at > 0
               ? settings.pause_filtering.expires_at * 1000

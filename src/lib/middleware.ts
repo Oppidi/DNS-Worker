@@ -142,6 +142,21 @@ export async function getCurrentUser(request: Request, env: Env, ctx?: Execution
         return null;
       }
 
+      const lastActive = session.last_active_at || session.created_at;
+      const activityRecord = sessionActivityMemory.get(sessionId);
+      const effectiveLastActive = Math.max(lastActive, activityRecord?.lastObserved ?? 0);
+      if (session.pin_hash) {
+        const timeoutSeconds = (session.session_lock_timeout || 15) * 60;
+        if (now - effectiveLastActive > timeoutSeconds) {
+          try {
+            await sessionModel.pauseSession(sessionId);
+          } catch (e) {
+            console.error("[Auth] Failed to update pauseSession in D1:", e);
+          }
+          return null;
+        }
+      }
+
       return {
         id: session.user_id,
         username: session.username,
@@ -191,11 +206,11 @@ export async function getCurrentUser(request: Request, env: Env, ctx?: Execution
   try {
     const secret = await getOrCreateJwtSecret(env);
     const jwtKey = await importJwtSecret(secret);
-    const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number }>(
+    const payload = await verifyJWT<{ userId: string; role: string; sessionId: string; exp: number; purpose?: string }>(
       accessToken,
       jwtKey
     );
-    if (payload) {
+    if (payload && !payload.purpose) {
       // Check 10-second micro-cache to collapse parallel dashboard requests into 1 D1 read
       const cached = authUserMemoryCache.get(payload.sessionId);
       if (cached && cached.expiresAt > Date.now()) {

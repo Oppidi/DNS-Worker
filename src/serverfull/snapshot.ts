@@ -171,6 +171,14 @@ async function run() {
     try { db?.close(); } catch {}
   }
 
+  let snapDb;
+  try {
+    snapDb = new DatabaseSync(tmpSqlite, { timeout: 10000 });
+    snapDb.exec('DELETE FROM sessions; DELETE FROM pending_totp_sessions;');
+  } catch {} finally {
+    try { snapDb?.close(); } catch {}
+  }
+
   const lockAfterVacuum = readLock();
   if (!lockAfterVacuum || lockAfterVacuum.cancelRequested) {
     cleanupTemps();

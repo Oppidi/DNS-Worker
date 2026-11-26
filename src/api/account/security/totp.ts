@@ -81,12 +81,14 @@ export async function handleTotpAndMfaRequest(
       const dbUser = await userModel.getById(user.id);
       if (!dbUser) return new Response("User not found", { status: 404 });
 
+      const passkeyModel = new PasskeyModel(env.DB);
+      const existingPasskeys = await passkeyModel.listByUser(user.id);
       // Prevent silent TOTP overwrite or passwordless downgrade without step-up reauthentication
-      if (dbUser.totp_enabled) {
+      if (dbUser.totp_enabled || existingPasskeys.length > 0 || dbUser.has_password !== 0) {
         const authResult = await verifyUserReauth(dbUser, body, env, request, { sessionId: user.sessionId });
         if (!authResult.success) {
           await activityLog.record(user.id, "totp_verify_fail", clientIp, userAgent, { flow: "totp_reenroll", reason: authResult.reason }, sessionHash);
-          return new Response(authResult.error || "Re-authentication required to replace TOTP", { status: 403 });
+          return new Response(authResult.error || "Re-authentication required to configure TOTP", { status: 403 });
         }
       }
 
@@ -102,9 +104,9 @@ export async function handleTotpAndMfaRequest(
       );
 
       await userModel.updateTOTP(user.id, normalizedSecret, storedItems as any);
-      // Only enable passwordless mode on initial enrollment or when the account has no password;
-      // keep existing totp_skip_password setting when re-enrolling on a password-enabled account.
-      if (!dbUser.totp_enabled || dbUser.has_password === 0) {
+      // Only enable passwordless mode when the account has no password;
+      // preserve existing totp_skip_password preference on password-enabled accounts.
+      if (dbUser.has_password === 0) {
         await userModel.updateTOTPSettings(user.id, true);
       }
       await activityLog.record(user.id, "totp_setup", clientIp, userAgent, undefined, sessionHash);

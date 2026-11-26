@@ -131,7 +131,7 @@ export async function handleProfileE2eeRequest(
 
     const stmts = [
       env.DB.prepare(
-        "INSERT INTO user_log_keys (profile_id, public_key, created_at) VALUES (?, ?, ?) ON CONFLICT(profile_id) DO UPDATE SET public_key = excluded.public_key, created_at = excluded.created_at"
+        "INSERT INTO user_log_keys (profile_id, public_key, is_active, created_at) VALUES (?, ?, 1, ?) ON CONFLICT(profile_id) DO UPDATE SET public_key = excluded.public_key, is_active = 1, created_at = excluded.created_at"
       ).bind(profile.id, publicKeyStr, now),
       env.DB.prepare(
         "INSERT INTO user_passkey_wrapped_keys (passkey_id, profile_id, encrypted_sk, iv, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(passkey_id) DO UPDATE SET encrypted_sk = excluded.encrypted_sk, iv = excluded.iv, created_at = excluded.created_at"

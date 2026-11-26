@@ -149,6 +149,7 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
       void localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {
         void caches.delete("dns-worker-logs-v1").catch(() => {});
+        void caches.delete("dns-worker-icons-v2").catch(() => {});
       }
       clearCsrfToken();
       setIsLoggedIn(false);
@@ -200,7 +201,10 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
       await localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {
         try {
-          await caches.delete("dns-worker-logs-v1");
+          await Promise.all([
+            caches.delete("dns-worker-logs-v1"),
+            caches.delete("dns-worker-icons-v2"),
+          ]);
         } catch {}
       }
       try {

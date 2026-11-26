@@ -64,7 +64,7 @@ export async function verifyUserReauth(
     ? allUserPasskeys.filter((p) => !isDemoPasskeyCredentialId(p.credential_id))
     : allUserPasskeys;
   const hasPasskeys = userPasskeys.length > 0;
-  const hasTotp = !!dbUser.totp_enabled && !!dbUser.totp_secret;
+  const hasTotp = !!dbUser.totp_enabled;
   const hasMfa = hasTotp || hasPasskeys;
 
   // 1. Passkey assertion check
@@ -104,7 +104,7 @@ export async function verifyUserReauth(
         expectedOrigin: `${requestUrl.protocol}//${requestUrl.host}`,
         expectedRpId: cachedState.rpId,
         previousSignCount: passkey.sign_count,
-        requireUserVerification: !!dbUser.totp_skip_password || !(payload.oldPassword || payload.password)
+        requireUserVerification: true
       });
 
       await passkeyModel.updateUsage(passkey.id, signCount);
