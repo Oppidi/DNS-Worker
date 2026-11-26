@@ -275,12 +275,14 @@ export function resolveUpstreamEndpoint(rawUpstreamUrl: string): UpstreamEndpoin
  */
 export async function fetchFromUpstream(
   endpoint: UpstreamEndpointInfo,
-  queryRaw: Uint8Array
+  queryRaw: Uint8Array,
+  onFetchStart?: () => void
 ): Promise<UpstreamTransportResult> {
   const { effectiveUrl, diagMethod, diagTarget } = endpoint;
   if (!(await isSafeUrlWithDnsCheck(effectiveUrl))) {
     throw new Error("Blocked unsafe upstream URL");
   }
+  onFetchStart?.();
   const startFetch = Date.now();
   let answer: Uint8Array;
 

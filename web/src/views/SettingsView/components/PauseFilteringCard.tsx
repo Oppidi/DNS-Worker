@@ -150,7 +150,7 @@ export const PauseFilteringCard: React.FC<PauseFilteringCardProps> = ({
                 max={MAX_HOURS}
                 step={1}
                 small
-                className="flex-1 text-center font-mono"
+                className="flex-1 text-center font-mono no-number-spinner"
                 value={String(hours)}
                 onChange={(e) => {
                   const val = Number(e.target.value);
@@ -183,7 +183,7 @@ export const PauseFilteringCard: React.FC<PauseFilteringCardProps> = ({
                 max={MAX_MINUTES}
                 step={1}
                 small
-                className="flex-1 text-center font-mono"
+                className="flex-1 text-center font-mono no-number-spinner"
                 value={String(minutes)}
                 onChange={(e) => {
                   const val = Number(e.target.value);
