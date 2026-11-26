@@ -70,7 +70,7 @@ export function isTrustedProxySocket(
 ): boolean {
   const socketIp = sanitizeClientIp(socketRemoteAddress);
   if (!socketIp) return false;
-  if (!isPublicInternetIP(socketIp)) return true;
+  if (socketIp === '127.0.0.1' || socketIp === '::1') return true;
   if (isCloudflareIp(socketIp)) return true;
   return isTrustedProxyIp(socketIp, trustedProxies);
 }

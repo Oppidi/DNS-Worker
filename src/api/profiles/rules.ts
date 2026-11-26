@@ -51,13 +51,18 @@ export async function handleProfileRulesRequest(
         const type = String(r.type || 'BLOCK').toUpperCase();
         if (type !== 'ALLOW' && type !== 'BLOCK' && type !== 'REDIRECT') continue;
 
+        const strOrUndefined = (val: unknown, maxLen: number): string | undefined => {
+          if (typeof val !== 'string') return undefined;
+          const trimmed = val.trim();
+          return trimmed.length > 0 && trimmed.length <= maxLen ? trimmed : undefined;
+        };
         validRules.push({
           type: type as 'ALLOW' | 'BLOCK' | 'REDIRECT',
           pattern,
-          v_a: r.v_a || null,
-          v_aaaa: r.v_aaaa || null,
-          v_txt: r.v_txt || null,
-          v_cname: r.v_cname || null,
+          v_a: strOrUndefined(r.v_a, 15),
+          v_aaaa: strOrUndefined(r.v_aaaa, 45),
+          v_txt: strOrUndefined(r.v_txt, 4096),
+          v_cname: strOrUndefined(r.v_cname, 253),
           created_at: typeof r.created_at === 'number' ? r.created_at : undefined,
           include_subdomains: Boolean(r.include_subdomains),
           enabled: normalizeRuleEnabled(r.enabled),
@@ -117,10 +122,15 @@ export async function handleProfileRulesRequest(
     if (!Number.isInteger(ruleId) || ruleId <= 0) {
       return new Response("Invalid rule id", { status: 400 });
     }
-    const pattern = rule.pattern ? rule.pattern.trim() : "";
-    if (!pattern) {
-      return new Response("Domain pattern cannot be empty", { status: 400 });
+    const pattern = rule.pattern ? String(rule.pattern).trim() : "";
+    if (!pattern || pattern.length > 253) {
+      return new Response("Domain pattern is invalid or empty", { status: 400 });
     }
+    const clampField = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) || undefined : undefined);
+    rule.v_a = clampField(rule.v_a, 15);
+    rule.v_aaaa = clampField(rule.v_aaaa, 45);
+    rule.v_txt = clampField(rule.v_txt, 4096);
+    rule.v_cname = clampField(rule.v_cname, 253);
     const existing = await ruleModel.getRuleByPatternExcludeId(profileId, pattern, ruleId);
     if (existing) {
       return new Response("Rule for this domain already exists", { status: 400 });

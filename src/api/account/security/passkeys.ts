@@ -260,8 +260,8 @@ export async function handlePasskeysRequest(
     const dbUserBefore = await userModel.getById(user.id);
     if (!dbUserBefore) return new Response("User not found", { status: 404 });
     const existingPasskeysBefore = await passkeyModel.listByUser(user.id);
-    // Require step-up reauth when adding a passkey to an account that already has MFA enabled
-    if (dbUserBefore.totp_enabled || existingPasskeysBefore.length > 0) {
+    // Require step-up reauth when adding a passkey to an account with existing MFA or password
+    if (dbUserBefore.totp_enabled || existingPasskeysBefore.length > 0 || dbUserBefore.has_password !== 0) {
       const authResult = await verifyUserReauth(dbUserBefore, body, env, request, { sessionId: user.sessionId });
       if (!authResult.success) {
         return new Response(authResult.error || "Re-authentication required", { status: 403 });
@@ -303,12 +303,10 @@ export async function handlePasskeysRequest(
         aaguid: parsed.aaguid
       });
 
-      // Automatically enable passwordless login upon initial Passkey configuration
-      // (matching initial TOTP enrollment), while preserving explicit user preference
-      // when adding subsequent backup Passkeys.
+      // Only force passwordless mode when the account has no password;
+      // preserve explicit user preference on password-enabled accounts.
       const enablePasswordless =
-        dbUserBefore.has_password === 0 ||
-        (existingPasskeysBefore.length === 0 ? true : !!dbUserBefore.totp_skip_password);
+        dbUserBefore.has_password === 0 || !!dbUserBefore.totp_skip_password;
       await userModel.updateTOTPSettings(user.id, enablePasswordless);
 
       const dbUser = await userModel.getById(user.id);

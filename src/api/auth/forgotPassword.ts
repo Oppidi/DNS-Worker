@@ -197,7 +197,8 @@ export async function handleForgotPasswordRequest(request: Request, env: Env): P
           expectedChallenge: state.passkeyChallenge,
           expectedOrigin: `${url.protocol}//${url.host}`,
           expectedRpId: state.rpId,
-          previousSignCount: passkey.sign_count
+          previousSignCount: passkey.sign_count,
+          requireUserVerification: true
         });
 
         await passkeyModel.updateUsage(passkey.id, signCount);

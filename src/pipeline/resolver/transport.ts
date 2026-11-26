@@ -137,6 +137,9 @@ export async function queryDoT(
     const reader = socket.readable.getReader();
 
     // RFC 7858 Section 3.3: 2-byte length prefix + DNS message
+    if (queryRaw.length > 65535) {
+      throw new Error(`DNS query exceeds 65535-byte DoT frame limit (${queryRaw.length} bytes)`);
+    }
     const framedQuery = new Uint8Array(queryRaw.length + 2);
     framedQuery[0] = (queryRaw.length >> 8) & 0xff;
     framedQuery[1] = queryRaw.length & 0xff;
@@ -176,6 +179,9 @@ export async function queryTcp(
     const writer = socket.writable.getWriter();
     const reader = socket.readable.getReader();
 
+    if (queryRaw.length > 65535) {
+      throw new Error(`DNS query exceeds 65535-byte TCP frame limit (${queryRaw.length} bytes)`);
+    }
     const framedQuery = new Uint8Array(queryRaw.length + 2);
     framedQuery[0] = (queryRaw.length >> 8) & 0xff;
     framedQuery[1] = queryRaw.length & 0xff;

@@ -68,10 +68,9 @@ export function loadEnvFiles(rootDir: string = process.cwd()): string[] {
   loadedEnvFiles.length = 0;
 
   const candidatePaths = [
-    // 1. Current working directory
+    // 1. Current working directory (explicit operator overrides)
     path.join(rootDir, '.dev.vars'),
     path.join(rootDir, '.env'),
-    path.join(rootDir, '.env.serverfull'),
 
     // 2. Standard system configuration file (/etc/dns-worker/.env on Linux)
     getDefaultConfigFilePath(),
@@ -81,7 +80,8 @@ export function loadEnvFiles(rootDir: string = process.cwd()): string[] {
     process.platform === 'linux' ? '/etc/default/dns-worker' : null,
     process.platform === 'linux' ? path.join(getDefaultDataDir(), '.env') : null,
 
-    // 4. Package distribution root
+    // 4. Fallback Serverfull template files
+    path.join(rootDir, '.env.serverfull'),
     path.join(getPackageRoot(), '.env.serverfull')
   ].filter((p): p is string => Boolean(p));
 

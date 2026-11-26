@@ -25,6 +25,7 @@ jobs:
   publish_docker_alpha:
     name: Build and Publish Alpha to Docker Hub
     runs-on: ubuntu-latest
+    environment: release
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

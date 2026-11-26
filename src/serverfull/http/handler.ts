@@ -197,7 +197,7 @@ export function createHttpRequestHandler(
       if (rawCookies.length > 0) {
         // Over plain HTTP (non-TLS), browsers reject cookies marked with 'Secure' (RFC 6265bis).
         // Adapt outgoing cookies by stripping '; Secure' when accessed over plain http.
-        const isPlainHttp = proto === 'http';
+        const isPlainHttp = defaultProto === 'http' && proto === 'http';
         const adaptedCookies = isPlainHttp
           ? rawCookies.map((c) => c.replace(/;\s*Secure\b/gi, ''))
           : rawCookies;

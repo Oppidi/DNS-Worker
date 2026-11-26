@@ -39,9 +39,13 @@ export function buildDNSQuery(name: string, type: string): Uint8Array {
   header[10] = 0x00; // ARCOUNT
   header[11] = 0x00;
 
-  const labels = name.split(".");
+  const normalizedName = name.replace(/\.+$/, "");
+  const labels = normalizedName ? normalizedName.split(".") : [];
   const question: number[] = [];
   for (const label of labels) {
+    if (label.length === 0 || label.length > 63) {
+      throw new Error(`Invalid DNS label length (${label.length}) in "${name}"`);
+    }
     question.push(label.length);
     for (let i = 0; i < label.length; i++) {
       question.push(label.charCodeAt(i));

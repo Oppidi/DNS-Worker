@@ -1,28 +1,22 @@
-let currentWorkerOrigin = "https://dns-worker.internal";
+const CANONICAL_CACHE_ORIGIN = "https://dns-worker.internal";
 
 export const cacheUtils = {
   /**
-   * Updates the canonical origin using the incoming request URL.
-   * This ensures Cloudflare's Cache API (caches.default) stores and matches entries
-   * against the Worker's active zone, eliminating cross-zone cache drops.
-   *
-   * @param origin - The HTTP/HTTPS origin string of the active request.
+   * Retained for API compatibility; cache keys always use a fixed canonical origin
+   * so untrusted Host headers or concurrent requests cannot partition or race cache buckets.
    */
-  setOrigin(origin: string): void {
-    if (origin && (origin.startsWith("http://") || origin.startsWith("https://"))) {
-      currentWorkerOrigin = origin.replace(/\/+$/, "");
-    }
+  setOrigin(_origin: string): void {
+    // Intentionally a no-op to prevent Host-header partitioning and async race conditions.
   },
 
   /**
-   * Generates a canonical cache URL using the active Worker origin so caches.default
-   * recognizes and caches entries under the active zone.
+   * Generates a canonical cache URL using the fixed internal origin.
    *
    * @param key - Cache key identifier.
-   * @returns Formatted cache URL under the current worker origin.
+   * @returns Formatted cache URL under the canonical origin.
    */
   generateCacheUrl(key: string): string {
-    return `${currentWorkerOrigin}/__cache__/${encodeURIComponent(key)}`;
+    return `${CANONICAL_CACHE_ORIGIN}/__cache__/${encodeURIComponent(key)}`;
   },
 
   async get<T>(cache: Cache | null | undefined, key: string): Promise<T | null> {

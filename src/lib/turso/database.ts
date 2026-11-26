@@ -43,7 +43,14 @@ export class TursoD1Database implements D1Database {
 
   private isReadOnlyQuery(sql: string): boolean {
     const trimmed = sql.trim().toUpperCase();
-    return trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA');
+    if (!trimmed.startsWith('SELECT') && !trimmed.startsWith('PRAGMA')) {
+      return false;
+    }
+    // Never cache security-sensitive auth, session, credential, or access-key tables per-isolate
+    if (/\b(USERS|SESSIONS|PASSKEYS|PENDING_TOTP_SESSIONS|USER_LOG_KEYS|USER_PASSKEY_WRAPPED_KEYS|USER_RECOVERY_WRAPPED_KEYS|INVITE_CODES|ACCESS_POINTS)\b/.test(trimmed)) {
+      return false;
+    }
+    return true;
   }
 
   /**

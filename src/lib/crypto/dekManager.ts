@@ -23,6 +23,7 @@ export interface ActiveDek {
   kemKeyId: string;
   dek: CryptoKey;
   profileId: string;
+  pqcPublicKeyBase64: string;
   createdAt: number;
   expiresAt: number;
 }
@@ -33,8 +34,11 @@ export const DEK_LIFETIME_MS = 3600 * 1000;
 /** In-memory pool of currently active DEKs per profile in this isolate */
 const activeDekMap = new Map<string, ActiveDek>();
 
+/** Monotonic generation counter per profile to prevent stale rotateDek from reviving invalidated keys */
+const dekGenerations = new Map<string, number>();
+
 /** Mutex to deduplicate concurrent in-flight DEK provisionings per profile in this isolate */
-const inFlightDekPromises = new Map<string, Promise<ActiveDek>>();
+const inFlightDekPromises = new Map<string, { pk: string; promise: Promise<ActiveDek> }>();
 
 /**
  * Key Provider / Consumer Interface:
@@ -75,26 +79,30 @@ export async function ensureActiveDek(
   const now = Date.now();
   const existing = activeDekMap.get(profileId);
 
-  // If existing key is still within its rotation window, continue using it
-  if (existing && existing.expiresAt > now) {
+  // If existing key is still within its rotation window and matches the recipient public key, continue using it
+  if (existing && existing.expiresAt > now && existing.pqcPublicKeyBase64 === pqcPublicKeyBase64) {
     return existing;
   }
 
-  // Deduplicate concurrent in-flight requests for the same profile
+  // Deduplicate concurrent in-flight requests for the same profile and public key
   const inFlight = inFlightDekPromises.get(profileId);
-  if (inFlight) {
-    return await inFlight;
+  if (inFlight && inFlight.pk === pqcPublicKeyBase64) {
+    return await inFlight.promise;
   }
 
-  const promise = (async () => {
+  let promise!: Promise<ActiveDek>;
+  promise = (async () => {
     try {
       return await rotateDek(db, profileId, pqcPublicKeyBase64);
     } finally {
-      inFlightDekPromises.delete(profileId);
+      const current = inFlightDekPromises.get(profileId);
+      if (current && current.promise === promise) {
+        inFlightDekPromises.delete(profileId);
+      }
     }
   })();
 
-  inFlightDekPromises.set(profileId, promise);
+  inFlightDekPromises.set(profileId, { pk: pqcPublicKeyBase64, promise });
   return await promise;
 }
 
@@ -113,6 +121,7 @@ export async function rotateDek(
   profileId: string,
   pqcPublicKeyBase64: string
 ): Promise<ActiveDek> {
+  const startGen = dekGenerations.get(profileId) ?? 0;
   const now = Date.now();
   const nowSec = Math.floor(now / 1000);
   const expiresAtSec = nowSec + 3600;
@@ -145,16 +154,19 @@ export async function rotateDek(
     throw err;
   }
 
-  // 5. Publish to in-memory active pool
+  // 5. Publish to in-memory active pool only if not invalidated while awaiting D1
   const activeDek: ActiveDek = {
     kemKeyId,
     dek,
     profileId,
+    pqcPublicKeyBase64,
     createdAt: now,
     expiresAt: now + DEK_LIFETIME_MS,
   };
 
-  activeDekMap.set(profileId, activeDek);
+  if ((dekGenerations.get(profileId) ?? 0) === startGen) {
+    activeDekMap.set(profileId, activeDek);
+  }
   return activeDek;
 }
 
@@ -162,6 +174,7 @@ export async function rotateDek(
  * Invalidates the active DEK for a profile (e.g. when user updates or disables E2EE).
  */
 export function invalidateActiveDek(profileId: string): void {
+  dekGenerations.set(profileId, (dekGenerations.get(profileId) ?? 0) + 1);
   activeDekMap.delete(profileId);
   inFlightDekPromises.delete(profileId);
 }
