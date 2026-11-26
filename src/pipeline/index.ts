@@ -57,7 +57,6 @@ function buildReconciledTimings(
       item.centi -= take;
       remaining -= take;
     }
-    sumFloor = floors.reduce((acc, item) => acc + item.centi, 0);
   }
 
   const finalCenti = floors.reduce((acc, item) => acc + item.centi, 0);
