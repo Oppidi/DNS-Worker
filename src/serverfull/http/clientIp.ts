@@ -5,6 +5,7 @@
 
 import { ipInCidr, isIPv4, isIPv6 } from '../../utils/cidr';
 import { isPublicInternetIP } from '../../utils/validator';
+import { isCloudflareIp } from '../../utils/ech/cloudflareIp';
 
 /**
  * Normalizes and validates an IP candidate string into a clean IPv4 or IPv6 address.
@@ -57,7 +58,7 @@ export function isTrustedProxyIp(ip: string, trustedProxies?: string | string[])
 
 /**
  * Checks whether an inbound TCP socket remote address belongs to a trusted reverse proxy hop
- * (loopback, private/local network, or explicitly configured `TRUSTED_PROXIES` IP/CIDR).
+ * (loopback, private/local network, Cloudflare CDN/Proxy CIDRs, or explicitly configured `TRUSTED_PROXIES`).
  *
  * @param socketRemoteAddress - Raw Node.js socket remote address.
  * @param trustedProxies - Optional list or comma-separated string of trusted proxy IPs/CIDRs.
@@ -70,13 +71,14 @@ export function isTrustedProxySocket(
   const socketIp = sanitizeClientIp(socketRemoteAddress);
   if (!socketIp) return false;
   if (!isPublicInternetIP(socketIp)) return true;
+  if (isCloudflareIp(socketIp)) return true;
   return isTrustedProxyIp(socketIp, trustedProxies);
 }
 
 /**
- * Resolves the real client IP address from proxy headers (CF-Connecting-IP, X-Real-IP, X-Forwarded-For)
- * only when connecting through a trusted reverse proxy (loopback, private network, or configured trusted proxies).
- * If the connection arrives directly from a public Internet address, proxy headers are ignored to prevent spoofing (SEC-01).
+ * Resolves the real client IP address from proxy headers (`CF-Connecting-IP`, `True-Client-IP`, `X-Real-IP`, `X-Forwarded-For`)
+ * only when connecting through a trusted reverse proxy (loopback, private network, Cloudflare proxy edge, or `TRUSTED_PROXIES`).
+ * If the connection arrives directly from an untrusted public Internet address, proxy headers are ignored to prevent spoofing (SEC-01).
  *
  * @param headers - HTTP request headers.
  * @param socketRemoteAddress - Underlying TCP socket remote address.
@@ -90,24 +92,25 @@ export function extractClientIp(
 ): string {
   const socketIp = sanitizeClientIp(socketRemoteAddress);
 
-  // If socket IP is a public Internet IP and not explicitly configured in trusted proxies,
-  // do not trust incoming proxy headers to prevent IP spoofing (CWE-290 / SEC-01).
-  if (socketIp && isPublicInternetIP(socketIp)) {
-    const isExplicitlyTrusted = isTrustedProxyIp(socketIp, trustedProxies);
-    if (!isExplicitlyTrusted) {
-      return socketIp;
-    }
+  // If socket IP is a public Internet IP and not Cloudflare / explicitly trusted proxy,
+  // ignore incoming proxy headers to prevent IP spoofing (CWE-290 / SEC-01).
+  if (socketIp && !isTrustedProxySocket(socketIp, trustedProxies)) {
+    return socketIp;
   }
 
   // 1. Check CF-Connecting-IP (Cloudflare Edge standard)
   const cfIp = sanitizeClientIp(headers.get('CF-Connecting-IP'));
   if (cfIp) return cfIp;
 
-  // 2. Check X-Real-IP (Caddy / Nginx direct real IP)
+  // 2. Check True-Client-IP (Cloudflare Enterprise / CDN passthrough)
+  const trueClientIp = sanitizeClientIp(headers.get('True-Client-IP'));
+  if (trueClientIp) return trueClientIp;
+
+  // 3. Check X-Real-IP (Caddy / Nginx direct real IP)
   const realIp = sanitizeClientIp(headers.get('X-Real-IP'));
   if (realIp) return realIp;
 
-  // 3. Check X-Forwarded-For (standard reverse proxy chain)
+  // 4. Check X-Forwarded-For (standard reverse proxy chain)
   const xff = headers.get('X-Forwarded-For');
   if (xff) {
     // The leftmost IP in X-Forwarded-For is the original client
@@ -118,6 +121,6 @@ export function extractClientIp(
     }
   }
 
-  // 4. Fallback to socket remote address
+  // 5. Fallback to socket remote address
   return socketIp || '127.0.0.1';
 }

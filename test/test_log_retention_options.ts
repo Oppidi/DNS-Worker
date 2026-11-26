@@ -140,6 +140,29 @@ async function runTests(): Promise<void> {
   // Case G: Direct connection with explicitly trusted proxy configured
   assert.strictEqual(extractClientIp(headersF, '93.184.216.34', '93.184.216.34'), '1.1.1.1', 'Must honor headers from explicitly trusted proxy');
 
+  // Case H: Connection directly from Cloudflare edge proxy IP (IPv4 & IPv6) must trust CF-Connecting-IP without manual TRUSTED_PROXIES
+  const headersCfEdge = new Headers({
+    'CF-Connecting-IP': '198.51.100.77',
+    'CF-IPCountry': 'JP',
+    'X-Forwarded-For': '198.51.100.77, 104.22.222.144'
+  });
+  assert.strictEqual(
+    extractClientIp(headersCfEdge, '104.22.222.144'),
+    '198.51.100.77',
+    'Must honor CF-Connecting-IP when connecting from Cloudflare IPv4 proxy CIDR'
+  );
+  assert.strictEqual(
+    extractClientIp(headersCfEdge, '2400:cb00:2048::1'),
+    '198.51.100.77',
+    'Must honor CF-Connecting-IP when connecting from Cloudflare IPv6 proxy CIDR'
+  );
+  const headersTrueClient = new Headers({ 'True-Client-IP': '203.0.113.55' });
+  assert.strictEqual(
+    extractClientIp(headersTrueClient, '104.22.222.144'),
+    '203.0.113.55',
+    'Must honor True-Client-IP from Cloudflare edge proxy when CF-Connecting-IP is absent'
+  );
+
   // 7. Test getFlagEmoji behavior (LAN, UN, UNKNOWN, Country Codes)
   console.log('>>> [TEST] 7. getFlagEmoji mapping');
   const { getFlagEmoji } = await import('../web/src/utils/getFlagEmoji');

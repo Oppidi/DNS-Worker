@@ -26,6 +26,7 @@ import { tuneV8Engine } from './v8';
 import { getClusterInfo, forkClusterWorkers, shutdownClusterWorkers } from './cluster';
 import { registerActiveDnsSyncPublisher, applySyncedActiveDnsConnection } from '../lib/activeDns';
 import { registerProfileKeyInvalidatePublisher, invalidateProfileKeyCache } from '../pipeline/cache';
+import { initCloudflareIpRanges } from '../utils/ech/sync';
 import { ServerfullLifecycleManager } from './lifecycle';
 
 export * from './cli';
@@ -233,6 +234,11 @@ async function bootstrap(): Promise<void> {
     localSqliteDb = db;
     env.DB = db;
     env.SERVERFULL_SNAPSHOT_BRIDGE = new ServerfullSnapshotManager(env);
+  }
+
+  // Load synced Cloudflare Proxy CIDRs from DB so CF-Connecting-IP passthrough verification uses latest ranges
+  if (env.DB) {
+    await initCloudflareIpRanges(env.DB);
   }
 
   // 6. Cluster Primary Process: Fork workers and coordinate background cron
