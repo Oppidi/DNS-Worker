@@ -76,7 +76,6 @@ export async function ensureActiveDek(
   profileId: string,
   pqcPublicKeyBase64: string
 ): Promise<ActiveDek> {
-  const startGen = dekGenerations.get(profileId) ?? 0;
   const now = Date.now();
   const existing = activeDekMap.get(profileId);
 
