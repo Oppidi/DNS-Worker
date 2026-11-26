@@ -29,6 +29,9 @@ export const SYSTEMD_SERVICE_PATH = `/etc/systemd/system/${SERVICE_FILE_NAME}`;
 export function generateSystemdUnit(details: ServiceExecDetails): string {
   const { execCmd, workDir, user, nodePath } = details;
   const safeUser = /^[a-zA-Z0-9._-]+$/.test(user) ? user : 'root';
+  const userHome = safeUser === 'root' ? '/root' : `/home/${safeUser}`;
+  // Include user-local ~/.bun/bin in systemd PATH so the `bun` command resolves without full-path invocation
+  const servicePath = `${userHome}/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
   const isBunRuntime = path.basename(nodePath).toLowerCase().includes('bun');
   const runtimeTuningBlock = isBunRuntime
     ? '# JavaScriptCore (Bun) runtime engine enabled (NODE_OPTIONS V8 tuning skipped)'
@@ -47,6 +50,7 @@ Restart=always
 RestartSec=5
 LimitNOFILE=65535
 LimitNPROC=65535
+Environment="PATH=${servicePath}"
 
 ${runtimeTuningBlock}
 

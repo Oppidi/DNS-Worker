@@ -188,6 +188,7 @@ function testRuntimeSpecificHelpers(): void {
     user: 'dnsworker'
   });
   assert(nodeSystemd.includes('NODE_OPTIONS='), 'Node systemd unit must preserve NODE_OPTIONS tuning');
+  assert(nodeSystemd.includes('Environment="PATH=/home/dnsworker/.bun/bin:'), 'Systemd unit must include user ~/.bun/bin in PATH');
 
   console.log(`   ✓ Helpers verified under active runtime: ${desc}.`);
 }
