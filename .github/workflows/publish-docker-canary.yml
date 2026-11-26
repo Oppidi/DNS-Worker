@@ -25,6 +25,7 @@ jobs:
   publish_docker_canary:
     name: Build and Publish Canary to Docker Hub
     runs-on: ubuntu-latest
+    environment: release
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

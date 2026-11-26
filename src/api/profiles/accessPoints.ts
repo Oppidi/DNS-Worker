@@ -2,7 +2,7 @@ import { Env, User, ExecutionContext } from "../../types";
 import { AccessPointModel } from "../../models/accessPoint";
 import { AP_NAME_REGEX } from "../../utils/validator";
 import { syncProfileKeysToDo, syncSingleKeyFromDbToDo, upsertAccessKeysInDo } from "../../lib/accessKeyRegistry";
-import { profileKeyMemoryMap } from "../../pipeline/cache";
+import { invalidateProfileKeyCache } from "../../pipeline/cache";
 import { cacheUtils } from "../../utils/cache";
 
 /**
@@ -30,7 +30,7 @@ export async function handleProfileAccessPointsRequest(
       const oldAp = existingAps.find(ap => ap.id === apId);
       const newToken = await apModel.rotateAccessPointToken(apId, profileId);
       if (oldAp?.token) {
-        profileKeyMemoryMap.delete(oldAp.token);
+        invalidateProfileKeyCache(oldAp.token);
         const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
         if (cache) {
           ctx.waitUntil(cacheUtils.delete(cache, `doh_key_v1:${oldAp.token}`));
@@ -84,7 +84,11 @@ export async function handleProfileAccessPointsRequest(
     await apModel.updateAccessPointName(apId, profileId, trimmedName);
     const updatedAp = currentAps.find(ap => ap.id === apId);
     if (updatedAp?.token) {
-      profileKeyMemoryMap.delete(updatedAp.token);
+      invalidateProfileKeyCache(updatedAp.token);
+      const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
+      if (cache) {
+        ctx.waitUntil(cacheUtils.delete(cache, `doh_key_v1:${updatedAp.token}`));
+      }
       ctx.waitUntil(syncSingleKeyFromDbToDo(env.DB, env, updatedAp.token));
     }
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
@@ -96,7 +100,7 @@ export async function handleProfileAccessPointsRequest(
     const targetAp = currentAps.find(ap => ap.id === apId);
     await apModel.deleteAccessPoint(apId, profileId);
     if (targetAp?.token) {
-      profileKeyMemoryMap.delete(targetAp.token);
+      invalidateProfileKeyCache(targetAp.token);
       const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
       if (cache) {
         ctx.waitUntil(cacheUtils.delete(cache, `doh_key_v1:${targetAp.token}`));
