@@ -307,3 +307,15 @@ html:not(.dark) .bp6-section > .bp6-section-header {
 .bp6-dark .bp6-input:focus {
   box-shadow: inset 0 0 0 1px #3b82f6, 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
+
+/* Hide native browser spin buttons when paired with custom +/- stepper buttons */
+.no-number-spinner input[type="number"]::-webkit-outer-spin-button,
+.no-number-spinner input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-number-spinner input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
