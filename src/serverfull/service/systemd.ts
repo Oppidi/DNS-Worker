@@ -39,7 +39,7 @@ export function generateSystemdUnit(details: ServiceExecDetails): string {
     : '# V8 Engine GC semi-space tuning (v8.ts applies non-NODE_OPTIONS JIT flags in-process)\nEnvironment="NODE_OPTIONS=--max-semi-space-size=64"';
 
   return `[Unit]
-Description=DNS Worker Serverfull Service (UDP DNS, DoT & Web Dashboard)
+Description=DNS Worker Serverfull Service (UDP/TCP DNS, DoT & Web Dashboard)
 After=network.target
 
 [Service]

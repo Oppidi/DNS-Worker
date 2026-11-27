@@ -41,6 +41,7 @@ export interface ServerfullCliArgs {
   'db-service'?: string;
   'default-profile'?: string;
   'disable-udp'?: boolean;
+  'disable-tcp'?: boolean;
   'disable-dot'?: boolean;
   'ech-enabled'?: boolean;
   'ech-config'?: string;
@@ -71,6 +72,7 @@ export interface ServerfullConfig {
   tursoAuthToken: string;
   defaultProfileKey: string;
   disableUdp: boolean;
+  disableTcp: boolean;
   disableDot: boolean;
   disableHttps: boolean;
   echEnabled: boolean;
@@ -153,6 +155,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
   const dbPath = cliArgs?.db || process.env.SERVERFULL_DB_PATH || process.env.DB_PATH || defaultDbPath;
   const defaultProfileKey = cliArgs?.['default-profile'] || process.env.SERVERFULL_DEFAULT_PROFILE_KEY || process.env.DEFAULT_PROFILE_KEY || '';
   const disableUdp = Boolean(cliArgs?.['disable-udp'] || process.env.SERVERFULL_DISABLE_UDP === 'true');
+  const disableTcp = Boolean(cliArgs?.['disable-tcp'] || process.env.SERVERFULL_DISABLE_TCP === 'true');
   const disableDot = Boolean(cliArgs?.['disable-dot'] || process.env.SERVERFULL_DISABLE_DOT === 'true');
   const disableHttps = Boolean(cliArgs?.['disable-https'] || process.env.SERVERFULL_DISABLE_HTTPS === 'true');
   const echEnabled = cliArgs?.['ech-enabled'] !== undefined
@@ -201,6 +204,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     tursoAuthToken,
     defaultProfileKey,
     disableUdp,
+    disableTcp,
     disableDot,
     disableHttps,
     echEnabled,

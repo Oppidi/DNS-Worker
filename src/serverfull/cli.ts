@@ -50,6 +50,7 @@ export async function parseCli(): Promise<ServerfullCliArgs> {
         'turso-token': { type: 'string' },
         'default-profile': { type: 'string' },
         'disable-udp': { type: 'boolean' },
+        'disable-tcp': { type: 'boolean' },
         'disable-dot': { type: 'boolean' },
         'ech-enabled': { type: 'boolean' },
         'ech-config': { type: 'string' },

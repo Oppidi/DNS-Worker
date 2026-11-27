@@ -13,6 +13,7 @@ import { ServerfullSnapshotManager } from './snapshot';
 import { createTursoClient, maskDatabaseUrl } from '../lib/turso';
 import { runTursoMigrations } from '../lib/turso/migrate';
 import { UdpDnsServer } from './udp';
+import { TcpDnsServer } from './tcp';
 import { DotDnsServer } from './dot';
 import { HttpServer, HttpsServer } from './http';
 import { inspectTlsCertificate, getCertbotDiagnosticOptions } from './cert';
@@ -184,6 +185,7 @@ async function bootstrap(): Promise<void> {
         },
         { label: 'Web Dashboard & DoH (HTTPS)', value: httpsDisplay },
         { label: 'Classic UDP DNS', value: config.disableUdp ? 'Disabled' : `udp://${config.host}:${config.udpPort}` },
+        { label: 'Classic TCP DNS', value: config.disableTcp ? 'Disabled' : `tcp://${config.host}:${config.udpPort}` },
         { label: 'DNS over TLS (DoT)', value: dotDisplay }
       ]
     }));
@@ -271,6 +273,10 @@ async function bootstrap(): Promise<void> {
         {
           label: 'Classic UDP DNS',
           value: !config.disableUdp ? `udp://${config.host}:${config.udpPort}` : 'Disabled'
+        },
+        {
+          label: 'Classic TCP DNS',
+          value: !config.disableTcp ? `tcp://${config.host}:${config.udpPort}` : 'Disabled'
         },
         {
           label: 'DoT (TLS DNS)',
@@ -434,6 +440,13 @@ async function bootstrap(): Promise<void> {
     env
   }) : null;
 
+  const tcpServer = !config.disableTcp ? new TcpDnsServer({
+    port: config.udpPort,
+    host: config.host,
+    defaultProfileKey: config.defaultProfileKey,
+    env
+  }) : null;
+
   const dotServer = canStartDot ? new DotDnsServer({
     port: config.dotPort,
     host: config.host,
@@ -464,6 +477,7 @@ async function bootstrap(): Promise<void> {
 
   // Start all server transports
   if (udpServer) await udpServer.start();
+  if (tcpServer) await tcpServer.start();
   if (dotServer) await dotServer.start();
   await httpServer.start();
   if (httpsServer) await httpsServer.start();
@@ -485,6 +499,10 @@ async function bootstrap(): Promise<void> {
         {
           label: 'Classic UDP DNS',
           value: udpServer ? `udp://${config.host}:${config.udpPort}` : 'Disabled (--disable-udp)'
+        },
+        {
+          label: 'Classic TCP DNS',
+          value: tcpServer ? `tcp://${config.host}:${config.udpPort}` : 'Disabled (--disable-tcp)'
         },
         {
           label: 'DoT (TLS DNS)',
@@ -536,6 +554,7 @@ async function bootstrap(): Promise<void> {
 
     await Promise.all([
       udpServer?.stop(),
+      tcpServer?.stop(),
       dotServer?.stop(),
       httpServer.stop(),
       httpsServer?.stop()

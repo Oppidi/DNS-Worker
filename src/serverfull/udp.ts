@@ -5,14 +5,10 @@
 
 import dgram from 'node:dgram';
 import { Buffer } from 'node:buffer';
-import { Env, Context, ExecutionContext } from '../types';
-import { parseDNSQueryFromRaw } from '../utils/dns';
-import { pipeline } from '../pipeline';
-import { resolveDefaultProfile, resolveProfileByKey } from '../api/doh';
-import { hasAlreadyTriedFailOpen, resolveFailOpenFallback } from '../pipeline/resolver/transport';
-import { recordActiveDnsConnection } from '../lib/activeDns';
+import { Env } from '../types';
 import { formatPortError } from './format';
 import { zeroizeBuffer } from '../utils/memory';
+import { createIpRateLimiter, executeClassicDnsQuery } from './dnsCommon';
 
 export interface UdpServerOptions {
   port: number;
@@ -24,33 +20,9 @@ export interface UdpServerOptions {
 export class UdpDnsServer {
   private socket: dgram.Socket | null = null;
   private isRunning: boolean = false;
-  private rateBuckets = new Map<string, { tokens: number; lastRefillMs: number }>();
+  private allowUdpPacket = createIpRateLimiter(120, 60, 10000);
 
   constructor(private options: UdpServerOptions) {}
-
-  private allowUdpPacket(remoteIp: string): boolean {
-    const now = Date.now();
-    const maxTokens = 120;
-    const refillPerMs = 60 / 1000;
-    let bucket = this.rateBuckets.get(remoteIp);
-    if (!bucket) {
-      if (this.rateBuckets.size >= 10000) {
-        const firstKey = this.rateBuckets.keys().next().value;
-        if (firstKey !== undefined) this.rateBuckets.delete(firstKey);
-      }
-      bucket = { tokens: maxTokens - 1, lastRefillMs: now };
-      this.rateBuckets.set(remoteIp, bucket);
-      return true;
-    }
-    const elapsed = Math.max(0, now - bucket.lastRefillMs);
-    bucket.tokens = Math.min(maxTokens, bucket.tokens + elapsed * refillPerMs);
-    bucket.lastRefillMs = now;
-    if (bucket.tokens < 1) {
-      return false;
-    }
-    bucket.tokens -= 1;
-    return true;
-  }
 
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -113,90 +85,25 @@ export class UdpDnsServer {
   }
 
   private async handleMessage(msg: Buffer, rinfo: dgram.RemoteInfo): Promise<void> {
-    try {
-      if (msg.length < 12 || msg.length > 4096) {
-        return; // Drop oversized or truncated DNS UDP packets
-      }
-      if (!this.allowUdpPacket(rinfo.address)) {
-        return; // Drop excess UDP packets per source IP to prevent amplification / CPU DoS
-      }
-      const rawBytes = new Uint8Array(msg.buffer, msg.byteOffset, msg.byteLength);
-      const query = parseDNSQueryFromRaw(rawBytes);
-      if (!query) {
-        return; // Drop invalid / malformed packets
-      }
-
-      const env = this.options.env;
-      const ctx: ExecutionContext = {
-        waitUntil(promise: Promise<any>) {
-          promise.catch((err) => console.error('[UDP Background Task Error]:', err));
-        },
-        passThroughOnException() {}
-      } as any;
-
-      // Determine profile:
-      // 1. Configured default profile key
-      // 2. Safe default profile fallback to FAIL_OPEN_UPSTREAM (log_retention_days: 0)
-      let profile = null;
-      if (this.options.defaultProfileKey) {
-        profile = await resolveProfileByKey(this.options.defaultProfileKey, env, ctx);
-      }
-      if (!profile) {
-        profile = await resolveDefaultProfile(env, ctx);
-      }
-      if (!profile) {
-        return;
-      }
-
-      const context: Context = {
-        profileId: profile.id,
-        accessPointId: profile.access_point_id,
-        accessPointName: profile.access_point_name,
-        startTime: Date.now(),
-        env,
-        ctx,
-        isEmergencyFallback: Boolean(profile.isEmergencyFallback)
-      };
-
-      const host = rinfo.address.includes(':') ? `[${rinfo.address}]` : rinfo.address;
-      const request = new Request(`http://${host}/${profile.profile_key || profile.id || 'default'}`, {
-        headers: {
-          'CF-Connecting-IP': rinfo.address,
-          'Accept': 'application/dns-message',
-          'Content-Type': 'application/dns-message'
-        }
-      });
-
-      const result = await pipeline.process(request, query, context);
-      if (!profile.isEmergencyFallback && profile.id !== 'default') {
-        const activeDnsTtl = Number(env.ACTIVE_DNS_CACHE_TTL) || 60;
-        ctx.waitUntil(recordActiveDnsConnection(null, rinfo.address, profile.id, activeDnsTtl, true));
-      }
-      if (!result || result.action === 'FAIL' || !result.answer || result.answer.length === 0) {
-        if (!hasAlreadyTriedFailOpen(result, env)) {
-          const fallbackRes = await resolveFailOpenFallback(env, rawBytes);
-          if (fallbackRes.answer && fallbackRes.answer.length > 0) {
-            this.sendUdpAnswer(fallbackRes.answer, rinfo);
-          }
-        }
-        return;
-      }
-
-      this.sendUdpAnswer(result.answer, rinfo);
-    } catch (err) {
-      console.error('[UDP DNS] Message handling exception:', err);
-      try {
-        const rawBytes = new Uint8Array(msg.buffer, msg.byteOffset, msg.byteLength);
-        const transportRes = await resolveFailOpenFallback(this.options.env, rawBytes);
-        if (transportRes.answer && transportRes.answer.length > 0) {
-          this.sendUdpAnswer(transportRes.answer, rinfo);
-        }
-      } catch (fallbackErr) {
-        console.error('[UDP DNS] Fail-open upstream fallback failed:', fallbackErr);
-      }
-    } finally {
+    if (msg.length < 12 || msg.length > 4096) {
       zeroizeBuffer(msg);
+      return; // Drop oversized or truncated DNS UDP packets
     }
+    if (!this.allowUdpPacket(rinfo.address)) {
+      zeroizeBuffer(msg);
+      return; // Drop excess UDP packets per source IP to prevent amplification / CPU DoS
+    }
+    const rawBytes = new Uint8Array(msg.buffer, msg.byteOffset, msg.byteLength);
+    await executeClassicDnsQuery({
+      rawBytes,
+      remoteIp: rinfo.address,
+      defaultProfileKey: this.options.defaultProfileKey,
+      env: this.options.env,
+      protocolTag: 'UDP',
+      onAnswer: (answer) => {
+        this.sendUdpAnswer(answer, rinfo);
+      }
+    });
   }
 
   /**
