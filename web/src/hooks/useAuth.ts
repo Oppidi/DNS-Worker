@@ -39,6 +39,8 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
 
       // Only bail out if we neither have an in-memory token nor a csrf token cookie.
       if (!token && !hasCsrfToken) {
+        e2ee.clearStorage();
+        void localDb.clearAll();
         setIsLoggedIn(false);
         return;
       }
@@ -58,6 +60,12 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
           }
         } catch {
           clearCsrfToken();
+          e2ee.clearStorage();
+          void localDb.clearAll();
+          if (typeof window !== "undefined" && "caches" in window) {
+            void caches.delete("dns-worker-logs-v1").catch(() => {});
+            void caches.delete("dns-worker-icons-v2").catch(() => {});
+          }
           setIsLoggedIn(false);
           return;
         }
@@ -112,6 +120,8 @@ export function useAuth(toasterRef: React.RefObject<OverlayToaster | null>) {
         }
         if (err instanceof ApiError && err.status === 401) {
           clearCsrfToken();
+          e2ee.clearStorage();
+          void localDb.clearAll();
         }
         setIsLoggedIn(false);
       }

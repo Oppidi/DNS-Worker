@@ -17,6 +17,29 @@ export interface DNSRecord {
 }
 
 /**
+ * Encodes a domain name into wire-format DNS labels (RFC 1035), terminating with a root zero byte.
+ *
+ * @param name - The domain name to encode.
+ * @returns An array of bytes representing the encoded DNS name.
+ */
+function encodeDomainLabels(name: string): number[] {
+  const normalizedName = name.replace(/\.+$/, "");
+  const labels = normalizedName ? normalizedName.split(".") : [];
+  const bytes: number[] = [];
+  for (const label of labels) {
+    if (label.length === 0 || label.length > 63) {
+      throw new Error(`Invalid DNS label length (${label.length}) in "${name}"`);
+    }
+    bytes.push(label.length);
+    for (let i = 0; i < label.length; i++) {
+      bytes.push(label.charCodeAt(i));
+    }
+  }
+  bytes.push(0); // Root
+  return bytes;
+}
+
+/**
  * Builds a raw DNS query packet from a domain name and record type string.
  *
  * @param name - The domain name to query.
@@ -39,19 +62,7 @@ export function buildDNSQuery(name: string, type: string): Uint8Array {
   header[10] = 0x00; // ARCOUNT
   header[11] = 0x00;
 
-  const normalizedName = name.replace(/\.+$/, "");
-  const labels = normalizedName ? normalizedName.split(".") : [];
-  const question: number[] = [];
-  for (const label of labels) {
-    if (label.length === 0 || label.length > 63) {
-      throw new Error(`Invalid DNS label length (${label.length}) in "${name}"`);
-    }
-    question.push(label.length);
-    for (let i = 0; i < label.length; i++) {
-      question.push(label.charCodeAt(i));
-    }
-  }
-  question.push(0); // Root
+  const question: number[] = encodeDomainLabels(name);
 
   const typeCode = DNS_TYPE_TO_CODE[type] || 1;
   question.push(typeCode >> 8);
@@ -144,13 +155,7 @@ export function buildResponseMulti(
       if (!name) {
         nameBytes = [0xc0, 0x0c]; // Pointer to the first question
       } else {
-        const labels = name.split(".");
-        for (const label of labels) {
-          nameBytes.push(label.length);
-          for (let i = 0; i < label.length; i++)
-            nameBytes.push(label.charCodeAt(i));
-        }
-        nameBytes.push(0);
+        nameBytes = encodeDomainLabels(name);
       }
 
       const data = encodeRData(type, value);
@@ -175,6 +180,10 @@ export function buildResponseMulti(
 
       answerRRs.push(rr);
       totalLength += rr.length;
+    }
+
+    if (totalLength > 65535) {
+      return createServFail(queryRaw);
     }
 
     const res = new Uint8Array(totalLength);
@@ -274,9 +283,12 @@ export function buildResponse(
     answerRR[11] = rdlength & 0xff;
     answerRR.set(data, 12);
 
-    const res = new Uint8Array(
-      12 + questionSection.length + answerRR.length
-    );
+    const totalLen = 12 + questionSection.length + answerRR.length;
+    if (totalLen > 65535) {
+      return createServFail(queryRaw);
+    }
+
+    const res = new Uint8Array(totalLen);
     res.set(header);
     res.set(questionSection, 12);
     res.set(answerRR, 12 + questionSection.length);

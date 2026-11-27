@@ -19,7 +19,8 @@ import {
   getPasskeyRegistrationOptions,
   verifyPasskeyRegistration,
   ApiError,
-  e2ee
+  e2ee,
+  localDb
 } from "../../services";
 import { setAccessToken } from "../../utils/token";
 import { startPasskeyRegistration } from "../../utils/webauthn";
@@ -281,6 +282,8 @@ export const useSignupWizard = ({
         ...(requiresInviteCode ? { inviteCode: inviteCode.trim().toUpperCase() } : {})
       });
 
+      e2ee.clearStorage();
+      void localDb.clearAll();
       if (data.accessToken) {
         setAccessToken(data.accessToken);
       }
@@ -329,6 +332,8 @@ export const useSignupWizard = ({
         ...(requiresInviteCode ? { inviteCode: inviteCode.trim().toUpperCase() } : {})
       });
 
+      e2ee.clearStorage();
+      void localDb.clearAll();
       if (data.accessToken) {
         setAccessToken(data.accessToken);
       }

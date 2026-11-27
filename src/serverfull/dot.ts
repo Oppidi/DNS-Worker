@@ -313,6 +313,19 @@ export class DotDnsServer {
    */
   private sendDotAnswer(socket: tls.TLSSocket, answer: Uint8Array): void {
     if (!socket.destroyed && socket.writable) {
+      if (answer.length > 65535) {
+        // Clamp oversized local synthesis errors to a minimal 12-byte SERVFAIL rather than triggering fail-open fallback
+        const servfail = Buffer.alloc(14);
+        servfail.writeUInt16BE(12, 0);
+        if (answer.length >= 2) {
+          servfail[2] = answer[0];
+          servfail[3] = answer[1];
+        }
+        servfail[4] = 0x81;
+        servfail[5] = 0x02;
+        socket.write(servfail);
+        return;
+      }
       const responseBuf = Buffer.allocUnsafe(2 + answer.length);
       responseBuf.writeUInt16BE(answer.length, 0);
       responseBuf.set(answer, 2);

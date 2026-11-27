@@ -191,14 +191,19 @@ export function useAnalyticsData(
 
       // Step 2: Fetch Authoritative Analytics from Server
       let expectedServerTotal: number | undefined;
+      let serverAccessDenied = false;
       try {
         const queryParams = buildAnalyticsQueryParams(selectedRange, interval, apIdFilter);
 
         let serverAnalytics: AnalyticsData | null = null;
         try {
           serverAnalytics = await getProfileAnalytics(profileId, "", queryParams);
-        } catch {
+        } catch (primaryErr) {
           if (signal.aborted) return;
+          const primaryStatus = (primaryErr as { status?: number })?.status;
+          if (primaryStatus === 401 || primaryStatus === 403 || primaryStatus === 404) {
+            throw primaryErr;
+          }
           // Fallback to separate endpoints if unified endpoint fails
           const [summary, trend, topAllowed, topBlocked, clients, destinations] =
             await Promise.all([
@@ -235,13 +240,28 @@ export function useAnalyticsData(
         }
       } catch (e) {
         if (!signal.aborted) {
-          console.error("[useAnalyticsData] Failed to fetch server analytics:", e);
+          const status = (e as { status?: number })?.status;
+          const msg = e instanceof Error ? e.message : String(e ?? "");
+          if (
+            status === 401 ||
+            status === 403 ||
+            status === 404 ||
+            /\b(401|403|404|forbidden|not found|unauthorized)\b/i.test(msg)
+          ) {
+            // Fail closed: clear optimistic local preview when server denies profile access
+            serverAccessDenied = true;
+            setData(null);
+          } else {
+            console.error("[useAnalyticsData] Failed to fetch server analytics:", e);
+          }
         }
       } finally {
         if (!signal.aborted) {
           setLoading(false);
         }
       }
+
+      if (serverAccessDenied || signal.aborted) return;
 
       // Step 3: Download missing time intervals into local SQLite and refresh aggregations
       try {

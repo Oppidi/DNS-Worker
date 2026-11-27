@@ -63,7 +63,8 @@ export class Http2SessionPool {
     }
 
     const http2 = await this.getHttp2Module();
-    const session = http2.connect(origin);
+    const { safeNodeDnsLookup } = await import('./validator');
+    const session = http2.connect(origin, { lookup: safeNodeDnsLookup } as any);
 
     session.on('error', (err: Error) => {
       // Evict session from pool on error

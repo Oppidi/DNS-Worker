@@ -1,6 +1,7 @@
 import { Context, DNSQuery, ProfileSettings, ResolutionResult } from "../../types";
 import { fetchGeoIP, resolveClientGeoCountry } from "../../utils/geoip";
 import {
+  buildDnsQueryVariantKey,
   computeDnsCacheKey,
   MAX_DNS_CACHE_TTL_SEC,
   setCachedDnsEntry
@@ -119,7 +120,8 @@ export function recordSuccessAndCache(
           const cacheExpiresAt = Math.min(Date.now() + maxCacheTtlSec * 1000, pauseExpiresMs);
 
           if (answer.length >= 12 && cacheExpiresAt > Date.now() && (rcode === 0 || rcode === 3)) {
-            const cacheKey = await computeDnsCacheKey(context.profileId, query.name, query.type);
+            const cacheVariant = buildDnsQueryVariantKey(request, query.raw);
+            const cacheKey = await computeDnsCacheKey(context.profileId, query.name, query.type, cacheVariant);
             setCachedDnsEntry(cacheKey, {
               profileId: context.profileId,
               answer,

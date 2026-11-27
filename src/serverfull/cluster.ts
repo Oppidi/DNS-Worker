@@ -66,7 +66,13 @@ export function forkClusterWorkers(count: number, onRestartRequest?: () => void)
       onRestartRequest?.();
       return;
     }
-    if (msgType !== 'ACTIVE_DNS_SYNC' && msgType !== 'PROFILE_KEY_INVALIDATE') {
+    if (
+      msgType !== 'ACTIVE_DNS_SYNC' &&
+      msgType !== 'PROFILE_KEY_INVALIDATE' &&
+      msgType !== 'AUTH_CACHE_INVALIDATE' &&
+      msgType !== 'PROFILE_CACHE_INVALIDATE' &&
+      msgType !== 'SYSTEM_SETTINGS_INVALIDATE'
+    ) {
       return;
     }
 

@@ -41,7 +41,10 @@ export const DangerZoneCard: React.FC<DangerZoneCardProps> = ({ isAdmin, onLogsC
       await clearLogs();
       await localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {
-        await caches.delete("dns-worker-logs-v1").catch(() => {});
+        await Promise.all([
+          caches.delete("dns-worker-logs-v1").catch(() => {}),
+          caches.delete("dns-worker-icons-v2").catch(() => {}),
+        ]);
       }
       alert(t("account.clearLogsSuccess"));
       onLogsCleared?.();
@@ -66,7 +69,10 @@ export const DangerZoneCard: React.FC<DangerZoneCardProps> = ({ isAdmin, onLogsC
       e2ee.clearStorage();
       await localDb.clearAll();
       if (typeof window !== "undefined" && "caches" in window) {
-        await caches.delete("dns-worker-logs-v1").catch(() => {});
+        await Promise.all([
+          caches.delete("dns-worker-logs-v1").catch(() => {}),
+          caches.delete("dns-worker-icons-v2").catch(() => {}),
+        ]);
       }
       window.location.href = "/";
     } catch (e: unknown) {

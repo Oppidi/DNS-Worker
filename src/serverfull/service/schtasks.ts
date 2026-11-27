@@ -16,6 +16,7 @@ import {
   formatLogBox
 } from '../format';
 import { writeDefaultConfigFile } from '../defaults';
+import { hardenWindowsAcl } from '../paths';
 
 export const WINDOWS_TASK_NAME = 'DNS-Worker';
 export const WINDOWS_DATA_DIR = path.join(process.env.ProgramData || 'C:\\ProgramData', 'DNS-Worker');
@@ -61,12 +62,15 @@ export async function handleWindowsTask(action: ServiceAction | string): Promise
         if (!fs.existsSync(WINDOWS_DATA_DIR)) {
           fs.mkdirSync(WINDOWS_DATA_DIR, { recursive: true });
         }
+        hardenWindowsAcl(WINDOWS_DATA_DIR, true);
 
         const defaultEnvPath = path.join(WINDOWS_DATA_DIR, '.env');
         writeDefaultConfigFile(defaultEnvPath, false);
+        hardenWindowsAcl(defaultEnvPath, false);
 
         const batContent = generateWindowsBat(details);
         fs.writeFileSync(WINDOWS_BAT_FILE, batContent, 'utf-8');
+        hardenWindowsAcl(WINDOWS_BAT_FILE, false);
 
         // Create Task in Task Scheduler to run on boot with highest privileges under SYSTEM account
         const createCmd = `schtasks /create /tn "${WINDOWS_TASK_NAME}" /tr "\\"${WINDOWS_BAT_FILE}\\"" /sc onstart /ru "SYSTEM" /rl HIGHEST /f`;

@@ -462,3 +462,41 @@ export async function syncAllAccessKeysSnapshotToDo(env: Partial<Env>): Promise<
 
   return entryMap.size;
 }
+
+/**
+ * Collects all profile IDs and access keys owned by a user before account deletion,
+ * and evicts L1/L2 DoH key caches, pipeline caches, and AccessKeyRegistry DO entries.
+ */
+export async function revokeOwnerCachesAndKeys(
+  env: Env,
+  ownerId: string
+): Promise<() => Promise<void>> {
+  const keysToRevoke = await collectOwnerAccessKeys(env.DB, ownerId);
+  let profileIds: string[] = [];
+  try {
+    const res = await env.DB
+      .prepare("SELECT id FROM profiles WHERE owner_id = ?")
+      .bind(ownerId)
+      .all<{ id: string }>();
+    profileIds = (res.results || []).map((r) => r.id);
+  } catch {}
+
+  return async () => {
+    const { invalidateProfileKeyCache, pipelineCache } = await import("../pipeline/cache");
+    const { cacheUtils } = await import("../utils/cache");
+    const cache = typeof caches !== "undefined" ? (caches as any).default : null;
+
+    for (const k of keysToRevoke) {
+      invalidateProfileKeyCache(k);
+      if (cache) {
+        await cacheUtils.delete(cache, `doh_key_v1:${k}`).catch(() => {});
+      }
+    }
+    for (const pid of profileIds) {
+      await pipelineCache.clear(pid, true, env).catch(() => {});
+    }
+    if (keysToRevoke.length > 0) {
+      await deleteAccessKeysInDo(env, keysToRevoke);
+    }
+  };
+}

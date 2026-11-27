@@ -112,6 +112,11 @@ export async function queryInitialLocalLogs(
     }
   } catch (syncErr: unknown) {
     if ((syncErr as Error).name !== "AbortError") {
+      const msg = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      const status = (syncErr as { status?: number })?.status;
+      if (status === 403 || status === 404 || /\b(403|404|forbidden|not found|unauthorized)\b/i.test(msg)) {
+        return { success: false };
+      }
       console.warn("[localDbStrategy] Incremental sync error:", syncErr);
     }
   }

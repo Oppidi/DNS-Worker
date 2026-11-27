@@ -2,6 +2,7 @@ import { Context, DNSQuery, ProfileSettings, ResolutionResult } from "../types";
 import { DEFAULT_FAIL_OPEN_UPSTREAM } from "../constants/presets";
 import { buildResponse } from "../utils/dns";
 import {
+  buildDnsQueryVariantKey,
   computeDnsCacheKey,
   computeDnsCacheKeySync,
   getCachedDnsEntry,
@@ -130,9 +131,10 @@ export const pipeline = {
       return finalize({ answer, ttl: 60, action: "PASS", reason: "Internal Verification" });
     }
 
+    const cacheVariant = buildDnsQueryVariantKey(request, query.raw);
     const dnsCacheKey =
-      computeDnsCacheKeySync(context.profileId, query.name, query.type) ??
-      (await computeDnsCacheKey(context.profileId, query.name, query.type));
+      computeDnsCacheKeySync(context.profileId, query.name, query.type, cacheVariant) ??
+      (await computeDnsCacheKey(context.profileId, query.name, query.type, cacheVariant));
     const cached = getCachedDnsEntry(dnsCacheKey);
     if (cached) {
       // 这里的 cached.answer 已经是完整的 DNS 报文

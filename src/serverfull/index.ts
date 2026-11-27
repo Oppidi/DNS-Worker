@@ -25,7 +25,21 @@ import { checkNodeVersion, parseCli, getActiveRuntimeDescription } from './cli';
 import { tuneV8Engine } from './v8';
 import { getClusterInfo, forkClusterWorkers, shutdownClusterWorkers } from './cluster';
 import { registerActiveDnsSyncPublisher, applySyncedActiveDnsConnection } from '../lib/activeDns';
-import { registerProfileKeyInvalidatePublisher, invalidateProfileKeyCache } from '../pipeline/cache';
+import {
+  registerProfileKeyInvalidatePublisher,
+  invalidateProfileKeyCache,
+  registerProfileCacheInvalidatePublisher,
+  clearLocalProfileCache
+} from '../pipeline/cache';
+import {
+  registerAuthCacheInvalidatePublisher,
+  invalidateAuthUserCache,
+  invalidateAuthUserCacheByUserId
+} from '../lib/middleware';
+import {
+  registerSystemSettingsInvalidatePublisher,
+  invalidateSystemSettingsCache
+} from '../models/systemSettings';
 import { initCloudflareIpRanges } from '../utils/ech/sync';
 import { ServerfullLifecycleManager } from './lifecycle';
 
@@ -334,6 +348,24 @@ async function bootstrap(): Promise<void> {
       }
     });
 
+    registerAuthCacheInvalidatePublisher((payload) => {
+      try {
+        process.send?.({ type: 'AUTH_CACHE_INVALIDATE', ...payload });
+      } catch {}
+    });
+
+    registerProfileCacheInvalidatePublisher((profileId, clearBloom) => {
+      try {
+        process.send?.({ type: 'PROFILE_CACHE_INVALIDATE', profileId, clearBloom });
+      } catch {}
+    });
+
+    registerSystemSettingsInvalidatePublisher((keys) => {
+      try {
+        process.send?.({ type: 'SYSTEM_SETTINGS_INVALIDATE', keys });
+      } catch {}
+    });
+
     process.on('message', (message: unknown) => {
       if (!message || typeof message !== 'object') {
         return;
@@ -352,6 +384,24 @@ async function bootstrap(): Promise<void> {
         const payload = message as { profileKey?: unknown };
         if (typeof payload.profileKey === 'string') {
           invalidateProfileKeyCache(payload.profileKey, false);
+        }
+      } else if (msgType === 'AUTH_CACHE_INVALIDATE') {
+        const payload = message as { sessionId?: unknown; userId?: unknown };
+        if (typeof payload.sessionId === 'string') {
+          invalidateAuthUserCache(payload.sessionId, false);
+        }
+        if (typeof payload.userId === 'string') {
+          invalidateAuthUserCacheByUserId(payload.userId, false);
+        }
+      } else if (msgType === 'PROFILE_CACHE_INVALIDATE') {
+        const payload = message as { profileId?: unknown; clearBloom?: unknown };
+        if (typeof payload.profileId === 'string') {
+          void clearLocalProfileCache(payload.profileId, Boolean(payload.clearBloom), true);
+        }
+      } else if (msgType === 'SYSTEM_SETTINGS_INVALIDATE') {
+        const payload = message as { keys?: unknown };
+        if (Array.isArray(payload.keys)) {
+          invalidateSystemSettingsCache(payload.keys.filter((k): k is string => typeof k === 'string'));
         }
       }
     });

@@ -28,10 +28,17 @@ const ORPHAN_TMP_AGE_MS = 10 * 60 * 1000;
 interface SnapshotLockState {
   id: string;
   pid: number;
+  workerPid?: number;
   startedAt: number;
   stage: 'vacuumming' | 'compressing' | 'cancelling';
   progress: number;
   cancelRequested: boolean;
+}
+
+function writeJsonAtomic(filePath: string, data: unknown): void {
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(data), 'utf-8');
+  fs.renameSync(tmpPath, filePath);
 }
 
 export interface ResolvedSnapshotConfig {
@@ -511,7 +518,8 @@ export class ServerfullSnapshotManager implements ServerfullSnapshotBridge {
 
     const initialLock: SnapshotLockState = {
       id,
-      pid: process.pid,
+      pid: 0,
+      workerPid: process.pid,
       startedAt,
       stage: 'vacuumming',
       progress: 0,
@@ -556,11 +564,7 @@ export class ServerfullSnapshotManager implements ServerfullSnapshotBridge {
         }
       );
       if (child.pid) {
-        fs.writeFileSync(
-          lockPath,
-          JSON.stringify({ ...initialLock, pid: child.pid }),
-          'utf-8'
-        );
+        writeJsonAtomic(lockPath, { ...initialLock, pid: child.pid });
       }
     } catch (err) {
       try { fs.rmSync(lockPath, { force: true }); } catch {}
@@ -641,15 +645,15 @@ export class ServerfullSnapshotManager implements ServerfullSnapshotBridge {
       cancelRequested: true,
     };
     try {
-      fs.writeFileSync(lockPath, JSON.stringify(updated), 'utf-8');
+      writeJsonAtomic(lockPath, updated);
     } catch {}
 
-    // If this process owns the subprocess (or subprocess PID is directly reachable), terminate now
+    // If this process owns the subprocess (or subprocess child PID is present and distinct from workerPid), terminate now
     if (this.activeChild) {
       try {
         this.activeChild.kill('SIGKILL');
       } catch {}
-    } else if (isProcessAlive(lock.pid)) {
+    } else if (lock.pid > 0 && lock.pid !== lock.workerPid && isProcessAlive(lock.pid)) {
       try {
         process.kill(lock.pid, 'SIGKILL');
       } catch {}

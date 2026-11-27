@@ -170,11 +170,17 @@ export async function syncGlobalList(
     if (env?.DB) {
       saveOps.push(new AdguardRulesModel(env.DB).upsertListRules(canonicalUrl, adguardPayload, now));
     }
-    await Promise.all(saveOps);
-    if (!truncated) {
-      console.log(
-        `[Sync Global] successfully updated global list ${canonicalUrl} with ${count} rules.`
-      );
+    try {
+      await Promise.all(saveOps);
+      if (!truncated) {
+        console.log(
+          `[Sync Global] successfully updated global list ${canonicalUrl} with ${count} rules.`
+        );
+      }
+    } catch (saveErr: any) {
+      const saveMsg = saveErr?.message || String(saveErr);
+      syncError = syncError ? `${syncError}; Save failed: ${saveMsg}` : `Save failed: ${saveMsg}`;
+      console.error(`[Sync Global] failed to persist compiled data for ${canonicalUrl}:`, saveErr);
     }
   } else {
     console.warn(

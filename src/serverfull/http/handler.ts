@@ -33,7 +33,7 @@ export function createHttpRequestHandler(
     return /^(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\])(?::\d{1,5})?$/.test(trimmed);
   };
 
-  const MAX_DOH_BODY_BYTES = 64 * 1024;
+  const MAX_DOH_BODY_BYTES = 65535;
   const MAX_API_BODY_BYTES = 2 * 1024 * 1024;
 
   return async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
@@ -47,12 +47,14 @@ export function createHttpRequestHandler(
       const fallbackHost = `${host.includes(':') ? `[${host}]` : host}:${port}`;
       const rawHostHeader = (req.headers[':authority'] as string) || req.headers.host || '';
       const safeHostHeader = isValidHostHeader(rawHostHeader) ? rawHostHeader.trim() : fallbackHost;
+      // Prevent protocol-relative (//host) or absolute-form req.url from overriding fullUrl.origin
+      const rawPath = req.url || '/';
+      const safePath = rawPath.startsWith('/') && !rawPath.startsWith('//') ? rawPath : `/${rawPath.replace(/^\/+/, '')}`;
 
       // When TLS certificates are configured and HTTPS is active, automatically redirect plain HTTP requests to HTTPS
       if (defaultProto === 'http' && httpsRedirect?.enabled && forwardedProto !== 'https') {
         const hostname = safeHostHeader.replace(/:\d+$/, '');
         const targetPort = (httpsRedirect.httpsPort === 443 || httpsRedirect.httpsPort === 0) ? '' : `:${httpsRedirect.httpsPort}`;
-        const safePath = (req.url || '/').startsWith('/') ? (req.url || '/') : '/';
         const targetUrl = `https://${hostname}${targetPort}${safePath}`;
 
         res.statusCode = (req.method === 'GET' || req.method === 'HEAD') ? 301 : 307;
@@ -63,7 +65,7 @@ export function createHttpRequestHandler(
         return;
       }
 
-      const fullUrl = new URL(req.url || '/', `${proto}://${safeHostHeader}`);
+      const fullUrl = new URL(safePath, `${proto}://${safeHostHeader}`);
 
       const headers = new Headers();
       for (const [k, v] of Object.entries(req.headers)) {

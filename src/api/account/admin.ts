@@ -107,14 +107,12 @@ export async function handleAdminRequest(
       const targetId = pathParts[3];
       if (targetId === user.id) return new Response("Cannot delete yourself", { status: 400 });
       const { invalidateAuthUserCacheByUserId } = await import("../../lib/middleware");
-      const { collectOwnerAccessKeys, deleteAccessKeysInDo } = await import("../../lib/accessKeyRegistry");
+      const { revokeOwnerCachesAndKeys } = await import("../../lib/accessKeyRegistry");
       invalidateAuthUserCacheByUserId(targetId);
-      const keysToRevoke = await collectOwnerAccessKeys(env.DB, targetId);
+      const flushRevocations = await revokeOwnerCachesAndKeys(env, targetId);
       await profileModel.deleteByOwner(targetId);
       await userModel.delete(targetId);
-      if (keysToRevoke.length > 0) {
-        ctx.waitUntil(deleteAccessKeysInDo(env, keysToRevoke));
-      }
+      ctx.waitUntil(flushRevocations());
       return new Response(null, { status: 204 });
     }
   }
