@@ -223,21 +223,8 @@ export async function handleDoHRequest(
   ctx: ExecutionContext,
   profileKey: string
 ): Promise<Response> {
-  // RFC 8484 §5.2: Minimum HTTP version restriction for DoH
-  // "The DNS-over-HTTPS protocol MUST be implemented using HTTP/2 or later. Clients and servers MUST NOT negotiate HTTP/1.1 for DoH."
-  const rawHttpProto = (request.cf?.httpProtocol as string | undefined) || request.headers.get('X-Http-Version');
-  const httpProto = rawHttpProto?.trim().toUpperCase();
-  if (httpProto && (httpProto === 'HTTP/1.0' || httpProto === 'HTTP/1.1' || httpProto === '1.0' || httpProto === '1.1')) {
-    return new Response(
-      'This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 or later in accordance with section 5.2 of the RFC.\n',
-      {
-        status: 505,
-        statusText: 'HTTP Version Not Supported',
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      }
-    );
-  }
-
+  // RFC 8484 §5.2 makes HTTP/2 the minimum RECOMMENDED version, not a requirement, so
+  // HTTP/1.1 DoH clients (e.g. MikroTik RouterOS) are served rather than rejected with 505.
   const cache = typeof caches !== "undefined" ? (caches as any).default : null;
   let queryRaw: Uint8Array | null = null;
 
