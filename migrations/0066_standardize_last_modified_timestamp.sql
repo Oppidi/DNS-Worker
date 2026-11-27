@@ -23,8 +23,17 @@ SELECT
     created_at
 FROM global_list_metadata;
 
+-- D1 enforces foreign keys and runs each migration in a transaction, where
+-- PRAGMA foreign_keys = OFF has no effect, so the DROP below would cascade
+-- (ON DELETE CASCADE) and delete these child rows. Keep a copy and restore it.
+CREATE TABLE _0066_global_list_blooms AS SELECT url, chunk_index, bloom_filter_chunk, updated_at FROM global_list_blooms;
+CREATE TABLE _0066_global_list_adguard_rules AS SELECT url, payload, updated_at FROM global_list_adguard_rules;
 DROP TABLE global_list_metadata;
 ALTER TABLE global_list_metadata_new RENAME TO global_list_metadata;
+INSERT OR IGNORE INTO global_list_blooms (url, chunk_index, bloom_filter_chunk, updated_at) SELECT url, chunk_index, bloom_filter_chunk, updated_at FROM _0066_global_list_blooms;
+DROP TABLE _0066_global_list_blooms;
+INSERT OR IGNORE INTO global_list_adguard_rules (url, payload, updated_at) SELECT url, payload, updated_at FROM _0066_global_list_adguard_rules;
+DROP TABLE _0066_global_list_adguard_rules;
 
 -- Sanitize legacy lists table column values if present
 UPDATE lists

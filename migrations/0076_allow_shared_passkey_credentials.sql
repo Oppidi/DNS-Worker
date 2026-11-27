@@ -25,8 +25,14 @@ SELECT
     id, user_id, name, credential_id, public_key, algorithm, sign_count, transports, aaguid, created_at, last_used_at
 FROM passkeys;
 
+-- D1 enforces foreign keys and runs each migration in a transaction, where
+-- PRAGMA foreign_keys = OFF has no effect, so the DROP below would cascade
+-- (ON DELETE CASCADE) and delete these child rows. Keep a copy and restore it.
+CREATE TABLE _0076_user_passkey_wrapped_keys AS SELECT passkey_id, profile_id, encrypted_sk, iv, created_at FROM user_passkey_wrapped_keys;
 DROP TABLE passkeys;
 ALTER TABLE passkeys_new RENAME TO passkeys;
+INSERT OR IGNORE INTO user_passkey_wrapped_keys (passkey_id, profile_id, encrypted_sk, iv, created_at) SELECT passkey_id, profile_id, encrypted_sk, iv, created_at FROM _0076_user_passkey_wrapped_keys;
+DROP TABLE _0076_user_passkey_wrapped_keys;
 
 CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
 CREATE INDEX IF NOT EXISTS idx_passkeys_credential ON passkeys(credential_id);

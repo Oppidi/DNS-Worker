@@ -35,8 +35,14 @@ INSERT OR IGNORE INTO user_lists_v2 (id, user_id, url, is_system, enabled, creat
 SELECT id, user_id, url, is_system, enabled, created_at
 FROM user_lists;
 
+-- D1 enforces foreign keys and runs each migration in a transaction, where
+-- PRAGMA foreign_keys = OFF has no effect, so the DROP below would cascade
+-- (ON DELETE CASCADE) and delete these child rows. Keep a copy and restore it.
+CREATE TABLE _0073_profile_user_list_overrides AS SELECT profile_id, user_list_id, enabled, updated_at FROM profile_user_list_overrides;
 DROP TABLE user_lists;
 ALTER TABLE user_lists_v2 RENAME TO user_lists;
+INSERT OR IGNORE INTO profile_user_list_overrides (profile_id, user_list_id, enabled, updated_at) SELECT profile_id, user_list_id, enabled, updated_at FROM _0073_profile_user_list_overrides;
+DROP TABLE _0073_profile_user_list_overrides;
 
 CREATE INDEX IF NOT EXISTS idx_user_lists_user_id ON user_lists(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_lists_url ON user_lists(url);
