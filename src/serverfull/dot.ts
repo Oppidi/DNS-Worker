@@ -16,6 +16,7 @@ import { ACCESS_KEY_REGEX } from '../utils/validator';
 import { zeroizeBuffer } from '../utils/memory';
 import { formatDiagnostic, formatPortError } from './format';
 import { inspectTlsCertificate, getCertbotCommand } from './cert';
+import { attachLengthPrefixedDnsReader, sendLengthPrefixedDnsAnswer } from './dnsCommon';
 
 export interface DotServerOptions {
   port: number;
@@ -144,7 +145,6 @@ export class DotDnsServer {
     socket.setKeepAlive(true, 60000);
 
     const remoteIp = socket.remoteAddress?.replace(/^::ffff:/, '') || '127.0.0.1';
-    let buffer = Buffer.alloc(0);
 
     // Extract profile key from TLS SNI (e.g. "k7d9w2.dns.example.com" -> "k7d9w2")
     const serverName = (socket.servername || '').toLowerCase().trim();
@@ -189,39 +189,8 @@ export class DotDnsServer {
       }
     });
 
-    const MAX_DOT_BUFFER = 65537; // 2-byte length prefix + 65535 max DNS packet (RFC 7858)
-    let processingChain: Promise<void> = Promise.resolve();
-    socket.on('data', (chunk: Buffer) => {
-      if (buffer.length + chunk.length > MAX_DOT_BUFFER) {
-        socket.destroy();
-        return;
-      }
-      buffer = Buffer.concat([buffer, chunk]);
-
-      const frames: Buffer[] = [];
-      while (buffer.length >= 2) {
-        const msgLen = buffer.readUInt16BE(0);
-        if (msgLen === 0) {
-          socket.destroy();
-          return;
-        }
-        if (buffer.length < 2 + msgLen) {
-          // Incomplete message frame, wait for more data
-          break;
-        }
-
-        frames.push(Buffer.from(buffer.subarray(2, 2 + msgLen)));
-        buffer = buffer.subarray(2 + msgLen);
-      }
-
-      if (frames.length > 0) {
-        processingChain = processingChain.then(async () => {
-          for (const frame of frames) {
-            if (socket.destroyed) break;
-            await this.processQuery(socket, frame, remoteIp, candidateKey);
-          }
-        });
-      }
+    attachLengthPrefixedDnsReader(socket, async (frame: Buffer) => {
+      await this.processQuery(socket, frame, remoteIp, candidateKey);
     });
   }
 
@@ -312,12 +281,7 @@ export class DotDnsServer {
    * Frames a DNS wire answer with its 2-byte RFC 7858 length prefix and writes to the TLS socket.
    */
   private sendDotAnswer(socket: tls.TLSSocket, answer: Uint8Array): void {
-    if (!socket.destroyed && socket.writable) {
-      const responseBuf = Buffer.allocUnsafe(2 + answer.length);
-      responseBuf.writeUInt16BE(answer.length, 0);
-      responseBuf.set(answer, 2);
-      socket.write(responseBuf);
-    }
+    sendLengthPrefixedDnsAnswer(socket, answer);
   }
 
   stop(): Promise<void> {

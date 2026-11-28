@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Intent, OverlayToaster } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
 import type { UserInfo } from "../../../types";
-import { e2ee } from "../../../../../services";
+import { e2ee, localDb } from "../../../../../services";
 import type { ProfileE2eeStatus } from "../../../../../services";
 import { useDeploymentMode } from "../../../../../hooks/useDeploymentMode";
 import { isDemoE2eeDeviceUnlocked, setDemoE2eeDeviceLocked } from "../../../../../utils/demoE2ee";
@@ -126,6 +126,11 @@ export function useE2eeStatus({
 
   const handleLockDevice = () => {
     e2ee.clearStorage();
+    void localDb.clearAll();
+    if (typeof window !== "undefined" && "caches" in window) {
+      void caches.delete("dns-worker-logs-v1").catch(() => {});
+      void caches.delete("dns-worker-icons-v2").catch(() => {});
+    }
     if (isDemoMode) {
       setDemoE2eeDeviceLocked(true);
     }

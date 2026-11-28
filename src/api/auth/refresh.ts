@@ -8,6 +8,7 @@ import { importJwtSecret, signJWT } from "../../lib/jwt";
 import { ActivityLogModel } from "../../models/activityLog";
 import { cacheUtils } from "../../utils/cache";
 import { validateCsrf } from "../../lib/middleware";
+import { resolveAccessTokenExpirationMinutes } from "../../constants/presets";
 
 /**
  * Handle session token refresh requests
@@ -53,7 +54,7 @@ export async function handleRefreshRequest(request: Request, env: Env): Promise<
 
   const secret = await getOrCreateJwtSecret(env);
   const jwtKey = await importJwtSecret(secret);
-  const expMinutes = Number(env.ACCESS_TOKEN_EXPIRATION_MINUTES) || 10;
+  const expMinutes = resolveAccessTokenExpirationMinutes(env);
   const accessToken = await signJWT({ 
     userId: user.id, 
     role: user.role, 

@@ -7,7 +7,7 @@ import { buildDNSQuery, parseDNSAnswer } from "../../utils/dns";
 import { resolveClientGeoCountry } from "../../utils/geoip";
 import { pipeline } from "../../pipeline";
 import { PROFILE_NAME_REGEX } from "../../utils/validator";
-import { getDefaultUpstreamUrl } from "../../constants/presets";
+import { getDefaultUpstreamUrl, resolveLogRetentionLimits } from "../../constants/presets";
 import { invalidateProfileKeyCache } from "../../pipeline/cache";
 import { cacheUtils } from "../../utils/cache";
 import {
@@ -54,18 +54,7 @@ export async function handleProfilesCoreCollectionRequest(
     if (existing) return new Response("The profile name already exists", { status: 400 });
 
     const newId = generateId(6);
-    const globalMaxRetention = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-      ? Number(env.MAX_LOG_RETENTION_DAYS)
-      : 30;
-    const adminDefaultRetention = env.DEFAULT_LOG_RETENTION_DAYS !== undefined && env.DEFAULT_LOG_RETENTION_DAYS !== ''
-      ? Math.min(Number(env.DEFAULT_LOG_RETENTION_DAYS), globalMaxRetention)
-      : Math.min(7, globalMaxRetention);
-    const normalUserMaxRetention = env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== ''
-      ? Math.min(Number(env.NORMAL_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-      : Math.min(7, globalMaxRetention);
-    const normalUserDefaultRetention = env.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS !== undefined && env.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS !== ''
-      ? Math.min(Number(env.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS), normalUserMaxRetention)
-      : Math.min(1, normalUserMaxRetention);
+    const { adminDefaultRetention, normalUserDefaultRetention } = resolveLogRetentionLimits(env);
 
     const defaultRetentionDays = user?.role === 'admin' ? adminDefaultRetention : normalUserDefaultRetention;
     const defaultUpstream = getDefaultUpstreamUrl(env);
@@ -206,16 +195,8 @@ export async function handleProfilesCoreRequest(
     const newSettings = await request.json() as ProfileSettings;
     
     // Enforce log retention limit
-    const globalMaxRetention = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-      ? Number(env.MAX_LOG_RETENTION_DAYS)
-      : 30;
-    const adminMaxRetention = env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== ''
-      ? Math.min(Number(env.ADMIN_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-      : globalMaxRetention;
-    const normalUserMax = env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== ''
-      ? Math.min(Number(env.NORMAL_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-      : Math.min(7, globalMaxRetention);
-    const userMaxRetention = user?.role === 'admin' ? adminMaxRetention : normalUserMax;
+    const { adminMaxRetention, normalUserMaxRetention } = resolveLogRetentionLimits(env);
+    const userMaxRetention = user?.role === 'admin' ? adminMaxRetention : normalUserMaxRetention;
 
     if (newSettings.log_retention_days != null) {
       newSettings.log_retention_days = Math.min(Number(newSettings.log_retention_days), userMaxRetention);

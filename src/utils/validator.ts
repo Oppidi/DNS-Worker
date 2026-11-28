@@ -305,18 +305,67 @@ export function isSafeUrl(urlString: string): boolean {
   }
 }
 
-const SAFE_HOST_DNS_CACHE_TTL_MS = 60_000;
-const MAX_SAFE_HOST_CACHE_ENTRIES = 256;
-// Positive-only short-TTL cache of public upstream hostnames to avoid per-query OS getaddrinfo overhead.
-const safeHostDnsCache = new Map<string, number>();
+/**
+ * Connect-time DNS lookup callback for Node.js `net`/`tls`/`http2` sockets that verifies
+ * every resolved IP address against `isPublicInternetIP` right before TCP connect (eliminates TOCTOU DNS rebinding).
+ */
+export function safeNodeDnsLookup(
+  hostname: string,
+  options: any,
+  callback?: (err: NodeJS.ErrnoException | null, address: string | Array<{ address: string; family: number }>, family?: number) => void
+): void {
+  const cb = typeof options === 'function' ? options : callback!;
+  const opts = typeof options === 'function' ? {} : (options || {});
+  const normalizedHost = hostname.replace(/^\[|\]$/g, '').replace(/\.+$/, '').toLowerCase();
+
+  if (isIPv4(normalizedHost) || isIPv6(normalizedHost)) {
+    if (!isPublicInternetIP(normalizedHost)) {
+      cb(new Error(`Blocked non-public SSRF target IP: ${normalizedHost}`), '', 4);
+      return;
+    }
+    const family = isIPv6(normalizedHost) ? 6 : 4;
+    if (opts.all) {
+      cb(null, [{ address: normalizedHost, family }]);
+    } else {
+      cb(null, normalizedHost, family);
+    }
+    return;
+  }
+
+  import('node:dns').then((dns) => {
+    dns.lookup(
+      normalizedHost,
+      { ...opts, all: true },
+      (err: NodeJS.ErrnoException | null, addresses: Array<{ address: string; family: number }>) => {
+      if (err) {
+        cb(err, '', 4);
+        return;
+      }
+      if (!addresses || addresses.length === 0) {
+        cb(new Error(`DNS resolution returned no addresses for ${normalizedHost}`), '', 4);
+        return;
+      }
+      for (const addr of addresses) {
+        if (!isPublicInternetIP(addr.address)) {
+          cb(new Error(`Blocked SSRF rebinding target ${normalizedHost} -> ${addr.address}`), '', 4);
+          return;
+        }
+      }
+      if (opts.all) {
+        cb(null, addresses);
+      } else {
+        cb(null, addresses[0].address, addresses[0].family);
+      }
+    });
+  }).catch((err) => {
+    cb(err instanceof Error ? err : new Error(String(err)), '', 4);
+  });
+}
 
 /**
- * Asynchronously checks whether a URL is safe to fetch, including DNS pre-resolution
- * in Node.js / Bun environments to guard against DNS rebinding / TOCTOU SSRF (CWE-918 / SEC-02).
- *
- * In Cloudflare Workers, outbound loopback/private RFC 1918 traffic is already blocked by the edge runtime.
- * In Serverfull mode (Node.js/Bun), any domain name is pre-resolved and all resulting IP addresses
- * are checked against isPublicInternetIP (positive public results cached briefly to keep hot-path latency sub-ms).
+ * Asynchronously checks whether a URL is safe to fetch, including live DNS pre-resolution
+ * in Node.js / Bun environments to guard against DNS rebinding SSRF (CWE-918).
+ * Does not cache positive DNS results across lookups so 0s-TTL DNS records are always re-verified.
  *
  * @param urlString - The URL string to validate.
  * @returns Promise resolving to true if safe, false if forbidden or resolves to private IP.
@@ -326,7 +375,7 @@ export async function isSafeUrlWithDnsCheck(urlString: string): Promise<boolean>
     return false;
   }
 
-  // In Node.js / Serverfull runtime, resolve domain and verify resulting IPs
+  // In Node.js / Serverfull runtime, always resolve domain live and verify all resulting IPs
   if (typeof process !== 'undefined' && !!process.versions?.node) {
     try {
       let targetUrl = urlString;
@@ -360,15 +409,6 @@ export async function isSafeUrlWithDnsCheck(urlString: string): Promise<boolean>
         return true;
       }
 
-      const now = Date.now();
-      const cachedUntil = safeHostDnsCache.get(rawHostname);
-      if (cachedUntil !== undefined) {
-        if (now < cachedUntil) {
-          return true;
-        }
-        safeHostDnsCache.delete(rawHostname);
-      }
-
       const dnsPromises = await import('node:dns/promises');
       const addresses = await dnsPromises.lookup(rawHostname, { all: true });
       if (!addresses || addresses.length === 0) {
@@ -380,14 +420,6 @@ export async function isSafeUrlWithDnsCheck(urlString: string): Promise<boolean>
           return false;
         }
       }
-
-      if (safeHostDnsCache.size >= MAX_SAFE_HOST_CACHE_ENTRIES) {
-        const oldestHost = safeHostDnsCache.keys().next().value;
-        if (oldestHost !== undefined) {
-          safeHostDnsCache.delete(oldestHost);
-        }
-      }
-      safeHostDnsCache.set(rawHostname, now + SAFE_HOST_DNS_CACHE_TTL_MS);
     } catch {
       // Resolution error or invalid hostname
       return false;

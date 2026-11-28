@@ -54,6 +54,90 @@ export const DEFAULT_SUBSTITUTE_DOMAIN = 'www.wto.org';
 export const DEFAULT_FAIL_OPEN_UPSTREAM = 'tls://no-ads-malware-typo.freedns.controld.com';
 
 /**
+ * Canonical default Access Token expiration time (in minutes).
+ */
+export const DEFAULT_ACCESS_TOKEN_EXPIRATION_MINUTES = 10;
+
+/**
+ * Resolves Access Token expiration duration (minutes) from environment configuration.
+ */
+export function resolveAccessTokenExpirationMinutes(env?: { ACCESS_TOKEN_EXPIRATION_MINUTES?: string | number }): number {
+  const parsed = Number(env?.ACCESS_TOKEN_EXPIRATION_MINUTES);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_ACCESS_TOKEN_EXPIRATION_MINUTES;
+}
+
+/**
+ * Canonical default log retention & cleanup budget limits (aligned with Cloudflare D1 storage ceilings).
+ */
+export const DEFAULT_LOG_RETENTION_LIMITS = {
+  globalMaxDays: 30,
+  adminDefaultDays: 7,
+  normalMaxDays: 7,
+  normalDefaultDays: 1,
+  cleanupBatchLimit: 1000,
+  cleanupDailyBudget: 20000
+} as const;
+
+export interface ResolvedLogRetentionLimits {
+  globalMaxRetention: number;
+  adminMaxRetention: number;
+  adminDefaultRetention: number;
+  normalUserMaxRetention: number;
+  normalUserDefaultRetention: number;
+  cleanupBatchLimit: number;
+  cleanupDailyBudget: number;
+}
+
+function parseOptionalInt(value: string | number | undefined, fallback: number): number {
+  if (value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Resolves bounded global, admin, normal-user log retention and cleanup limits from environment bindings.
+ */
+export function resolveLogRetentionLimits(env?: {
+  MAX_LOG_RETENTION_DAYS?: string | number;
+  DEFAULT_LOG_RETENTION_DAYS?: string | number;
+  ADMIN_USER_MAX_LOG_RETENTION_DAYS?: string | number;
+  NORMAL_USER_MAX_LOG_RETENTION_DAYS?: string | number;
+  NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS?: string | number;
+  LOG_CLEANUP_BATCH_LIMIT?: string | number;
+  LOG_CLEANUP_DAILY_BUDGET?: string | number;
+}): ResolvedLogRetentionLimits {
+  const globalMaxRetention = parseOptionalInt(env?.MAX_LOG_RETENTION_DAYS, DEFAULT_LOG_RETENTION_LIMITS.globalMaxDays);
+  const adminMaxRetention = Math.min(
+    parseOptionalInt(env?.ADMIN_USER_MAX_LOG_RETENTION_DAYS, globalMaxRetention),
+    globalMaxRetention
+  );
+  const adminDefaultRetention = Math.min(
+    parseOptionalInt(env?.DEFAULT_LOG_RETENTION_DAYS, DEFAULT_LOG_RETENTION_LIMITS.adminDefaultDays),
+    globalMaxRetention
+  );
+  const normalUserMaxRetention = Math.min(
+    parseOptionalInt(env?.NORMAL_USER_MAX_LOG_RETENTION_DAYS, DEFAULT_LOG_RETENTION_LIMITS.normalMaxDays),
+    globalMaxRetention
+  );
+  const normalUserDefaultRetention = Math.min(
+    parseOptionalInt(env?.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS, DEFAULT_LOG_RETENTION_LIMITS.normalDefaultDays),
+    normalUserMaxRetention
+  );
+  const cleanupBatchLimit = parseOptionalInt(env?.LOG_CLEANUP_BATCH_LIMIT, DEFAULT_LOG_RETENTION_LIMITS.cleanupBatchLimit);
+  const cleanupDailyBudget = parseOptionalInt(env?.LOG_CLEANUP_DAILY_BUDGET, DEFAULT_LOG_RETENTION_LIMITS.cleanupDailyBudget);
+
+  return {
+    globalMaxRetention,
+    adminMaxRetention,
+    adminDefaultRetention,
+    normalUserMaxRetention,
+    normalUserDefaultRetention,
+    cleanupBatchLimit,
+    cleanupDailyBudget
+  };
+}
+
+/**
  * Resolves configured preset upstreams from environment variables or falls back to built-in presets.
  *
  * @param env - Worker or Serverfull environment bindings.

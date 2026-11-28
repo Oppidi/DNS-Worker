@@ -11,8 +11,11 @@ import {
   DEFAULT_PRESET_UPSTREAMS,
   DEFAULT_PRESET_EXTERNAL_FILTERS,
   DEFAULT_SUBSTITUTE_DOMAIN,
-  DEFAULT_FAIL_OPEN_UPSTREAM
+  DEFAULT_FAIL_OPEN_UPSTREAM,
+  DEFAULT_ACCESS_TOKEN_EXPIRATION_MINUTES,
+  DEFAULT_LOG_RETENTION_LIMITS
 } from '../constants/presets';
+import { DEFAULT_MIN_HTTP_VERSION_STRING } from '../lib/httpVersion';
 import { getDatabaseService, DatabaseServiceType } from '../lib/turso';
 import {
   getPackageRoot,
@@ -41,10 +44,12 @@ export interface ServerfullCliArgs {
   'db-service'?: string;
   'default-profile'?: string;
   'disable-udp'?: boolean;
+  'disable-tcp'?: boolean;
   'disable-dot'?: boolean;
   'ech-enabled'?: boolean;
   'ech-config'?: string;
   'ech-fronting-domain'?: string;
+  'min-http-version'?: string;
   'turso-url'?: string;
   'turso-token'?: string;
   workers?: string;
@@ -71,6 +76,7 @@ export interface ServerfullConfig {
   tursoAuthToken: string;
   defaultProfileKey: string;
   disableUdp: boolean;
+  disableTcp: boolean;
   disableDot: boolean;
   disableHttps: boolean;
   echEnabled: boolean;
@@ -78,6 +84,7 @@ export interface ServerfullConfig {
   echFrontingDomain: string;
   workers: number;
   dnsCacheSize: number;
+  minHttpVersion: string;
   packageRoot: string;
 }
 
@@ -153,6 +160,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
   const dbPath = cliArgs?.db || process.env.SERVERFULL_DB_PATH || process.env.DB_PATH || defaultDbPath;
   const defaultProfileKey = cliArgs?.['default-profile'] || process.env.SERVERFULL_DEFAULT_PROFILE_KEY || process.env.DEFAULT_PROFILE_KEY || '';
   const disableUdp = Boolean(cliArgs?.['disable-udp'] || process.env.SERVERFULL_DISABLE_UDP === 'true');
+  const disableTcp = Boolean(cliArgs?.['disable-tcp'] || process.env.SERVERFULL_DISABLE_TCP === 'true');
   const disableDot = Boolean(cliArgs?.['disable-dot'] || process.env.SERVERFULL_DISABLE_DOT === 'true');
   const disableHttps = Boolean(cliArgs?.['disable-https'] || process.env.SERVERFULL_DISABLE_HTTPS === 'true');
   const echEnabled = cliArgs?.['ech-enabled'] !== undefined
@@ -185,6 +193,12 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
   const rawCacheSize = cliArgs?.['dns-cache-size'] || process.env.DNS_CACHE_SIZE || '20000';
   const parsedCacheSize = parseInt(rawCacheSize, 10);
   const dnsCacheSize = isNaN(parsedCacheSize) || parsedCacheSize <= 0 ? 20000 : parsedCacheSize;
+  const minHttpVersion = (
+    cliArgs?.['min-http-version'] ||
+    process.env.MIN_HTTP_VERSION ||
+    process.env.SERVERFULL_MIN_HTTP_VERSION ||
+    DEFAULT_MIN_HTTP_VERSION_STRING
+  ).trim();
 
   const config: ServerfullConfig = {
     tlsKeyPath: effectiveKeyPath,
@@ -201,6 +215,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     tursoAuthToken,
     defaultProfileKey,
     disableUdp,
+    disableTcp,
     disableDot,
     disableHttps,
     echEnabled,
@@ -208,6 +223,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     echFrontingDomain,
     workers,
     dnsCacheSize,
+    minHttpVersion,
     packageRoot
   };
 
@@ -219,6 +235,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     ASSETS: null as any, // Set by http.ts
     JWT_SECRET: getOrInitPersistentJwtSecret(),
     FAIL_OPEN_UPSTREAM: process.env.FAIL_OPEN_UPSTREAM || DEFAULT_FAIL_OPEN_UPSTREAM,
+    MIN_HTTP_VERSION: minHttpVersion,
     SUBSTITUTE_DOMAIN: process.env.SUBSTITUTE_DOMAIN || DEFAULT_SUBSTITUTE_DOMAIN,
     PRESET_UPSTREAMS: process.env.PRESET_UPSTREAMS || JSON.stringify(DEFAULT_PRESET_UPSTREAMS),
     PRESET_EXTERNAL_FILTERS: process.env.PRESET_EXTERNAL_FILTERS || JSON.stringify(DEFAULT_PRESET_EXTERNAL_FILTERS),
@@ -226,7 +243,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     MAX_PROFILES_PER_USER: process.env.MAX_PROFILES_PER_USER || 10,
     DEFAULT_SESSION_EXPIRATION_MINUTES: process.env.DEFAULT_SESSION_EXPIRATION_MINUTES || 1440,
     OPTIONAL_SESSION_EXPIRATION_DAYS: process.env.OPTIONAL_SESSION_EXPIRATION_DAYS || 7,
-    ACCESS_TOKEN_EXPIRATION_MINUTES: Number(process.env.ACCESS_TOKEN_EXPIRATION_MINUTES) || 10,
+    ACCESS_TOKEN_EXPIRATION_MINUTES: Number(process.env.ACCESS_TOKEN_EXPIRATION_MINUTES) || DEFAULT_ACCESS_TOKEN_EXPIRATION_MINUTES,
     SESSION_GEO_DISTANCE_KM: process.env.SESSION_GEO_DISTANCE_KM || 50,
     PREAUTH_TTL_SECONDS: process.env.PREAUTH_TTL_SECONDS || 300,
     BLOOM_MEM_TTL: process.env.BLOOM_MEM_TTL || 600000,
@@ -240,10 +257,10 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     MAX_SYNC_DOMAINS: process.env.MAX_SYNC_DOMAINS || 1000000,
     MAX_LIST_DOMAINS: process.env.MAX_LIST_DOMAINS || 500000,
     MAX_LIST_BYTES: process.env.MAX_LIST_BYTES || 20971520,
-    MAX_LOG_RETENTION_DAYS: process.env.MAX_LOG_RETENTION_DAYS || 30,
-    DEFAULT_LOG_RETENTION_DAYS: process.env.DEFAULT_LOG_RETENTION_DAYS || 7,
-    NORMAL_USER_MAX_LOG_RETENTION_DAYS: process.env.NORMAL_USER_MAX_LOG_RETENTION_DAYS || 7,
-    NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS: process.env.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS || 1,
+    MAX_LOG_RETENTION_DAYS: process.env.MAX_LOG_RETENTION_DAYS || DEFAULT_LOG_RETENTION_LIMITS.globalMaxDays,
+    DEFAULT_LOG_RETENTION_DAYS: process.env.DEFAULT_LOG_RETENTION_DAYS || DEFAULT_LOG_RETENTION_LIMITS.adminDefaultDays,
+    NORMAL_USER_MAX_LOG_RETENTION_DAYS: process.env.NORMAL_USER_MAX_LOG_RETENTION_DAYS || DEFAULT_LOG_RETENTION_LIMITS.normalMaxDays,
+    NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS: process.env.NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS || DEFAULT_LOG_RETENTION_LIMITS.normalDefaultDays,
     MAX_LOGS_PER_PROFILE: process.env.MAX_LOGS_PER_PROFILE || 500000,
     SERVERFULL_DEFAULT_PROFILE_KEY: defaultProfileKey,
     SERVERFULL_DB_PATH: dbPath,

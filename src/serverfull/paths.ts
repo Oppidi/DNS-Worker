@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { APP_VERSION } from '../constants/version';
 import { writeDefaultConfigFile } from './defaults';
 
@@ -150,8 +150,31 @@ export function getDefaultConfigFilePath(): string {
 }
 
 /**
+ * Restricts Windows NTFS permissions on sensitive Serverfull directories and files
+ * to NT AUTHORITY\SYSTEM and BUILTIN\Administrators only.
+ */
+export function hardenWindowsAcl(targetPath: string, isDirectory: boolean = false): void {
+  if (process.platform !== 'win32' || !fs.existsSync(targetPath)) return;
+  try {
+    const inheritFlags = isDirectory ? '(OI)(CI)' : '';
+    execFileSync(
+      'icacls',
+      [
+        targetPath,
+        '/inheritance:r',
+        '/grant:r',
+        `*S-1-5-18:${inheritFlags}F`,
+        `*S-1-5-32-544:${inheritFlags}F`,
+      ],
+      { stdio: 'ignore' }
+    );
+  } catch {}
+}
+
+/**
  * Ensures system persistent directories (Persistent Data Dir and Config Directory) exist if writable.
  * Optionally auto-seeds the default configuration file if not already present.
+ * On Windows, tightens NTFS DACLs to SYSTEM and Administrators only.
  *
  * @param autoSeedConfig - If true (default), automatically writes the default configuration template to the config file if missing.
  * @returns Persistent paths for data directory, configuration directory, and configuration file.
@@ -166,6 +189,7 @@ export function ensurePersistentDirs(autoSeedConfig: boolean = true): { dataDir:
       fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
     }
     fs.chmodSync(dataDir, 0o700);
+    hardenWindowsAcl(dataDir, true);
   } catch {}
 
   try {
@@ -173,6 +197,7 @@ export function ensurePersistentDirs(autoSeedConfig: boolean = true): { dataDir:
       fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
     }
     fs.chmodSync(configDir, 0o700);
+    hardenWindowsAcl(configDir, true);
   } catch {}
 
   if (autoSeedConfig) {
@@ -180,6 +205,7 @@ export function ensurePersistentDirs(autoSeedConfig: boolean = true): { dataDir:
       writeDefaultConfigFile(configFile, false);
       if (fs.existsSync(configFile)) {
         fs.chmodSync(configFile, 0o600);
+        hardenWindowsAcl(configFile, false);
       }
     } catch {}
   }

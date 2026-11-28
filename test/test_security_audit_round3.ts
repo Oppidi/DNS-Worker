@@ -308,7 +308,7 @@ async function buildMockWebAuthnRegistration(
 }
 
 async function testPasskeyRegistrationEnablesPasswordless(): Promise<void> {
-  console.log("6. Testing Passkey Registration Enables Passwordless Login...");
+  console.log("6. Testing Passkey Registration and Passwordless Login defaults...");
 
   const rawDb = new DatabaseSync(":memory:");
   runMigrations(rawDb, path.resolve(__dirname, "../migrations"));
@@ -340,104 +340,96 @@ async function testPasskeyRegistrationEnablesPasswordless(): Promise<void> {
     const userModel = new UserModel(db, env);
     const password = "TestPassword123!";
     const hashed = await hashPassword(password, 1);
-    await db
-      .prepare(
-        "INSERT INTO users (id, username, hashed_password, role, created_at, password_version, totp_enabled, totp_skip_password) VALUES (?, ?, ?, 'user', ?, 1, 0, 0)"
-      )
-      .bind("user_passkey_1", "passkey_user", hashed, Math.floor(Date.now() / 1000))
-      .run();
-
-    const user: User = { id: "user_passkey_1", username: "passkey_user", role: "user" };
     const ctx = { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext;
     const baseOrigin = "https://dns.example.com";
 
-    // Step 1: Register initial Passkey
-    const optRes1 = await handlePasskeysRequest(
-      new Request(`${baseOrigin}/api/account/passkeys/register/options`, { method: "POST" }),
-      env,
-      user,
-      ["api", "account", "passkeys", "register", "options"],
-      ctx
-    );
-    assert.strictEqual(optRes1.status, 200, "Options generation must succeed");
-    const opt1 = (await optRes1.json()) as { challenge: string };
+    const insertUser = async (id: string, username: string, hasPassword: 0 | 1): Promise<User> => {
+      await db
+        .prepare(
+          "INSERT INTO users (id, username, hashed_password, role, created_at, password_version, totp_enabled, totp_skip_password, has_password) VALUES (?, ?, ?, 'user', ?, 1, 0, 0, ?)"
+        )
+        .bind(id, username, hashed, Math.floor(Date.now() / 1000), hasPassword)
+        .run();
+      return { id, username, role: "user" };
+    };
 
-    const cred1 = await buildMockWebAuthnRegistration(
-      opt1.challenge,
-      baseOrigin,
-      "dns.example.com",
-      new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
-    );
-    const verifyRes1 = await handlePasskeysRequest(
-      new Request(`${baseOrigin}/api/account/passkeys/register/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "primary_key",
-          credential: { response: cred1 }
-        })
-      }),
-      env,
-      user,
-      ["api", "account", "passkeys", "register", "verify"],
-      ctx
-    );
-    assert.strictEqual(verifyRes1.status, 201, "Initial passkey registration must return 201");
-    const verify1Data = (await verifyRes1.json()) as { recovery_keys?: string[] };
-    assert.ok(verify1Data.recovery_keys && verify1Data.recovery_keys.length > 0, "Recovery keys generated");
+    // Requests registration options for `user`, then submits a mock credential with `extra` reauth fields.
+    const registerPasskey = async (
+      user: User,
+      name: string,
+      credentialSeed: number[],
+      extra: Record<string, unknown> = {}
+    ): Promise<Response> => {
+      const optRes = await handlePasskeysRequest(
+        new Request(`${baseOrigin}/api/account/passkeys/register/options`, { method: "POST" }),
+        env,
+        user,
+        ["api", "account", "passkeys", "register", "options"],
+        ctx
+      );
+      assert.strictEqual(optRes.status, 200, "Options generation must succeed");
+      const opt = (await optRes.json()) as { challenge: string };
+      const cred = await buildMockWebAuthnRegistration(
+        opt.challenge,
+        baseOrigin,
+        "dns.example.com",
+        new Uint8Array(credentialSeed)
+      );
+      return handlePasskeysRequest(
+        new Request(`${baseOrigin}/api/account/passkeys/register/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, ...extra, credential: { response: cred } })
+        }),
+        env,
+        user,
+        ["api", "account", "passkeys", "register", "verify"],
+        ctx
+      );
+    };
 
-    const dbUserAfterFirst = await userModel.getById(user.id);
+    // Scenario A: a passwordless account enables Passwordless Login with its first Passkey, without step-up reauth
+    const passwordless = await insertUser("user_passkey_1", "passkey_user", 0);
+    const resA = await registerPasskey(passwordless, "primary_key", [1, 2, 3, 4, 5, 6, 7, 8]);
+    assert.strictEqual(resA.status, 201, "Initial passkey registration on a passwordless account must return 201");
+    const dataA = (await resA.json()) as { recovery_keys?: string[] };
+    assert.ok(dataA.recovery_keys && dataA.recovery_keys.length > 0, "Recovery keys generated");
     assert.strictEqual(
-      dbUserAfterFirst?.totp_skip_password,
+      (await userModel.getById(passwordless.id))?.totp_skip_password,
       1,
-      "Passwordless Login must be enabled automatically after configuring initial Passkey"
+      "Passwordless Login must be enabled automatically after configuring the first Passkey on a passwordless account"
     );
 
-    // Step 2: Explicitly disable Passwordless Login, then add a 2nd backup Passkey -> preference preserved
-    await userModel.updateTOTPSettings(user.id, false);
-    const optRes2 = await handlePasskeysRequest(
-      new Request(`${baseOrigin}/api/account/passkeys/register/options`, { method: "POST" }),
-      env,
-      user,
-      ["api", "account", "passkeys", "register", "options"],
-      ctx
-    );
-    assert.strictEqual(optRes2.status, 200);
-    const opt2 = (await optRes2.json()) as { challenge: string };
-    const cred2 = await buildMockWebAuthnRegistration(
-      opt2.challenge,
-      baseOrigin,
-      "dns.example.com",
-      new Uint8Array([9, 10, 11, 12, 13, 14, 15, 16])
-    );
-    const verifyRes2 = await handlePasskeysRequest(
-      new Request(`${baseOrigin}/api/account/passkeys/register/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "backup_key",
-          recoveryKey: verify1Data.recovery_keys[0],
-          credential: { response: cred2 }
-        })
-      }),
-      env,
-      user,
-      ["api", "account", "passkeys", "register", "verify"],
-      ctx
-    );
-    assert.strictEqual(verifyRes2.status, 201, "Backup passkey registration must return 201");
+    // Scenario B: an account with a password must re-authenticate, and keeps its password requirement
+    const withPassword = await insertUser("user_passkey_2", "passkey_pw_user", 1);
+    const resB0 = await registerPasskey(withPassword, "primary_key", [21, 22, 23, 24, 25, 26, 27, 28]);
+    assert.strictEqual(resB0.status, 403, "Adding a Passkey to a password account must require re-authentication");
 
-    const dbUserAfterSecond = await userModel.getById(user.id);
+    const resB1 = await registerPasskey(withPassword, "primary_key", [21, 22, 23, 24, 25, 26, 27, 28], { password });
+    assert.strictEqual(resB1.status, 201, "Initial passkey registration with password reauth must return 201");
+    const dataB1 = (await resB1.json()) as { recovery_keys?: string[] };
+    assert.ok(dataB1.recovery_keys && dataB1.recovery_keys.length > 0, "Recovery keys generated");
     assert.strictEqual(
-      dbUserAfterSecond?.totp_skip_password,
+      (await userModel.getById(withPassword.id))?.totp_skip_password,
       0,
-      "Explicit password requirement opt-out must be preserved when adding a backup passkey"
+      "The password requirement must not be dropped silently when a password account adds its first Passkey"
+    );
+
+    // Adding a backup Passkey (reauth via recovery key) preserves the explicit password requirement
+    const resB2 = await registerPasskey(withPassword, "backup_key", [9, 10, 11, 12, 13, 14, 15, 16], {
+      recoveryKey: dataB1.recovery_keys[0]
+    });
+    assert.strictEqual(resB2.status, 201, "Backup passkey registration must return 201");
+    assert.strictEqual(
+      (await userModel.getById(withPassword.id))?.totp_skip_password,
+      0,
+      "Explicit password requirement must be preserved when adding a backup passkey"
     );
   } finally {
     globalWithCaches.caches = originalCaches;
   }
 
-  console.log("  Passed: Passkey registration automatically enables Passwordless Login.");
+  console.log("  Passed: Passkey registration enables Passwordless Login only for passwordless accounts.");
 }
 
 async function runAllTests(): Promise<void> {

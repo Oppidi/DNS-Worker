@@ -143,6 +143,25 @@ function getNodeCryptoSync(): NodeCryptoBuiltin | null {
 }
 
 /**
+ * Extracts a cache isolation suffix covering DNS Checking-Disabled (CD),
+ * EDNS0 presence / DNSSEC-OK (DO) flag heuristics, and normalized client IP (/24 or /48) ECS bucket.
+ */
+export function buildDnsQueryVariantKey(request: Request, queryRaw: Uint8Array): string {
+  const cdFlag = queryRaw.length >= 4 && (queryRaw[3] & 0x10) !== 0 ? "cd1" : "cd0";
+  const hasAr = queryRaw.length >= 12 && ((queryRaw[10] << 8) | queryRaw[11]) > 0 ? "ar1" : "ar0";
+  const clientIp = (request.headers.get("CF-Connecting-IP") || "").trim();
+  let ecsBucket = "";
+  if (clientIp.includes(".")) {
+    const parts = clientIp.split(".");
+    if (parts.length === 4) ecsBucket = `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
+  } else if (clientIp.includes(":")) {
+    const parts = clientIp.split(":").slice(0, 3);
+    if (parts.length > 0) ecsBucket = `${parts.join(":")}::/48`;
+  }
+  return `${cdFlag}:${hasAr}:${ecsBucket}`;
+}
+
+/**
  * Synchronously computes an opaque SHA-256 hex digest key when `node:crypto` is available
  * (Node.js / Bun Serverfull), eliminating async WebCrypto IPC overhead on the hot path.
  * Returns `null` on edge runtimes where only WebCrypto (`crypto.subtle`) is available.
@@ -150,17 +169,19 @@ function getNodeCryptoSync(): NodeCryptoBuiltin | null {
  * @param profileId - Active profile identifier.
  * @param domain - Queried domain name.
  * @param recordType - DNS record type.
+ * @param variantKey - Optional CD/EDNS0/ECS isolation key suffix.
  * @returns SHA-256 hex key or `null` when synchronous crypto is unavailable.
  */
 export function computeDnsCacheKeySync(
   profileId: string,
   domain: string,
-  recordType: string
+  recordType: string,
+  variantKey: string = ""
 ): string | null {
   const nodeCrypto = getNodeCryptoSync();
   if (!nodeCrypto) return null;
 
-  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}`);
+  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}\0${variantKey}`);
   try {
     return nodeCrypto.createHash("sha256").update(raw).digest("hex");
   } finally {
@@ -175,12 +196,13 @@ export function computeDnsCacheKeySync(
 export async function computeDnsCacheKey(
   profileId: string,
   domain: string,
-  recordType: string
+  recordType: string,
+  variantKey: string = ""
 ): Promise<string> {
-  const syncDigest = computeDnsCacheKeySync(profileId, domain, recordType);
+  const syncDigest = computeDnsCacheKeySync(profileId, domain, recordType, variantKey);
   if (syncDigest !== null) return syncDigest;
 
-  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}`);
+  const raw = CACHE_KEY_TEXT_ENCODER.encode(`${profileId}\0${domain.toLowerCase()}\0${recordType}\0${variantKey}`);
   try {
     const digest = await crypto.subtle.digest("SHA-256", raw);
     const bytes = new Uint8Array(digest);
@@ -356,17 +378,10 @@ export const pipelineCache = {
     }
 
     // 清理 L1 (内存)
-    configCache.delete(profileId);
-    adguardMemoryMap.delete(profileId);
-    if (clearBloom) {
-      bloomMemoryMap.delete(profileId);
-    }
-    profileKeyMemoryMap.clear();
-    defaultProfileMemoryCache = null;
-    for (const [key, entry] of dnsCache.entries()) {
-      if (entry.profileId === profileId || key.startsWith(`${profileId}:`)) {
-        dnsCache.delete(key);
-      }
+    await clearLocalProfileCache(profileId, clearBloom, false);
+
+    if (profileCacheInvalidatePublisher) {
+      profileCacheInvalidatePublisher(profileId, clearBloom);
     }
     
     // 清理 L2 (本地数据中心 Cache API)
@@ -399,3 +414,51 @@ export const pipelineCache = {
     }
   }
 };
+
+type ProfileCacheInvalidatePublisher = (profileId: string, clearBloom: boolean) => void;
+let profileCacheInvalidatePublisher: ProfileCacheInvalidatePublisher | null = null;
+
+/**
+ * Registers a cluster IPC publisher to propagate profile/settings/rule cache evictions across workers.
+ */
+export function registerProfileCacheInvalidatePublisher(publisher: ProfileCacheInvalidatePublisher): void {
+  profileCacheInvalidatePublisher = publisher;
+}
+
+/**
+ * Clears L1 and local L2 MemoryCache entries for a profile without broadcasting back over IPC.
+ */
+export async function clearLocalProfileCache(
+  profileId: string,
+  clearBloom: boolean = true,
+  clearL2: boolean = true
+): Promise<void> {
+  configCache.delete(profileId);
+  adguardMemoryMap.delete(profileId);
+  if (clearBloom) {
+    bloomMemoryMap.delete(profileId);
+  }
+  profileKeyMemoryMap.clear();
+  defaultProfileMemoryCache = null;
+  for (const [key, entry] of dnsCache.entries()) {
+    if (entry.profileId === profileId || key.startsWith(`${profileId}:`)) {
+      dnsCache.delete(key);
+    }
+  }
+  if (clearL2) {
+    try {
+      if (typeof caches !== "undefined" && caches && (caches as any).default) {
+        const cache = (caches as any).default;
+        const tasks: Promise<any>[] = [
+          cacheUtils.delete(cache, `${PROFILE_CACHE_KEY_PREFIX}:${profileId}`),
+          cacheUtils.delete(cache, `profile_v7:${profileId}`),
+          cacheUtils.delete(cache, `profile_v6:${profileId}`)
+        ];
+        if (clearBloom) {
+          tasks.push(cacheUtils.delete(cache, `bloom-bin:${profileId}`));
+        }
+        await Promise.all(tasks);
+      }
+    } catch {}
+  }
+}

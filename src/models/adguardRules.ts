@@ -6,8 +6,46 @@
 import { D1Database } from "@cloudflare/workers-types";
 import { AdGuardPayload } from "../lib/adguard/types";
 
+const MAX_ADGUARD_PAYLOAD_BYTES = 1_800_000;
+const payloadTextEncoder = new TextEncoder();
+
 export class AdguardRulesModel {
   constructor(private db: D1Database) {}
+
+  /**
+   * Serializes an AdGuard rules payload within D1's row size ceiling, stripping
+   * redundant `raw` strings if the full serialization approaches the limit.
+   *
+   * @param payload - The AdGuard rules payload to serialize.
+   * @returns Bounded JSON string safe for D1 storage.
+   */
+  private serializePayloadBounded(payload: AdGuardPayload): string {
+    const initial = JSON.stringify(payload);
+    if (payloadTextEncoder.encode(initial).length <= MAX_ADGUARD_PAYLOAD_BYTES) {
+      return initial;
+    }
+
+    const compactRewrites: AdGuardPayload["rewrites"] = {};
+    for (const [domain, entry] of Object.entries(payload.rewrites)) {
+      const { raw: _raw, ...rest } = entry;
+      compactRewrites[domain] = rest;
+    }
+
+    const compacted: AdGuardPayload = {
+      exceptions: payload.exceptions.map(({ raw: _raw, ...rest }) => rest),
+      rewrites: compactRewrites,
+      patterns: payload.patterns.map(({ raw: _raw, ...rest }) => rest)
+    };
+
+    const compactJson = JSON.stringify(compacted);
+    const compactBytes = payloadTextEncoder.encode(compactJson).length;
+    if (compactBytes > MAX_ADGUARD_PAYLOAD_BYTES) {
+      throw new Error(
+        `AdGuard payload exceeds safe D1 storage limit (${compactBytes} > ${MAX_ADGUARD_PAYLOAD_BYTES} bytes)`
+      );
+    }
+    return compactJson;
+  }
 
   /**
    * Resolves a URL string or legacy list ID to a canonical URL.
@@ -31,7 +69,7 @@ export class AdguardRulesModel {
   async upsertListRules(urlOrId: string | number, payload: AdGuardPayload, now: number): Promise<boolean> {
     const canonicalUrl = await this.resolveUrl(urlOrId);
     if (!canonicalUrl) return false;
-    const jsonStr = JSON.stringify(payload);
+    const jsonStr = this.serializePayloadBounded(payload);
 
     // Ensure parent metadata row exists
     await this.db.prepare(
@@ -85,7 +123,7 @@ export class AdguardRulesModel {
    * Upserts the compiled AdGuard extended rules payload for an active profile.
    */
   async upsertProfileRules(profileId: string, payload: AdGuardPayload, now: number): Promise<boolean> {
-    const jsonStr = JSON.stringify(payload);
+    const jsonStr = this.serializePayloadBounded(payload);
     const result = await this.db.prepare(
       `INSERT INTO profile_adguard_rules (profile_id, payload, updated_at)
        VALUES (?, ?, ?)
@@ -129,7 +167,7 @@ export class AdguardRulesModel {
    * Upserts the staged AdGuard rules payload during a sync cycle.
    */
   async upsertProfileRulesStaging(profileId: string, payload: AdGuardPayload, now: number): Promise<boolean> {
-    const jsonStr = JSON.stringify(payload);
+    const jsonStr = this.serializePayloadBounded(payload);
     const result = await this.db.prepare(
       `INSERT INTO profile_adguard_rules_staging (profile_id, payload, updated_at)
        VALUES (?, ?, ?)

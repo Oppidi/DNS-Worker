@@ -48,6 +48,8 @@ export async function verifyUserReauth(
   request: Request,
   options?: ReauthOptions
 ): Promise<ReauthResult> {
+  const { withTokenLock } = await import("../../../lib/preauth");
+  return withTokenLock(`reauth:${dbUser.id}`, async () => {
   const cache = (caches as any).default;
   const rateLimitKey = `reauth_fail:${dbUser.id}`;
   if (await cacheUtils.isRateLimited(cache, rateLimitKey, 10, 900)) {
@@ -142,20 +144,22 @@ export async function verifyUserReauth(
     return { success: true, method: "totp" };
   }
 
-  // 3. Recovery Key check (strictly single-use: consumed upon verification)
+  // 3. Recovery Key check (strictly single-use: re-read inside lock and consume atomically)
   if (payload.recoveryKey) {
+    const userModel = new UserModel(env.DB, env);
+    const freshUser = await userModel.getById(dbUser.id);
+    const rawStored = freshUser?.totp_recovery_keys ?? dbUser.totp_recovery_keys;
     let storedHashes: any[] = [];
     try {
-      storedHashes = typeof dbUser.totp_recovery_keys === "string"
-        ? JSON.parse(dbUser.totp_recovery_keys)
-        : dbUser.totp_recovery_keys || [];
+      storedHashes = typeof rawStored === "string"
+        ? JSON.parse(rawStored)
+        : rawStored || [];
       if (!Array.isArray(storedHashes)) storedHashes = [storedHashes];
     } catch {}
     const matchIndex = await findMatchingRecoveryKey(payload.recoveryKey, storedHashes);
     if (matchIndex === -1) {
       return { success: false, error: "Invalid Recovery Key", reason: "invalid_recovery_key" };
     }
-    const userModel = new UserModel(env.DB, env);
     await userModel.consumeRecoveryKey(dbUser.id, matchIndex, storedHashes);
     await cacheUtils.delete(cache, `ratelimit:${rateLimitKey}`);
     return { success: true, method: "recovery_key" };
@@ -187,4 +191,5 @@ export async function verifyUserReauth(
   }
 
   return { success: false, error: "Authentication required (Passkey, Recovery Key, or Password)", reason: "no_credentials_provided" };
+  });
 }

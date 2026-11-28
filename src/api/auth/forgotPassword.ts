@@ -286,13 +286,16 @@ export async function handleForgotPasswordRequest(request: Request, env: Env): P
     }
 
     const resetKey = `forgot_pw_reset:${resetToken}`;
-    const resetState = await cacheUtils.get<ResetState>(cache, resetKey);
+    const resetState = await withTokenLock(`forgot_reset:${resetToken}`, async () => {
+      const state = await cacheUtils.get<ResetState>(cache, resetKey);
+      if (!state) return null;
+      // Immediately consume reset token under lock to prevent concurrent reuse
+      await cacheUtils.delete(cache, resetKey);
+      return state;
+    });
     if (!resetState) {
       return new Response("Reset token expired or invalid", { status: 400 });
     }
-
-    // Immediately consume reset token
-    await cacheUtils.delete(cache, resetKey);
 
     const user = await userModel.getById(resetState.userId);
     if (!user) {

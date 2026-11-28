@@ -147,6 +147,7 @@ window.fetch = async function (input, init) {
 if (typeof window !== "undefined" && "caches" in window) {
   if (!sessionStorage.getItem("dns_worker_session_active")) {
     caches.delete("dns-worker-logs-v1").catch(() => {});
+    caches.delete("dns-worker-icons-v2").catch(() => {});
     sessionStorage.setItem("dns_worker_session_active", "true");
   }
 }

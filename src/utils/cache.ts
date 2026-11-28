@@ -1,4 +1,17 @@
 const CANONICAL_CACHE_ORIGIN = "https://dns-worker.internal";
+const rateLimitLocks = new Map<string, Promise<unknown>>();
+
+function withRateLimitLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = rateLimitLocks.get(key) || Promise.resolve();
+  const next = prev.then(fn, fn);
+  const cleanup = next.then(() => {
+    if (rateLimitLocks.get(key) === cleanup) rateLimitLocks.delete(key);
+  }, () => {
+    if (rateLimitLocks.get(key) === cleanup) rateLimitLocks.delete(key);
+  });
+  rateLimitLocks.set(key, cleanup);
+  return next;
+}
 
 export const cacheUtils = {
   /**
@@ -50,22 +63,24 @@ export const cacheUtils = {
   },
 
   /**
-   * 速率限制检查 (滑动窗口)
+   * 速率限制检查 (滑动窗口，带本地并发队列锁)
    */
   async isRateLimited(cache: Cache | null | undefined, key: string, limit: number, windowSec: number): Promise<boolean> {
     if (!cache) return false;
     const cacheKey = `ratelimit:${key}`;
-    const current = await this.get<{ count: number, reset: number }>(cache, cacheKey);
-    
-    const now = Math.floor(Date.now() / 1000);
-    if (!current || now > current.reset) {
-      await this.set(cache, cacheKey, { count: 1, reset: now + windowSec }, windowSec);
+    return withRateLimitLock(cacheKey, async () => {
+      const current = await this.get<{ count: number, reset: number }>(cache, cacheKey);
+
+      const now = Math.floor(Date.now() / 1000);
+      if (!current || now > current.reset) {
+        await this.set(cache, cacheKey, { count: 1, reset: now + windowSec }, windowSec);
+        return false;
+      }
+
+      if (current.count >= limit) return true;
+
+      await this.set(cache, cacheKey, { count: current.count + 1, reset: current.reset }, Math.max(1, current.reset - now));
       return false;
-    }
-
-    if (current.count >= limit) return true;
-
-    await this.set(cache, cacheKey, { count: current.count + 1, reset: current.reset }, Math.max(1, current.reset - now));
-    return false;
+    });
   }
 };

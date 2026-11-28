@@ -42,7 +42,10 @@ export const ProfileDangerZone: React.FC<ProfileDangerZoneProps> = ({
       await clearProfileLogs(profileId);
       await localDb.clearProfile(profileId).catch(() => {});
       if (typeof window !== "undefined" && "caches" in window) {
-        await caches.delete("dns-worker-logs-v1").catch(() => {});
+        await Promise.all([
+          caches.delete("dns-worker-logs-v1").catch(() => {}),
+          caches.delete("dns-worker-icons-v2").catch(() => {}),
+        ]);
       }
       toasterRef?.current?.show({
         message: t("settings.clearProfileLogsSuccess", "配置日志已成功清空"),

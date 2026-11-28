@@ -9,6 +9,7 @@ import worker from '../../app';
 import { Env, ExecutionContext } from '../../types';
 import { extractClientIp, isTrustedProxySocket, sanitizeClientIp } from './clientIp';
 import { ACCESS_KEY_REGEX } from '../../utils/validator';
+import { buildAltSvcHeader, getMinHttpVersion } from '../../lib/httpVersion';
 
 /**
  * Creates a shared request dispatch handler for Node.js http and https servers.
@@ -33,7 +34,7 @@ export function createHttpRequestHandler(
     return /^(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\])(?::\d{1,5})?$/.test(trimmed);
   };
 
-  const MAX_DOH_BODY_BYTES = 64 * 1024;
+  const MAX_DOH_BODY_BYTES = 65535;
   const MAX_API_BODY_BYTES = 2 * 1024 * 1024;
 
   return async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
@@ -47,12 +48,14 @@ export function createHttpRequestHandler(
       const fallbackHost = `${host.includes(':') ? `[${host}]` : host}:${port}`;
       const rawHostHeader = (req.headers[':authority'] as string) || req.headers.host || '';
       const safeHostHeader = isValidHostHeader(rawHostHeader) ? rawHostHeader.trim() : fallbackHost;
+      // Prevent protocol-relative (//host) or absolute-form req.url from overriding fullUrl.origin
+      const rawPath = req.url || '/';
+      const safePath = rawPath.startsWith('/') && !rawPath.startsWith('//') ? rawPath : `/${rawPath.replace(/^\/+/, '')}`;
 
       // When TLS certificates are configured and HTTPS is active, automatically redirect plain HTTP requests to HTTPS
       if (defaultProto === 'http' && httpsRedirect?.enabled && forwardedProto !== 'https') {
         const hostname = safeHostHeader.replace(/:\d+$/, '');
         const targetPort = (httpsRedirect.httpsPort === 443 || httpsRedirect.httpsPort === 0) ? '' : `:${httpsRedirect.httpsPort}`;
-        const safePath = (req.url || '/').startsWith('/') ? (req.url || '/') : '/';
         const targetUrl = `https://${hostname}${targetPort}${safePath}`;
 
         res.statusCode = (req.method === 'GET' || req.method === 'HEAD') ? 301 : 307;
@@ -63,7 +66,7 @@ export function createHttpRequestHandler(
         return;
       }
 
-      const fullUrl = new URL(req.url || '/', `${proto}://${safeHostHeader}`);
+      const fullUrl = new URL(safePath, `${proto}://${safeHostHeader}`);
 
       const headers = new Headers();
       for (const [k, v] of Object.entries(req.headers)) {
@@ -181,14 +184,23 @@ export function createHttpRequestHandler(
         }
       }
 
+      const minHttpVersion = getMinHttpVersion(env);
+      const isHttp2OrHigher = (req.httpVersionMajor ?? 1) >= 2;
       response.headers.forEach((val, key) => {
         const lowerKey = key.toLowerCase();
         if (lowerKey === 'set-cookie') {
           // Handled separately below to support multiple Set-Cookie headers
           return;
         }
+        // RFC 9113 §8.2.2 prohibits connection-specific headers on HTTP/2+ responses
+        if (
+          isHttp2OrHigher &&
+          (lowerKey === 'upgrade' || lowerKey === 'connection' || lowerKey === 'keep-alive' || lowerKey === 'transfer-encoding')
+        ) {
+          return;
+        }
         if (defaultProto === 'https' && lowerKey === 'alt-svc') {
-          res.setHeader('Alt-Svc', `h3=":${port}"; ma=86400, h3-29=":${port}"; ma=86400`);
+          res.setHeader('Alt-Svc', buildAltSvcHeader(port, minHttpVersion));
         } else {
           res.setHeader(key, val);
         }
@@ -205,7 +217,7 @@ export function createHttpRequestHandler(
       }
 
       if (defaultProto === 'https' && !res.hasHeader('Alt-Svc')) {
-        res.setHeader('Alt-Svc', `h3=":${port}"; ma=86400, h3-29=":${port}"; ma=86400`);
+        res.setHeader('Alt-Svc', buildAltSvcHeader(port, minHttpVersion));
       }
 
       if (response.body) {

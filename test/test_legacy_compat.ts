@@ -74,8 +74,8 @@ async function runTests() {
   const decrypted = await decryptEnvelope(encResult.dataEncrypted, encResult.dekEncrypted, kek1Env);
   assert.strictEqual(decrypted, "my_secret_totp_seed", "Decrypted plaintext should match original");
 
-  // 5. Fallback decryption using KEK_v0 (JWT_SECRET)
-  console.log('5. Validating fallback to KEK_v0 (JWT_SECRET)...');
+  // 5. Decryption of legacy data encrypted with KEK_v0 (JWT_SECRET)
+  console.log('5. Validating KEK_v0 (JWT_SECRET) decryption and no silent fallback...');
   // Simulate legacy data encrypted with JWT_SECRET (v0)
   const legacyEncResult = await (async () => {
     const kekKey = await crypto.subtle.importKey(
@@ -117,13 +117,16 @@ async function runTests() {
   const decryptedLegacy = await decryptEnvelope(legacyEncResult.dataEncrypted, legacyEncResult.dekEncrypted, legacyDeployEnv);
   assert.strictEqual(decryptedLegacy, "legacy_totp_data", "Should decrypt legacy v0 data using env.JWT_SECRET");
 
-  // Scenario B: Primary KEK version failed or missing, but fallback to JWT_SECRET succeeds
+  // Scenario B: the labelled KEK version is missing. There is no silent fallback to v0 (JWT_SECRET).
   const mislabeledEncResult = {
     ...legacyEncResult,
     dekEncrypted: legacyEncResult.dekEncrypted.replace('"kek_version":"v0"', '"kek_version":"v1"')
   };
-  const decryptedFallback = await decryptEnvelope(mislabeledEncResult.dataEncrypted, mislabeledEncResult.dekEncrypted, legacyDeployEnv);
-  assert.strictEqual(decryptedFallback, "legacy_totp_data", "Should fallback to v0 (JWT_SECRET) when primary version fails");
+  await assert.rejects(
+    decryptEnvelope(mislabeledEncResult.dataEncrypted, mislabeledEncResult.dekEncrypted, legacyDeployEnv),
+    /Required KEK version v1 is missing/,
+    "Should reject instead of falling back to v0 (JWT_SECRET) when the labelled KEK version is missing"
+  );
 
   // 6. Automatic DEK rotation from v0 to v1
   console.log('6. Validating automatic rotation from v0 to v1...');

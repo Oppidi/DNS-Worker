@@ -5,7 +5,8 @@ import {
   getProfiles,
   createProfile,
   renameProfile,
-  deleteProfile
+  deleteProfile,
+  localDb
 } from "../services";
 import { formatApiErrorMessage } from "../utils/auth";
 import type { Profile } from "../services";
@@ -117,6 +118,10 @@ export function useProfiles(isLoggedIn: boolean | null) {
     if (!confirm(t("common.confirmDelete"))) return;
     try {
       await deleteProfile(id);
+      await localDb.clearProfile(id).catch(() => {});
+      if (typeof window !== "undefined" && "caches" in window) {
+        void caches.delete("dns-worker-icons-v2").catch(() => {});
+      }
       await fetchProfiles();
       if (selectedProfile?.id === id) {
         setSelectedProfile(null);

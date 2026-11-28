@@ -11,6 +11,7 @@ import {
   handleIconPrefetch,
   cleanExpiredCache,
   cleanOldCaches,
+  purgeIconsCache,
 } from "./sw-icon-cache.ts";
 import {
   isLogDetailRequest,
@@ -62,5 +63,7 @@ self.addEventListener("message", (event) => {
     handleIconPrefetch(event.data.domains);
   } else if (event.data && event.data.type === "PURGE_LOGS_CACHE") {
     event.waitUntil(purgeLogsCache());
+  } else if (event.data && event.data.type === "PURGE_ICONS_CACHE") {
+    event.waitUntil(purgeIconsCache());
   }
 });

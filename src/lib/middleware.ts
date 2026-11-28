@@ -4,6 +4,7 @@ import { importJwtSecret, verifyJWT } from './jwt';
 import { SessionModel } from '../models/session';
 import { getAbsoluteSessionExpiry } from './session';
 import { cacheUtils } from '../utils/cache';
+import { buildAltSvcHeader } from './httpVersion';
 
 /**
  * Applies standard security headers and Content-Security-Policy (CSP) with a nonce.
@@ -25,7 +26,7 @@ export function applySecurityHeaders(response: Response, nonce: string): Respons
   }
 
   if (!newHeaders.has('Alt-Svc')) {
-    newHeaders.set('Alt-Svc', 'h3=":443"; ma=86400, h3-29=":443"; ma=86400');
+    newHeaders.set('Alt-Svc', buildAltSvcHeader(443));
   }
 
   return new Response(response.body, {
@@ -54,9 +55,22 @@ interface SessionActivityRecord {
 }
 const sessionActivityMemory = new Map<string, SessionActivityRecord>();
 
-export function invalidateAuthUserCache(sessionId: string): void {
+type AuthCacheInvalidatePublisher = (payload: { sessionId?: string; userId?: string }) => void;
+let authCacheInvalidatePublisher: AuthCacheInvalidatePublisher | null = null;
+
+/**
+ * Registers a cluster IPC publisher to propagate auth cache invalidations across workers.
+ */
+export function registerAuthCacheInvalidatePublisher(publisher: AuthCacheInvalidatePublisher): void {
+  authCacheInvalidatePublisher = publisher;
+}
+
+export function invalidateAuthUserCache(sessionId: string, broadcast: boolean = true): void {
   authUserMemoryCache.delete(sessionId);
   sessionActivityMemory.delete(sessionId);
+  if (broadcast && authCacheInvalidatePublisher) {
+    authCacheInvalidatePublisher({ sessionId });
+  }
 }
 
 /**
@@ -64,13 +78,17 @@ export function invalidateAuthUserCache(sessionId: string): void {
  * Used on password change/reset, account deletion, and admin user deletion.
  *
  * @param userId - Target user ID whose cached sessions should be evicted.
+ * @param broadcast - Whether to propagate invalidation to cluster peer workers.
  */
-export function invalidateAuthUserCacheByUserId(userId: string): void {
+export function invalidateAuthUserCacheByUserId(userId: string, broadcast: boolean = true): void {
   for (const [sessionId, entry] of authUserMemoryCache.entries()) {
     if (entry.user.id === userId) {
       authUserMemoryCache.delete(sessionId);
       sessionActivityMemory.delete(sessionId);
     }
+  }
+  if (broadcast && authCacheInvalidatePublisher) {
+    authCacheInvalidatePublisher({ userId });
   }
 }
 

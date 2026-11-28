@@ -354,15 +354,15 @@ export function formatPortError(config: PortErrorConfig): string {
       details.push(`Occupying Program: ${occupantSummary}`);
     }
 
-    if (protocol === 'UDP' && port === 53) {
+    if ((protocol === 'UDP' || protocol === 'TCP') && port === 53) {
       if (occupant?.processName.includes('systemd-resolve')) {
         causes.push('systemd-resolved is occupying port 53 via its local DNS stub listener (127.0.0.53).');
         solutions.push("Disable systemd-resolved DNSStubListener (set 'DNSStubListener=no' in /etc/systemd/resolved.conf, then run 'systemctl restart systemd-resolved').");
       } else if (occupant?.serviceName === 'SharedAccess') {
-        causes.push('Windows Internet Connection Sharing (ICS) / Mobile Hotspot is occupying UDP port 53.');
+        causes.push(`Windows Internet Connection Sharing (ICS) / Mobile Hotspot is occupying ${protocol} port 53.`);
         solutions.push("Stop Internet Connection Sharing / Mobile Hotspot in Windows Network Settings (or run: 'Stop-Service SharedAccess' in PowerShell).");
       } else if (occupant) {
-        causes.push(`Program '${occupantSummary}' is currently listening on UDP port 53.`);
+        causes.push(`Program '${occupantSummary}' is currently listening on ${protocol} port 53.`);
         if (occupant.pid) {
           const killCmd = process.platform === 'win32'
             ? `taskkill /PID ${occupant.pid} /F`

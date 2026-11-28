@@ -9,6 +9,29 @@ interface SettingCacheEntry {
 const MEMORY_CACHE = new Map<string, SettingCacheEntry>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+const SECURITY_CRITICAL_SETTING_KEYS = new Set([
+  "invite_code_enabled",
+  "registration_enabled",
+  "turnstile_enabled_signup",
+  "turnstile_enabled_login",
+  "max_users",
+]);
+
+type SystemSettingsInvalidatePublisher = (keys: string[]) => void;
+let systemSettingsInvalidatePublisher: SystemSettingsInvalidatePublisher | null = null;
+
+/** Registers cluster IPC publisher for system settings invalidations. */
+export function registerSystemSettingsInvalidatePublisher(publisher: SystemSettingsInvalidatePublisher): void {
+  systemSettingsInvalidatePublisher = publisher;
+}
+
+/** Evicts specific keys from the local process MEMORY_CACHE. */
+export function invalidateSystemSettingsCache(keys: string[]): void {
+  for (const k of keys) {
+    MEMORY_CACHE.delete(k);
+  }
+}
+
 export class SystemSettingsModel {
   constructor(private db: D1Database) {}
 
@@ -69,15 +92,17 @@ export class SystemSettingsModel {
   }
 
   /**
-   * Retrieves a single system setting by key, using the in-memory cache when fresh.
+   * Retrieves a single system setting by key, bypassing stale memory cache for security-gating keys.
    *
    * @param key - The setting key to look up.
    * @returns Setting value string, or null if not found.
    */
   async get(key: string): Promise<string | null> {
-    const cached = MEMORY_CACHE.get(key);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+    if (!SECURITY_CRITICAL_SETTING_KEYS.has(key)) {
+      const cached = MEMORY_CACHE.get(key);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+      }
     }
 
     try {
@@ -160,6 +185,9 @@ export class SystemSettingsModel {
     const expiresAt = Date.now() + CACHE_TTL_MS;
     for (const [key, value] of Object.entries(settings)) {
       MEMORY_CACHE.set(key, { value: String(value), expiresAt });
+    }
+    if (systemSettingsInvalidatePublisher) {
+      systemSettingsInvalidatePublisher(Object.keys(settings));
     }
     return true;
   }

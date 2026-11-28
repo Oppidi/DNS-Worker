@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { lockSession, e2ee } from "../services";
+import { lockSession, e2ee, localDb } from "../services";
 import type { UserInfo } from "../services";
 import { AuthView } from "./AuthView";
 import type { ThemeMode } from "../hooks/useTheme";
@@ -68,6 +68,7 @@ export const IdleSessionLock: React.FC<IdleSessionLockProps> = ({
       const timeoutMs = timeoutMinutes * 60 * 1000;
       if (inactiveMs >= timeoutMs) {
         e2ee.clearStorage();
+        void localDb.clearAll();
         setIsLocked(true);
         sessionStorage.setItem("dns_worker_session_locked", "true");
         try {
@@ -90,6 +91,7 @@ export const IdleSessionLock: React.FC<IdleSessionLockProps> = ({
   useEffect(() => {
     const handlePaused = (): void => {
       e2ee.clearStorage();
+      void localDb.clearAll();
       setIsLocked(true);
       sessionStorage.setItem("dns_worker_session_locked", "true");
     };

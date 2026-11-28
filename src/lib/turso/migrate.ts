@@ -144,6 +144,16 @@ async function runSingleMigrationStmt(
     return;
   }
 
+  if (disableForeignKeys && !/^\s*PRAGMA\s+foreign_keys/i.test(stmt)) {
+    try {
+      await db.prepare('PRAGMA foreign_keys = OFF').run();
+      await db.prepare(stmt).run();
+    } finally {
+      await db.prepare('PRAGMA foreign_keys = ON').run().catch(() => {});
+    }
+    return;
+  }
+
   await db.prepare(stmt).run();
 }
 
@@ -206,12 +216,24 @@ export async function execMigrationSql(db: D1Database | TursoD1Database, sql: st
   const rebuildPairs = extractTableRebuildPairs(stmts);
   const tempTableNames = new Set(rebuildPairs.map((p) => p.tempTable));
 
+  const buildPipelineRequests = (
+    scriptStmts: string[]
+  ): Array<{ type: 'execute'; stmt: { sql: string } } | { type: 'close' }> => {
+    const prePragma = scriptStmts.filter((s) => /^\s*PRAGMA\s+foreign_keys\s*=\s*(?:off|0|false)\b/i.test(s));
+    const postPragma = scriptStmts.filter((s) => /^\s*PRAGMA\s+foreign_keys\s*=\s*(?:on|1|true)\b/i.test(s));
+    const bodyStmts = scriptStmts.filter((s) => !/^\s*PRAGMA\s+foreign_keys\s*=/i.test(s));
+    const wrapped = bodyStmts.length > 1
+      ? [...prePragma, 'BEGIN IMMEDIATE', ...bodyStmts, 'COMMIT', ...postPragma]
+      : scriptStmts;
+    return [
+      ...wrapped.map((s) => ({ type: 'execute' as const, stmt: { sql: s } })),
+      { type: 'close' as const }
+    ];
+  };
+
   const runOnce = async (): Promise<void> => {
     if ('executePipeline' in db && typeof (db as any).executePipeline === 'function') {
-      const requests: Array<{ type: 'execute'; stmt: { sql: string } } | { type: 'close' }> = [
-        ...stmts.map((s) => ({ type: 'execute' as const, stmt: { sql: s } })),
-        { type: 'close' as const }
-      ];
+      const requests = buildPipelineRequests(stmts);
       const results = await (db as any).executePipeline(requests, 60000);
       const errStepIndex = results.findIndex((r: any) => r && (r.type === 'error' || r.error));
       if (errStepIndex === -1) {
@@ -222,21 +244,34 @@ export async function execMigrationSql(db: D1Database | TursoD1Database, sql: st
       const errMsg = errStep?.error?.message || 'Pipeline error';
       const errMsgLower = errMsg.toLowerCase();
 
+      // Roll back if BEGIN IMMEDIATE succeeded before failing inside the pipeline
+      try {
+        await (db as any).executePipeline([
+          { type: 'execute', stmt: { sql: 'ROLLBACK' } },
+          { type: 'execute', stmt: { sql: 'PRAGMA foreign_keys = ON' } },
+          { type: 'close' }
+        ], 15000);
+      } catch {}
+
       // If any statement failed due to unsupported WITHOUT ROWID, strip it across all statements and retry pipeline
       if (
         (errMsgLower.includes('without rowid') || errMsgLower.includes('parse error') || errMsgLower.includes('syntax error') || errMsgLower.includes('not supported')) &&
         stmts.some((s) => stripWithoutRowidClause(s) !== null)
       ) {
         const stripped = stmts.map((s) => stripWithoutRowidClause(s) || s);
-        const retryReqs = [
-          ...stripped.map((s) => ({ type: 'execute' as const, stmt: { sql: s } })),
-          { type: 'close' as const }
-        ];
+        const retryReqs = buildPipelineRequests(stripped);
         const retryResults = await (db as any).executePipeline(retryReqs, 60000);
         const retryErr = retryResults.find((r: any) => r && (r.type === 'error' || r.error));
         if (!retryErr) {
           return;
         }
+        try {
+          await (db as any).executePipeline([
+            { type: 'execute', stmt: { sql: 'ROLLBACK' } },
+            { type: 'execute', stmt: { sql: 'PRAGMA foreign_keys = ON' } },
+            { type: 'close' }
+          ], 15000);
+        } catch {}
       }
 
       // Fall back to statement-by-statement execution (carrying PRAGMA foreign_keys state)

@@ -33,11 +33,13 @@ export async function connectUniversal(options: ConnectOptions): Promise<Univers
     if (options.secureTransport === 'on') {
       const tls = await import('node:tls');
       const net = await import('node:net');
+      const { safeNodeDnsLookup } = await import('./validator');
       return new Promise<UniversalSocket>((resolve, reject) => {
         const client = tls.connect({
           host: options.hostname,
           port: options.port,
-          servername: net.isIP(options.hostname) ? undefined : options.hostname
+          servername: net.isIP(options.hostname) ? undefined : options.hostname,
+          lookup: safeNodeDnsLookup as any
         }, () => {
           let isClosed = false;
 
@@ -94,8 +96,9 @@ export async function connectUniversal(options: ConnectOptions): Promise<Univers
     }
 
     const net = await import('node:net');
+    const { safeNodeDnsLookup } = await import('./validator');
     return new Promise<UniversalSocket>((resolve, reject) => {
-      const client = net.createConnection({ host: options.hostname, port: options.port }, () => {
+      const client = net.createConnection({ host: options.hostname, port: options.port, lookup: safeNodeDnsLookup as any }, () => {
         let isClosed = false;
 
         const readable = new ReadableStream<Uint8Array>({

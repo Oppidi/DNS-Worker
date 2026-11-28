@@ -8,7 +8,7 @@ import {
   formatApiErrorMessage
 } from "../../../utils/auth";
 import { setAccessToken } from "../../../utils/token";
-import { login, ApiError, migratePassword } from "../../../services";
+import { login, ApiError, migratePassword, localDb } from "../../../services";
 import { e2ee } from "../../../services/e2ee";
 
 export interface LoginCredentials {
@@ -93,6 +93,11 @@ export function useLoginAuth({
 
       const data = await login(body);
       e2ee.clearStorage();
+      void localDb.clearAll();
+      if (typeof window !== "undefined" && "caches" in window) {
+        void caches.delete("dns-worker-logs-v1").catch(() => {});
+        void caches.delete("dns-worker-icons-v2").catch(() => {});
+      }
       if (data.accessToken) {
         setAccessToken(data.accessToken);
       }

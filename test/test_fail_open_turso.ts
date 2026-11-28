@@ -386,15 +386,41 @@ async function runTests() {
     const addr = proxyServer.address() as { port: number };
     const baseUrl = `http://127.0.0.1:${addr.port}/caddyk1`;
 
-    // Without X-Http-Version over HTTP/1.1 hop -> 505
+    // Default MIN_HTTP_VERSION=1.1 allows HTTP/1.1 DoH while advertising Upgrade + Alt-Svc guidance
     const noHeaderRes = await fetch(baseUrl, {
       method: "POST",
       headers: { "Content-Type": "application/dns-message" },
       body: rawQuery
     });
-    assert.strictEqual(noHeaderRes.status, 505, "HTTP/1.1 without trusted X-Http-Version must return 505");
+    assert.strictEqual(noHeaderRes.status, 200, "Default MIN_HTTP_VERSION=1.1 must allow HTTP/1.1 DoH");
+    assert.ok(noHeaderRes.headers.get("Upgrade")?.includes("h2"), "HTTP/1.1 response must advertise Upgrade guidance");
 
-    // With Caddy `header_up X-Http-Version HTTP/2.0` -> 200
+    // HTTP/1.0 is below default MIN_HTTP_VERSION=1.1 -> 505 with Upgrade & Alt-Svc guidance
+    const h10HeaderRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/dns-message",
+        "X-Http-Version": "HTTP/1.0"
+      },
+      body: rawQuery
+    });
+    assert.strictEqual(h10HeaderRes.status, 505, "HTTP/1.0 below default MIN_HTTP_VERSION=1.1 must return 505");
+    assert.ok(h10HeaderRes.headers.get("Upgrade")?.includes("h2"), "505 rejection must include Upgrade header");
+    assert.ok(h10HeaderRes.headers.get("Alt-Svc")?.includes("h3="), "505 rejection must include Alt-Svc header");
+
+    // Raising MIN_HTTP_VERSION=2 enforces strict HTTP/2+ rejection of HTTP/1.1
+    proxyHandlerEnv.MIN_HTTP_VERSION = "2";
+    const h1HeaderStrictRes = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/dns-message",
+        "X-Http-Version": "HTTP/1.1"
+      },
+      body: rawQuery
+    });
+    assert.strictEqual(h1HeaderStrictRes.status, 505, "HTTP/1.1 when MIN_HTTP_VERSION=2 must return 505");
+
+    // With Caddy `header_up X-Http-Version HTTP/2.0` -> 200 (no Upgrade header per RFC 9113)
     const h2HeaderRes = await fetch(baseUrl, {
       method: "POST",
       headers: {
@@ -404,6 +430,7 @@ async function runTests() {
       body: rawQuery
     });
     assert.strictEqual(h2HeaderRes.status, 200, "Trusted loopback proxy with X-Http-Version: HTTP/2.0 must return 200");
+    assert.strictEqual(h2HeaderRes.headers.get("Upgrade"), null, "HTTP/2 response must not include Upgrade header");
 
     // With Caddy `header_up X-Http-Version HTTP/3.0` -> 200
     const h3HeaderRes = await fetch(baseUrl, {
@@ -415,18 +442,7 @@ async function runTests() {
       body: rawQuery
     });
     assert.strictEqual(h3HeaderRes.status, 200, "Trusted loopback proxy with X-Http-Version: HTTP/3.0 must return 200");
-
-    // With Caddy `header_up X-Http-Version HTTP/1.1` (client actually used HTTP/1.1) -> 505
-    const h1HeaderRes = await fetch(baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/dns-message",
-        "X-Http-Version": "HTTP/1.1"
-      },
-      body: rawQuery
-    });
-    assert.strictEqual(h1HeaderRes.status, 505, "Client HTTP/1.1 forwarded via X-Http-Version must still return 505");
-    console.log("  PASS: Serverfull reverse proxy X-Http-Version (Caddy HTTP/2 & HTTP/3) verified");
+    console.log("  PASS: Serverfull reverse proxy X-Http-Version & MIN_HTTP_VERSION upgrade guidance verified");
   } finally {
     await new Promise<void>((resolve) => proxyServer.close(() => resolve()));
   }

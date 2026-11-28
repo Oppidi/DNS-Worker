@@ -39,10 +39,11 @@ export async function showServerfullStatus(config: ServerfullConfig, envJwtSecre
         : Promise.resolve({ exists: false, statusText: 'Configuration Error (TURSO_DATABASE_URL or TURSO_AUTH_TOKEN missing)' }))
     : Promise.resolve(inspectDatabase(config.dbPath));
 
-  const [httpState, httpsState, udpState, dotState, dbStatus] = await Promise.all([
+  const [httpState, httpsState, udpState, tcpDnsState, dotState, dbStatus] = await Promise.all([
     probeTcpPort(config.httpPort, config.host),
     canProbeHttps ? probeTcpPort(config.httpsPort, config.host) : Promise.resolve('disabled' as const),
     !config.disableUdp ? probeUdpPort(config.udpPort, config.host) : Promise.resolve('disabled' as const),
+    !config.disableTcp ? probeTcpPort(config.udpPort, config.host) : Promise.resolve('disabled' as const),
     !config.disableDot ? probeTcpPort(config.dotPort, config.host) : Promise.resolve('disabled' as const),
     dbStatusPromise
   ]);
@@ -83,6 +84,14 @@ export async function showServerfullStatus(config: ServerfullConfig, envJwtSecre
       ? `udp://${config.host}:${config.udpPort} [Active / In Use${udpOccupantText}]`
       : `udp://${config.host}:${config.udpPort} [Stopped / Port Available]`;
 
+  const tcpDnsOccupant = (!config.disableTcp && tcpDnsState === 'active') ? getPortOccupant(config.udpPort, 'TCP') : null;
+  const tcpDnsOccupantText = tcpDnsOccupant ? `: ${formatOccupantSummary(tcpDnsOccupant)}` : '';
+  const tcpDnsStatusText = config.disableTcp
+    ? 'Disabled (--disable-tcp)'
+    : tcpDnsState === 'active'
+      ? `tcp://${config.host}:${config.udpPort} [Active / Listening${tcpDnsOccupantText}]`
+      : `tcp://${config.host}:${config.udpPort} [Stopped / Port Available]`;
+
   let dotStatusText = '';
   const domainPart = config.dotDomain ? ` (${config.dotDomain})` : '';
   if (config.disableDot) {
@@ -117,6 +126,7 @@ export async function showServerfullStatus(config: ServerfullConfig, envJwtSecre
       { label: 'Web Dashboard (HTTP)', value: httpStatusText },
       { label: 'Web Dashboard (HTTPS)', value: httpsStatusText },
       { label: 'Classic UDP DNS', value: udpStatusText },
+      { label: 'Classic TCP DNS', value: tcpDnsStatusText },
       { label: 'DNS over TLS (DoT)', value: dotStatusText }
     ]
   });
@@ -190,7 +200,7 @@ export async function showServerfullStatus(config: ServerfullConfig, envJwtSecre
   });
 
   const tips: string[] = [];
-  if (httpState === 'free' && (udpState === 'free' || config.disableUdp)) {
+  if (httpState === 'free' && (udpState === 'free' || config.disableUdp) && (tcpDnsState === 'free' || config.disableTcp)) {
     const serviceInstallCmd = process.platform === 'win32'
       ? 'dns-worker service install (in Administrator terminal)'
       : 'sudo dns-worker service install';

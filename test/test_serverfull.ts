@@ -382,9 +382,9 @@ async function runTests() {
   }
   console.log('>>> [TEST D] SUCCESS: Native HTTP/2 connection succeeded!');
 
-  // Verify RFC 8484 §5.2 minimum HTTP version enforcement: HTTP/1.1 to DoH /:key returns 505, and /dns-query is NOT routed as DoH
-  console.log('>>> [TEST D] Testing RFC 8484 §5.2 rejection (HTTP/1.1 to /testkey123 returns 505) & /dns-query non-support...');
-  const h1DohRes = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+  // RFC 8484 §5.2 recommends (but does not require) HTTP/2: HTTP/1.1 DoH to /:key is served, and /dns-query is NOT routed as DoH
+  console.log('>>> [TEST D] Testing HTTP/1.1 DoH to /testkey123 is served & /dns-query non-support...');
+  const h1DohRes = await new Promise<{ status: number; contentType: string; body: Buffer }>((resolve, reject) => {
     const req = https.get(
       `https://127.0.0.1:${HTTPS_TEST_PORT}/testkey123?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB`,
       {
@@ -396,18 +396,22 @@ async function runTests() {
         }
       },
       (res) => {
-        let data = '';
-        res.on('data', (c) => data += c);
-        res.on('end', () => resolve({ status: res.statusCode || 0, body: data }));
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({
+          status: res.statusCode || 0,
+          contentType: String(res.headers['content-type'] || ''),
+          body: Buffer.concat(chunks)
+        }));
       }
     );
     req.on('error', reject);
   });
-  if (h1DohRes.status !== 505) {
-    throw new Error(`Expected 505 HTTP Version Not Supported for HTTP/1.1 DoH request, got ${h1DohRes.status}`);
+  if (h1DohRes.status !== 200 || !h1DohRes.contentType.includes('application/dns-message')) {
+    throw new Error(`Expected HTTP/1.1 DoH request to be served (200 application/dns-message), got ${h1DohRes.status} ${h1DohRes.contentType}`);
   }
-  if (!h1DohRes.body.includes('RFC 8484')) {
-    throw new Error(`Expected RFC 8484 explanation in 505 response, got ${h1DohRes.body}`);
+  if (h1DohRes.body.length < 12 || h1DohRes.body.readUInt16BE(0) !== 0) {
+    throw new Error(`Expected a DNS response echoing query id 0 for HTTP/1.1 DoH request, got ${h1DohRes.body.length} bytes`);
   }
   const unsupportedDnsQueryRes = await new Promise<{ status: number; contentType: string; body: string }>((resolve, reject) => {
     const req = https.get(
@@ -435,7 +439,7 @@ async function runTests() {
   if (unsupportedDnsQueryRes.status === 505 || unsupportedDnsQueryRes.contentType.includes('application/dns-message')) {
     throw new Error(`/dns-query must NOT be routed as a DoH endpoint (got status ${unsupportedDnsQueryRes.status})`);
   }
-  console.log('>>> [TEST D] SUCCESS: RFC 8484 §5.2 enforces HTTP/2 on /:key (505 on HTTP/1.1) and /dns-query is disabled!');
+  console.log('>>> [TEST D] SUCCESS: HTTP/1.1 DoH on /:key is served and /dns-query is disabled!');
 
   // ── TEST D2: Public System Endpoints (/api/resolve & /api/geoip) ──
   console.log('\n>>> [TEST D2] Testing Public /api/resolve and /api/geoip APIs...');
@@ -460,13 +464,17 @@ async function runTests() {
   console.log('\n>>> [TEST E] Testing Auth Refresh & RTR Grace Window on HTTP...');
   const { createSession } = await import('../src/lib/auth');
   const { refreshToken } = await createSession(env, 'user1', '127.0.0.1', 'Serverfull-Test-Agent', 0.0, 0.0, false);
+  // /api/auth/refresh requires the CSRF double-submit cookie and matching X-CSRF-Token header
+  const csrfToken = crypto.randomUUID();
+  const refreshHeaders = {
+    'Cookie': `auth_refresh=${refreshToken}; csrf_token=${csrfToken}`,
+    'X-CSRF-Token': csrfToken
+  };
 
   // 1. Initial refresh via HTTP
   const refreshRes1 = await fetch(`http://127.0.0.1:${HTTP_TEST_PORT}/api/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Cookie': `auth_refresh=${refreshToken}`
-    }
+    headers: refreshHeaders
   });
 
   console.log('>>> [TEST E] HTTP refresh status:', refreshRes1.status);
@@ -491,9 +499,7 @@ async function runTests() {
   console.log('>>> [TEST E] Testing RTR Concurrency Grace Window (simulating in-flight parallel refresh)...');
   const refreshRes2 = await fetch(`http://127.0.0.1:${HTTP_TEST_PORT}/api/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Cookie': `auth_refresh=${refreshToken}`
-    }
+    headers: refreshHeaders
   });
 
   console.log('>>> [TEST E] Parallel refresh status:', refreshRes2.status);

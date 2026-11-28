@@ -3,11 +3,12 @@
  * @description Canonical system version and standardized User-Agent headers.
  */
 
+import pkg from '../../package.json';
+
 /**
- * Current system version of DNS Worker (x.y.z).
- * Synchronized with package.json.
+ * Current system version of DNS Worker (x.y.z), sourced directly from package.json.
  */
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION: string = pkg.version;
 
 /**
  * Resolves the real system version string (x.y.z).

@@ -73,13 +73,15 @@ export class LogRetentionModel {
         );
       }
 
-      // Distribute batchLimit evenly across profiles, bounded by remaining daily budget
+      // Distribute batchLimit evenly across profiles without exceeding effectiveBatchLimit / dailyBudget
       const effectiveBatchLimit = dailyBudget > 0 ? Math.min(batchLimit, remainingBudget) : batchLimit;
-      const perProfileLimit = Math.max(1, Math.floor(effectiveBatchLimit / profiles.length));
+      const maxProfilesForLogs = effectiveBatchLimit > 0 ? Math.min(profiles.length, effectiveBatchLimit) : 0;
+      const perProfileLimit = maxProfilesForLogs > 0 ? Math.floor(effectiveBatchLimit / maxProfilesForLogs) : 0;
 
       const rollupStatements: D1PreparedStatement[] = [];
       const logDeleteStatements: D1PreparedStatement[] = [];
 
+      let logCleanupIndex = 0;
       for (const profile of profiles) {
         // ── 1. Time-based retention calculation ─────────────────────────────────
         let days = 30;
@@ -110,7 +112,8 @@ export class LogRetentionModel {
         }
 
         // Delete bounded number of rows per profile per hourly cron run if budget remains
-        if (canDeleteLogs && effectiveBatchLimit > 0) {
+        if (canDeleteLogs && perProfileLimit > 0 && logCleanupIndex < maxProfilesForLogs) {
+          logCleanupIndex++;
           const deleteStmt = await prepareBoundedLogDeleteStatement(
             this.db,
             profile.id,

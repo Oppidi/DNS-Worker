@@ -6,6 +6,7 @@ import { PasskeyModel } from "../../models/passkey";
 import { USERNAME_REGEX } from "../../utils/validator";
 import { verifyUserReauth, ReauthPayload } from "./security/reauth";
 import { ensureDemoDataSeeded } from "../../lib/demoMode";
+import { resolveLogRetentionLimits } from "../../constants/presets";
 
 /**
  * Handle requests to /api/account/me, /api/account/logs, /api/account/delete
@@ -26,15 +27,7 @@ export async function handleMeRequest(
     if (request.method === 'GET') {
       await ensureDemoDataSeeded(env, user.id);
       const dbUser = await userModel.getById(user.id);
-      const globalMaxRetention = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-        ? Number(env.MAX_LOG_RETENTION_DAYS)
-        : 30;
-      const adminMaxRetention = env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== ''
-        ? Math.min(Number(env.ADMIN_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-        : globalMaxRetention;
-      const normalUserMax = env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== ''
-        ? Math.min(Number(env.NORMAL_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-        : Math.min(7, globalMaxRetention);
+      const { adminMaxRetention, normalUserMaxRetention: normalUserMax } = resolveLogRetentionLimits(env);
 
       const passkeyModel = new PasskeyModel(env.DB);
       const passkeysCount = await passkeyModel.countByUser(user.id);
@@ -179,20 +172,18 @@ export async function handleMeRequest(
     const { invalidateSession } = await import("../../lib/auth");
     const { invalidateAuthUserCacheByUserId } = await import("../../lib/middleware");
     const { ProfileModel } = await import("../../models/profile");
-    const { collectOwnerAccessKeys, deleteAccessKeysInDo } = await import("../../lib/accessKeyRegistry");
+    const { revokeOwnerCachesAndKeys } = await import("../../lib/accessKeyRegistry");
     const profileModel = new ProfileModel(env.DB);
     const cookieHeader = request.headers.get("Cookie") || "";
     const refreshToken = readRefreshTokenCookie(cookieHeader);
     const sessionId = refreshToken ? parseRefreshTokenString(refreshToken)?.sid || null : null;
     if (sessionId) await invalidateSession(env, sessionId);
     invalidateAuthUserCacheByUserId(user.id);
-    const keysToRevoke = await collectOwnerAccessKeys(env.DB, user.id);
+    const flushRevocations = await revokeOwnerCachesAndKeys(env, user.id);
     // Explicitly delete profiles/logs/hourly_rollups before deleting user to satisfy FK constraints and prevent orphaned data
     await profileModel.deleteByOwner(user.id);
     await userModel.delete(user.id);
-    if (keysToRevoke.length > 0) {
-      ctx.waitUntil(deleteAccessKeysInDo(env, keysToRevoke));
-    }
+    ctx.waitUntil(flushRevocations());
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Set-Cookie": createBlankRefreshTokenCookie(), "Content-Type": "application/json" }
     });

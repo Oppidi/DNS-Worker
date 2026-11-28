@@ -52,19 +52,75 @@ export function extractApexDomain(pattern: string): string | undefined {
  * Converts a wildcard domain pattern (e.g. "||*-ads.example.com^") into a safe RegExp source string.
  */
 function isSafeRegexPattern(pattern: string): boolean {
-  // Reject nested quantifiers and repeated-group quantifiers prone to catastrophic backtracking (ReDoS)
+  // Reject adjacent quantifiers directly
   if (/(?:\+|\*|\{\d+,?\d*\})\s*(?:\+|\*|\?|\{\d)/.test(pattern)) {
     return false;
   }
-  if (/\([^)]*(?:\+|\*|\{\d)[^)]*\)\s*(?:\+|\*|\{\d)/.test(pattern)) {
-    return false;
+
+  // Track group stack to detect quantified alternations, nested quantifiers, and polynomial multi-quantifiers
+  const stack: Array<{ hasQuantifier: boolean; hasAlternation: boolean }> = [];
+  let inCharClass = false;
+  let escaped = false;
+  let unboundedRepeaters = 0;
+
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (inCharClass) {
+      if (ch === "]") inCharClass = false;
+      continue;
+    }
+    if (ch === "[") {
+      inCharClass = true;
+      continue;
+    }
+    if (ch === "(") {
+      stack.push({ hasQuantifier: false, hasAlternation: false });
+      continue;
+    }
+    if (ch === "|" && stack.length > 0) {
+      stack[stack.length - 1].hasAlternation = true;
+      continue;
+    }
+    const isUnbounded = ch === "+" || ch === "*" || (ch === "{" && /^\{\d+,\s*\d*\}/.test(pattern.slice(i)));
+    if (isUnbounded) {
+      unboundedRepeaters++;
+      if (unboundedRepeaters > 3) return false;
+      if (stack.length > 0) {
+        stack[stack.length - 1].hasQuantifier = true;
+      }
+    }
+    if (ch === ")") {
+      const group = stack.pop();
+      if (!group) continue;
+      // Inspect token right after ')'
+      const rest = pattern.slice(i + 1);
+      const groupQuantified = /^\s*(?:\+|\*|\{\d+)/.test(rest);
+      if (groupQuantified) {
+        if (group.hasQuantifier || group.hasAlternation) {
+          return false;
+        }
+        if (stack.length > 0) {
+          stack[stack.length - 1].hasQuantifier = true;
+        }
+      } else if (group.hasQuantifier && stack.length > 0) {
+        stack[stack.length - 1].hasQuantifier = true;
+      }
+    }
   }
   return true;
 }
 
 export function wildcardToRegex(pattern: string, includeSubdomains: boolean): string {
   const wildcardCount = (pattern.match(/\*/g) || []).length;
-  if (wildcardCount > 6) {
+  if (wildcardCount > 3) {
     return "(?!)";
   }
   let cleaned = pattern;

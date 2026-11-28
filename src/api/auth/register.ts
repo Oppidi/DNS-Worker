@@ -18,6 +18,7 @@ import { generateRecoveryKey, hashRecoveryKey } from "../../lib/totp";
 import { cacheUtils } from "../../utils/cache";
 import { PASSWORD_REGEX, USERNAME_REGEX, normalizeInviteCode } from "../../utils/validator";
 import { verifyTurnstile } from "./utils";
+import { resolveAccessTokenExpirationMinutes } from "../../constants/presets";
 import { getDefaultUpstreamUrl } from "../../constants/presets";
 import { syncProfileKeysToDo } from "../../lib/accessKeyRegistry";
 import { ensureDemoDataSeeded } from "../../lib/demoMode";
@@ -78,6 +79,17 @@ export async function handleAuthRegisterRequest(request: Request, env: Env): Pro
     return new Response("registration_disabled", { status: 403 });
   }
 
+  // 人机验证前置：在检查用户上限与校验邀请码前先完成 Turnstile 验证，防止未授权预言机枚举
+  const effectiveSecret = secretKey || env.TURNSTILE_SECRET_KEY || '';
+  if (enabled === 'true') {
+    if (!effectiveSecret) {
+      return new Response("Turnstile verification is enabled but secret key is not configured", { status: 503 });
+    }
+    if (!await verifyTurnstile(turnstileToken, effectiveSecret, clientIp)) {
+      return new Response("Verification failed", { status: 400 });
+    }
+  }
+
   // 用户数量上限拦截：如果已有用户且达到用户配额，禁止继续注册（首位管理员注册豁免）
   const rawMaxUsers = maxUsersSetting !== null ? maxUsersSetting : env.MAX_USERS;
   const maxUsers = rawMaxUsers !== undefined && rawMaxUsers !== null && rawMaxUsers !== "" ? parseInt(String(rawMaxUsers), 10) : 0;
@@ -102,16 +114,6 @@ export async function handleAuthRegisterRequest(request: Request, env: Env): Pro
     const inviteValidation = await inviteCodeModel.validateForSignup(normalizedInviteCode);
     if (!inviteValidation.valid) {
       return new Response(inviteValidation.reason, { status: 400 });
-    }
-  }
-
-  const effectiveSecret = secretKey || env.TURNSTILE_SECRET_KEY || '';
-  if (enabled === 'true') {
-    if (!effectiveSecret) {
-      return new Response("Turnstile verification is enabled but secret key is not configured", { status: 503 });
-    }
-    if (!await verifyTurnstile(turnstileToken, effectiveSecret, clientIp)) {
-      return new Response("Verification failed", { status: 400 });
     }
   }
 
@@ -226,7 +228,7 @@ export async function handleAuthRegisterRequest(request: Request, env: Env): Pro
     const csrfToken = generateId(32);
     const csrfCookie = createCsrfCookie(csrfToken, env, false);
 
-    const expMinutes = Number(env.ACCESS_TOKEN_EXPIRATION_MINUTES) || 10;
+    const expMinutes = resolveAccessTokenExpirationMinutes(env);
     const accessToken = await signJWT({ 
       userId: userId, 
       role: role, 

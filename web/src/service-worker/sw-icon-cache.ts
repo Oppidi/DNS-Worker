@@ -211,3 +211,14 @@ export async function cleanOldCaches(): Promise<void> {
     console.error("Failed to clean up old caches:", err);
   }
 }
+
+/**
+ * Purges the Service Worker icon cache containing queried DNS domains.
+ */
+export async function purgeIconsCache(): Promise<void> {
+  try {
+    await caches.delete(CACHE_NAME);
+  } catch (err) {
+    console.error("Failed to purge icon cache:", err);
+  }
+}

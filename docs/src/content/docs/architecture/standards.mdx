@@ -17,7 +17,7 @@ To balance engineering rigor with development agility, every guideline in this d
 
 | Level Badge | Scope & Authority | Adjudication Principle |
 | :--- | :--- | :--- |
-| <Badge text="Strict" variant="danger" /> | **Core baseline standards**.<br/>Directly impacts security boundaries (SSRF, RBAC bypass), data integrity (immutable migration hashes, integer timestamps), protocol mandates (RFC 8484 HTTP/2 minimum), or static analysis (disallowing `any`). | Kept focused on essential invariants and verified during CI and code review; any necessary exception in special cases requires core maintainer sign-off. |
+| <Badge text="Strict" variant="danger" /> | **Core baseline standards**.<br/>Directly impacts security boundaries (SSRF, RBAC bypass), data integrity (immutable migration hashes, integer timestamps), protocol mandates (RFC 8484), or static analysis (disallowing `any`). | Kept focused on essential invariants and verified during CI and code review; any necessary exception in special cases requires core maintainer sign-off. |
 | <Badge text="Recommended" variant="tip" /> | **Core engineering standards & best practices**.<br/>Covers architectural isolation, modularity, defensive error handling, table recreation patterns, and comprehensive automated test suites. | Must be followed in all normal circumstances; deviations require explicit justification in the PR review. |
 | <Badge text="Reference" variant="note" /> | **Code consistency & advanced tuning heuristics**.<br/>Covers naming conventions, human-in-the-loop markers (`TODO: [HUMAN]`), and high-QPS memory profiling. | Encouraged to improve readability, maintainability, and developer experience. |
 
@@ -252,30 +252,19 @@ Because schemas must run across Cloudflare D1, Turso libSQL, and standalone SQLi
   }
   ```
 
-### 5.2 Prefer HTTP/3 for DoH with Mandatory Minimum HTTP/2 <Badge text="Strict" variant="danger" />
+### 5.2 Prefer HTTP/3 for DoH, with HTTP/2 as the Recommended Minimum <Badge text="Strict" variant="danger" />
 
 * **Rationale**:
   * **HTTP/3 is the Preferred Protocol**: Built upon UDP/QUIC, HTTP/3 (DoH3 / RFC 9114) delivers 0-RTT handshakes, completely eliminates transport-layer head-of-line blocking, and provides native resilience against packet loss on mobile networks. The system and standalone daemons should prioritize and advertise HTTP/3.
-  * **HTTP/2 is the Backwards-Compatible Floor (RFC 8484 §5.2)**: In accordance with RFC 8484 §5.2 ("Clients and servers MUST NOT negotiate HTTP/1.1 for DoH"), HTTP/2 serves strictly as the backwards-compatible floor. DoH must never negotiate or fall back to HTTP/1.1.
-  * **No Silent Downgrades & Transparent Diagnostics**: Incoming DoH requests over HTTP/1.1 must be rejected with `HTTP 505 (HTTP Version Not Supported)`. If an upstream DoH query fails, the actual upstream error must be surfaced transparently without silent downgrades to unencrypted protocols.
+  * **HTTP/2 is the Recommended Minimum (RFC 8484 §5.2)**: RFC 8484 §5.2 states that "HTTP/2 [RFC7540] is the minimum RECOMMENDED version of HTTP for use with DoH", and that earlier versions "are capable of conveying the semantic requirements of DoH but may result in very poor performance". HTTP/1.1 is therefore permitted, and some DoH clients (routers and embedded resolvers) only speak HTTP/1.1.
+  * **No Silent Downgrades & Transparent Diagnostics**: Incoming DoH requests meeting `MIN_HTTP_VERSION` (default: `1.1`) are served with `Alt-Svc` (`h3`, `h2`) and HTTP/1.x `Upgrade` guidance headers so HTTP/1.1-only clients keep working while supporting clients upgrade automatically; versions below `MIN_HTTP_VERSION` return `HTTP 505` with upgrade hints. If an upstream DoH query fails, the actual upstream error must be surfaced transparently without silent downgrades to unencrypted protocols.
 * **Good Practice**:
   ```typescript
-  // 1. Advertise HTTP/3 support via Alt-Svc to upgrade modern clients to HTTP/3 (DoH3)
-  res.setHeader('Alt-Svc', `h3=":${port}"; ma=86400`);
-
-  // 2. Enforce HTTP/2 as the absolute minimum, rejecting legacy HTTP/1.1
-  const httpProto = request.headers.get('X-Http-Version');
-  if (httpProto && (httpProto === 'HTTP/1.0' || httpProto === 'HTTP/1.1' || httpProto === '1.0' || httpProto === '1.1')) {
-    return new Response('DoH requires HTTP/2 or later in accordance with RFC 8484 §5.2', {
-      status: 505,
-      statusText: 'HTTP Version Not Supported',
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
-  }
+  // Advertise HTTP/3 and HTTP/2 upgrade via Alt-Svc (plus Upgrade on HTTP/1.x responses)
+  res.setHeader('Alt-Svc', `h3=":${port}"; ma=86400, h3-29=":${port}"; ma=86400, h2=":${port}"; ma=86400`);
   ```
 * **Anti-Pattern**:
   * Defaulting solely to HTTP/2 without advertising or prioritizing HTTP/3;
-  * Permitting serial DoH queries over multiplexing-deficient HTTP/1.1 connections;
   * Silently downgrading failed DoH queries to plain UDP without user knowledge or diagnostic feedback.
 
 ### 5.3 Post-Quantum Zero-Knowledge E2EE for Audit Logs <Badge text="Recommended" variant="tip" />
