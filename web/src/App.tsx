@@ -13,7 +13,9 @@ import { getClientInfo, type Profile } from "./services";
 import { useTheme } from "./hooks/useTheme";
 import { usePageMeta } from "./hooks/usePageMeta";
 import { useAuth } from "./hooks/useAuth";
+import { useDeploymentMode } from "./hooks/useDeploymentMode";
 import { useProfiles } from "./hooks/useProfiles";
+import { useWebMcpBridge } from "./webmcp";
 import { IdleSessionLock } from "./components/IdleSessionLock";
 import { DeploymentGuideView } from "./views/DeploymentGuideView";
 import { loadLocale } from "./i18n/config";
@@ -49,6 +51,7 @@ function App() {
   const { theme, setTheme } = useTheme();
   const pageMeta = usePageMeta();
   const { isLoggedIn, currentUser, checkAuth, handleLogout } = useAuth(toasterRef);
+  const { mode: deploymentMode, isDemoMode } = useDeploymentMode();
 
   const {
     profiles,
@@ -67,6 +70,14 @@ function App() {
     handleDeleteProfile,
     handleQuickAction,
   } = useProfiles(isLoggedIn);
+
+  useWebMcpBridge({
+    isLoggedIn: isLoggedIn === true,
+    isDemoMode,
+    deploymentMode,
+    currentUser,
+    activeProfileId: selectedProfile?.id ?? null,
+  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [localeReady, setLocaleReady] = useState(false);
