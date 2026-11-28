@@ -25,17 +25,18 @@ flowchart TD
     MOD_BASE["base 组 (基础会话与能力发现)"]
     MOD_DIAG["只读诊断组: diagnostics + analytics_logs<br/>(域名溯源与 OPFS 分析)"]
     MOD_POLICY["策略管理组: rules + filtering<br/>(HITL 规则编排与列表订阅)"]
-    MOD_OPS["后续扩展: access_points · profiles · admin_ops"]
+    MOD_OPS["设备与运维组: access_points · profiles · admin_ops<br/>(接入点绑定 · 策略调优 · 管理员只读巡检)"]
 
     AGENT --> NAV --> REG
     REG --> GATE
     GATE --> MOD_BASE
     GATE --> MOD_DIAG
     GATE --> MOD_POLICY
-    GATE -.-> MOD_OPS
+    GATE --> MOD_OPS
     MOD_BASE --> CLEAN --> AGENT
     MOD_DIAG --> CLEAN
     MOD_POLICY --> CLEAN
+    MOD_OPS --> CLEAN
 ```
 
 ---
@@ -89,7 +90,7 @@ DNS Worker 的 WebMCP 能力按风险等级与业务闭环分阶段交付：
 
 - **已上线 — [只读诊断与分析](/DNS-Worker/zh-cn/mcp/diagnostics/)**：涵盖 `diagnostics`（域名拦截溯源、单列表检测、网络探测）与 `analytics_logs`（OPFS 本地日志检索、聚合统计、日志详情与 Profile 概览）。
 - **已上线 — [规则编排与列表订阅管理](/DNS-Worker/zh-cn/mcp/rules-filtering/)**：涵盖自定义规则增删改（`rules`）、外部与账号级订阅启停/同步（`filtering`）、HITL 人机确认门禁、Account 设置页开关与 UI 状态自动刷新。
-- **规划中 — 设备与运维管理**：接入点 Profile 绑定切换（`access_points`）、Profile 策略修改（`profiles`）及管理员只读观测（`admin_ops`）。
+- **已上线 — [设备接入点、配置策略与运维观测](/DNS-Worker/zh-cn/mcp/access-ops/)**：涵盖设备接入点 Profile 绑定切换与创建（`access_points`）、Profile DNS 策略与暂停过滤调优（`profiles`）以及受 `admin` 角色隔离保护的只读运维巡检（`admin_ops`）。
 - **永久排除边界**：密码/MFA/Passkey 变更、E2EE 密钥导出/轮换、用户删除、数据库快照恢复、服务重启及接入点令牌轮换（`rotateAccessPointToken`）等高危操作不接入自动化 AI 工具。
 
 ---

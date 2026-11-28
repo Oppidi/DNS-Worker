@@ -1,0 +1,51 @@
+---
+title: 设备接入点、配置策略与运维观测
+description: DNS Worker WebMCP 设备与运维工具参考手册：涵盖接入点绑定制与创建（access_points）、Profile DNS 策略与临时暂停调优（profiles）、管理员只读健康与配置巡检（admin_ops）以及严格密钥隔离规则。
+sidebar:
+  order: 4
+---
+
+**DNS Worker** 通过 **`access_points`（设备接入点）**、**`profiles`（配置策略）** 与 **`admin_ops`（管理员只读巡检）** 三个 WebMCP 分组扩展日常设备管理与系统观测能力，共计 **10 个工具**，并遵循最小权限与密钥零暴露原则。
+
+> **权限与密钥边界**：`access_points` 与 `profiles` 的变更操作强制经过 `access: 'write'` 人类二次确认（HITL）；`admin_ops` 全组工具仅在当前登录账号拥有 `admin` 角色时才会向浏览器注册并允许调用（`roleScope: 'admin'`）。接入点明文 `token`、`profile_key`、完整邀请码及服务端含密配置键值永不返回至 AI 上下文。
+
+---
+
+## 1. 设备接入点工具（`access_points`）
+
+| 工具名称 | 访问属性 | 说明 |
+| :--- | :--- | :--- |
+| `dnsworker_list_access_points` | 只读 | 按 `all`、`profile` 或 `unbound` 筛选查看设备接入点列表、绑定 Profile ID 与设备类型；仅返回 `hasToken` 状态标记，不暴露接入点密钥。 |
+| `dnsworker_bind_access_point` | 写入 (HITL) | 修改指定 `apId` 绑定的 `profileId`（传入 `null` 可解绑）、更新设备名称或设备类型标签，成功后自动刷新控制台接入点视图。 |
+| `dnsworker_create_access_point` | 写入 (HITL) | 创建新的设备接入点并绑定目标配置（默认绑定当前激活 Profile）；创建结果同样屏蔽明文 `token`，需在控制台 Setup 界面查看连接参数。 |
+
+> **安全排除**：接入点密钥轮换（`rotateAccessPointToken`）与设备永久删除（`deleteAccessPoint`）不向 WebMCP 代理开放，必须由人工在控制台主动操作。
+
+---
+
+## 2. 配置策略调优工具（`profiles`）
+
+| 工具名称 | 访问属性 | 说明 |
+| :--- | :--- | :--- |
+| `dnsworker_get_profile_settings` | 只读 | 读取目标 Profile 的上游解析地址（`upstream`）、默认策略（`default_policy`）、拦截响应模式（`block_mode`）、ECS / Best-Effort ECH、日志保留天数与暂停过滤状态（剔除 `profile_key`）。 |
+| `dnsworker_update_profile_settings` | 写入 (HITL) | 采用增量合并（Merge-Patch）更新 Profile 策略参数及配置名称；选择 `CUSTOM_IP` 拦截模式时强制要求配置至少一个 IPv4 或 IPv6 目标地址。 |
+| `dnsworker_toggle_pause_filtering` | 写入 (HITL) | 临时暂停或立即恢复目标 Profile 的过滤拦截（暂停时长支持 `60–86400` 秒，并按统一 Unix 秒级时间戳计算到期时间 `expires_at`）。 |
+
+---
+
+## 3. 管理员只读运维工具（`admin_ops`）
+
+本分组下所有工具均具备 `roleScope: "admin"` 与 `readOnlyHint: true`，普通账号会话既不可见也无法越权调用（返回 `FORBIDDEN_ROLE`）：
+
+| 工具名称 | 说明 |
+| :--- | :--- |
+| `dnsworker_admin_get_runtime_status` | 查看 Serverfull 节点运行时信息、当前版本、发布通道（`latest` / `alpha` / `canary`）、Worker 数量及更新可用状态（不提供重启指令）。 |
+| `dnsworker_admin_get_database_status` | 巡检数据库后端类型（D1 / Turso / 本地 SQLite）、迁移执行进度（`appliedCount` / `pendingCount`）、磁盘容量统计及快照数量（自动剔除宿主机本地文件路径）。 |
+| `dnsworker_admin_list_users_summary` | 分页查看已注册账号的角色、TOTP / Passkey / MFA 开启状态与会话 PIN 锁屏配置概览，限制单次最多返回 `50` 条。 |
+| `dnsworker_admin_get_system_config_summary` | 查看脱敏后的系统配置项（自动过滤键名含 `secret` / `token` / `key` / `password` 的敏感条目）、前 4 位掩码化邀请码容量统计及全网下发列表汇总。 |
+
+---
+
+## 4. 界面实时联动
+
+当工具修改接入点绑定关系或更新 Profile 策略与暂停过滤状态后，WebMCP 调度层会自动广播 `dns_worker_webmcp_data_changed` 事件（`scope: "access_points"` 或 `"profile_settings"`），同步刷新已打开的 **接入点管理（AccessPointsManageView）**、**安装向导（SetupView）** 与 **配置设置（SettingsView）** 界面状态。

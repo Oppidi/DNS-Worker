@@ -17,3 +17,7 @@ export * from "./tools/phase1Defaults";
 export * from "./tools/rulesTools";
 export * from "./tools/filteringTools";
 export * from "./tools/phase2Defaults";
+export * from "./tools/accessPointsTools";
+export * from "./tools/profilesTools";
+export * from "./tools/adminOpsTools";
+export * from "./tools/phase3Defaults";

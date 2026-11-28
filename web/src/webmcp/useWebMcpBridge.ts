@@ -10,6 +10,8 @@ import { e2ee } from "../services";
 import { getAccessToken } from "../utils/token";
 import { createBaseWebMcpTools } from "./baseTools";
 import { WEBMCP_PREF_CHANGED_EVENT } from "./events";
+import { createAccessPointsWebMcpTools } from "./tools/accessPointsTools";
+import { createAdminOpsWebMcpTools } from "./tools/adminOpsTools";
 import { createAnalyticsLogsWebMcpTools } from "./tools/analyticsLogsTools";
 import { createDiagnosticsWebMcpTools } from "./tools/diagnosticsTools";
 import { createFilteringWebMcpTools } from "./tools/filteringTools";
@@ -21,6 +23,12 @@ import {
   createBrowserFilteringDeps,
   createBrowserRulesDeps,
 } from "./tools/phase2Defaults";
+import {
+  createBrowserAccessPointsDeps,
+  createBrowserAdminOpsDeps,
+  createBrowserProfilesDeps,
+} from "./tools/phase3Defaults";
+import { createProfilesWebMcpTools } from "./tools/profilesTools";
 import { createRulesWebMcpTools } from "./tools/rulesTools";
 import {
   isBrowserWebMcpSupported,
@@ -80,7 +88,7 @@ export function useWebMcpBridge({
     setIsEnabledState(enabled);
   }, []);
 
-  // Register foundational, Phase 1 (diagnostics/analytics), and Phase 2 (rules/filtering) tool groups
+  // Register foundational, diagnostics/analytics, rules/filtering, access points/profiles, and admin ops groups
   useEffect(() => {
     webMcpRegistry.registerGroup("base", createBaseWebMcpTools(webMcpRegistry));
     webMcpRegistry.registerGroup(
@@ -93,7 +101,16 @@ export function useWebMcpBridge({
     );
     webMcpRegistry.registerGroup("rules", createRulesWebMcpTools(createBrowserRulesDeps()));
     webMcpRegistry.registerGroup("filtering", createFilteringWebMcpTools(createBrowserFilteringDeps()));
+    webMcpRegistry.registerGroup(
+      "access_points",
+      createAccessPointsWebMcpTools(createBrowserAccessPointsDeps())
+    );
+    webMcpRegistry.registerGroup("profiles", createProfilesWebMcpTools(createBrowserProfilesDeps()));
+    webMcpRegistry.registerGroup("admin_ops", createAdminOpsWebMcpTools(createBrowserAdminOpsDeps()));
     return () => {
+      webMcpRegistry.unregisterGroup("admin_ops");
+      webMcpRegistry.unregisterGroup("profiles");
+      webMcpRegistry.unregisterGroup("access_points");
       webMcpRegistry.unregisterGroup("filtering");
       webMcpRegistry.unregisterGroup("rules");
       webMcpRegistry.unregisterGroup("analytics_logs");

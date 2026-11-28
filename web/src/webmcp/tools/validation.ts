@@ -17,6 +17,8 @@ const ALLOWED_RECORD_TYPES = new Set([
 ]);
 
 const PROFILE_ID_REGEX = /^[a-zA-Z0-9_-]{3,32}$/;
+const ACCESS_POINT_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;
+const DEVICE_TYPE_REGEX = /^[a-z0-9_-]{1,32}$/;
 const DOMAIN_CHAR_REGEX = /^[a-z0-9_.-]+$/;
 const RULE_PATTERN_CHAR_REGEX = /^[a-z0-9*._-]+$/;
 const ALLOWED_RULE_TYPES = new Set(["ALLOW", "BLOCK", "REDIRECT"] as const);
@@ -218,4 +220,77 @@ export function validateSubscriptionUrlInput(
   } catch {
     return { ok: false, error: "url is not a syntactically valid URL." };
   }
+}
+
+/**
+ * Validates an Access Point identifier (`1–64` safe characters).
+ */
+export function validateAccessPointIdInput(
+  raw: unknown
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: "apId must be a string." };
+  }
+  const trimmed = raw.trim();
+  if (!ACCESS_POINT_ID_REGEX.test(trimmed)) {
+    return { ok: false, error: "apId contains invalid characters or length (1-64 chars)." };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/**
+ * Validates a human-readable Profile or Access Point display name (`1–64` chars, no control chars).
+ */
+export function validateDisplayNameInput(
+  raw: unknown,
+  fieldName: string = "name"
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: `${fieldName} must be a string.` };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 64 || /[\r\n\0]/.test(trimmed)) {
+    return { ok: false, error: `${fieldName} must be 1-64 characters without line breaks or control characters.` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/**
+ * Validates an optional Access Point device type identifier (e.g., `router`, `iphone`, `linux`).
+ */
+export function validateDeviceTypeInput(
+  raw: unknown
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: "deviceType must be a string." };
+  }
+  const normalized = raw.trim().toLowerCase();
+  if (!DEVICE_TYPE_REGEX.test(normalized)) {
+    return { ok: false, error: "deviceType must contain 1-32 lowercase alphanumeric, underscore, or hyphen characters." };
+  }
+  return { ok: true, value: normalized };
+}
+
+/**
+ * Validates upstream DNS endpoint entries (supports DoH `https://`, DoT `tls://`, DoQ `quic://`, or IP literal).
+ */
+export function validateUpstreamListInput(
+  raw: unknown
+): { ok: true; value: string[] } | { ok: false; error: string } {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > 8) {
+    return { ok: false, error: "upstream must be an array of 1-8 DNS resolver endpoints." };
+  }
+  const cleaned: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const entry = raw[i];
+    if (typeof entry !== "string") {
+      return { ok: false, error: `upstream[${i}] must be a string.` };
+    }
+    const trimmed = entry.trim();
+    if (!trimmed || trimmed.length > 256 || /\s|[\r\n\0]/.test(trimmed)) {
+      return { ok: false, error: `upstream[${i}] must be 1-256 characters without spaces or control chars.` };
+    }
+    cleaned.push(trimmed);
+  }
+  return { ok: true, value: cleaned };
 }

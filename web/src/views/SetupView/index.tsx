@@ -25,6 +25,7 @@ import {
   resolveDomainDnsIps,
   isDummyOrPlaceholderDomain,
 } from "../../services";
+import { subscribeWebMcpDataChanged } from "../../webmcp";
 
 export const SetupView: React.FC<SetupViewProps> = ({ profiles, toasterRef }) => {
   const isMobile = useIsMobile();
@@ -72,6 +73,15 @@ export const SetupView: React.FC<SetupViewProps> = ({ profiles, toasterRef }) =>
 
   useEffect(() => {
     void fetchAccessPoints();
+  }, [fetchAccessPoints]);
+
+  // Auto-refresh Setup view Access Point bindings when modified via WebMCP
+  useEffect(() => {
+    return subscribeWebMcpDataChanged((detail) => {
+      if (detail.scope === "access_points" || detail.scope === "all") {
+        void fetchAccessPoints();
+      }
+    });
   }, [fetchAccessPoints]);
 
   const activeAp = useMemo(() => {

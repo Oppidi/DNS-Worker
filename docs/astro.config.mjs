@@ -574,6 +574,16 @@ export default defineConfig({
               },
               slug: 'mcp/rules-filtering',
             },
+            {
+              label: 'Access Points, Profiles & Admin Ops',
+              translations: {
+                'zh-CN': '接入点、策略与运维观测',
+                'zh-cn': '接入点、策略与运维观测',
+                'zh-TW': '接入點、策略與運維觀測',
+                'zh-tw': '接入點、策略與運維觀測',
+              },
+              slug: 'mcp/access-ops',
+            },
           ],
         },
         {

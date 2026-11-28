@@ -25,17 +25,18 @@ flowchart TD
     MOD_BASE["base Group (Session & Capabilities)"]
     MOD_DIAG["Diagnostics: diagnostics + analytics_logs<br/>(Domain Trace & OPFS Analytics)"]
     MOD_POLICY["Policy Management: rules + filtering<br/>(HITL Rules & Filter Subscriptions)"]
-    MOD_OPS["Planned Extensions: access_points · profiles · admin_ops"]
+    MOD_OPS["Devices & Ops: access_points · profiles · admin_ops<br/>(AP Binding · Profile Policy · Read-Only Admin Ops)"]
 
     AGENT --> NAV --> REG
     REG --> GATE
     GATE --> MOD_BASE
     GATE --> MOD_DIAG
     GATE --> MOD_POLICY
-    GATE -.-> MOD_OPS
+    GATE --> MOD_OPS
     MOD_BASE --> CLEAN --> AGENT
     MOD_DIAG --> CLEAN
     MOD_POLICY --> CLEAN
+    MOD_OPS --> CLEAN
 ```
 
 ---
@@ -89,7 +90,7 @@ DNS Worker organizes WebMCP business modules cleanly by workflow and risk tier:
 
 - **Available — [Read-Only Diagnostics & Analytics](/DNS-Worker/mcp/diagnostics/)**: Includes `diagnostics` (domain blocking trace, per-list Bloom check, network probe) and `analytics_logs` (OPFS local log query, summary analytics, log detail, and Profile summary).
 - **Available — [Rules & Filter Subscriptions](/DNS-Worker/mcp/rules-filtering/)**: Adds custom rules CRUD (`rules`) and external/user filter subscription toggling/sync (`filtering`), gated by `access: 'write'` human confirmation, Account toggle UI, and live view invalidation.
-- **Planned — Device & Operations Management**: Access Point Profile binding (`access_points`), Profile settings tuning (`profiles`), and read-only admin diagnostics (`admin_ops`).
+- **Available — [Access Points, Profiles & Admin Ops](/DNS-Worker/mcp/access-ops/)**: Adds Access Point Profile binding & creation (`access_points`), Profile strategy tuning & pause-filtering toggles (`profiles`), and `roleScope: 'admin'` read-only operations telemetry (`admin_ops`).
 - **Permanently Excluded**: Password/MFA/Passkey mutations, E2EE key unwrapping/rotation exports, user deletion, database snapshot restore, Serverfull restarts, and Access Point token rotation (`rotateAccessPointToken`).
 
 ---

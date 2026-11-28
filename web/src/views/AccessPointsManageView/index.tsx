@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
 import type { AccessPoint, Profile } from "../../types/auth";
 import { getAccessPoints } from "../../services";
+import { subscribeWebMcpDataChanged } from "../../webmcp";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useAccessPoints } from "../SetupView/hooks/useAccessPoints";
 import { AddAccessPointDialog } from "../SetupView/components/AddAccessPointDialog";
@@ -54,6 +55,15 @@ export const AccessPointsManageView: React.FC<AccessPointsManageViewProps> = ({
 
   useEffect(() => {
     void fetchAccessPoints();
+  }, [fetchAccessPoints]);
+
+  // Auto-refresh Access Point list when an authorized WebMCP agent updates bindings or creates endpoints
+  useEffect(() => {
+    return subscribeWebMcpDataChanged((detail) => {
+      if (detail.scope === "access_points" || detail.scope === "all") {
+        void fetchAccessPoints();
+      }
+    });
   }, [fetchAccessPoints]);
 
   const fallbackToasterRef = React.useRef<OverlayToaster | null>(null);

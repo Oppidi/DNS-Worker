@@ -1,0 +1,51 @@
+---
+title: 裝置接入點、配置策略與運維觀測
+description: DNS Worker WebMCP 裝置與運維工具參考手冊：涵蓋接入點綁定製與建立（access_points）、Profile DNS 策略與臨時暫停調優（profiles）、管理員只讀健康與配置巡檢（admin_ops）以及嚴格金鑰隔離規則。
+sidebar:
+  order: 4
+---
+
+**DNS Worker** 通過 **`access_points`（裝置接入點）**、**`profiles`（配置策略）** 與 **`admin_ops`（管理員只讀巡檢）** 三個 WebMCP 分組擴充套件日常裝置管理與系統觀測能力，共計 **10 個工具**，並遵循最小許可權與金鑰零暴露原則。
+
+> **許可權與金鑰邊界**：`access_points` 與 `profiles` 的變更操作強制經過 `access: 'write'` 人類二次確認（HITL）；`admin_ops` 全組工具僅在當前登入賬號擁有 `admin` 角色時才會向瀏覽器註冊並允許呼叫（`roleScope: 'admin'`）。接入點明文 `token`、`profile_key`、完整邀請碼及服務端含密配置鍵值永不返回至 AI 上下文。
+
+---
+
+## 1. 裝置接入點工具（`access_points`）
+
+| 工具名稱 | 訪問屬性 | 說明 |
+| :--- | :--- | :--- |
+| `dnsworker_list_access_points` | 只讀 | 按 `all`、`profile` 或 `unbound` 篩選檢視裝置接入點列表、繫結 Profile ID 與裝置型別；僅返回 `hasToken` 狀態標記，不暴露接入點金鑰。 |
+| `dnsworker_bind_access_point` | 寫入 (HITL) | 修改指定 `apId` 繫結的 `profileId`（傳入 `null` 可解綁）、更新裝置名稱或裝置型別標籤，成功後自動重新整理控制台接入點檢視。 |
+| `dnsworker_create_access_point` | 寫入 (HITL) | 建立新的裝置接入點並繫結目標配置（預設綁定當前啟用 Profile）；建立結果同樣遮蔽明文 `token`，需在控制台 Setup 介面檢視連線引數。 |
+
+> **安全排除**：接入點金鑰輪換（`rotateAccessPointToken`）與裝置永久刪除（`deleteAccessPoint`）不向 WebMCP 代理開放，必須由人工在控制台主動操作。
+
+---
+
+## 2. 配置策略調優工具（`profiles`）
+
+| 工具名稱 | 訪問屬性 | 說明 |
+| :--- | :--- | :--- |
+| `dnsworker_get_profile_settings` | 只讀 | 讀取目標 Profile 的上游解析地址（`upstream`）、預設策略（`default_policy`）、攔截響應模式（`block_mode`）、ECS / Best-Effort ECH、日誌保留天數與暫停過濾狀態（剔除 `profile_key`）。 |
+| `dnsworker_update_profile_settings` | 寫入 (HITL) | 採用增量合併（Merge-Patch）更新 Profile 策略引數及配置名稱；選擇 `CUSTOM_IP` 攔截模式時強制要求配置至少一個 IPv4 或 IPv6 目標地址。 |
+| `dnsworker_toggle_pause_filtering` | 寫入 (HITL) | 臨時暫停或立即恢復目標 Profile 的過濾攔截（暫停時長支援 `60–86400` 秒，並按統一 Unix 秒級時間戳計算到期時間 `expires_at`）。 |
+
+---
+
+## 3. 管理員只讀運維工具（`admin_ops`）
+
+本分組下所有工具均具備 `roleScope: "admin"` 與 `readOnlyHint: true`，普通賬號會話既不可見也無法越權呼叫（返回 `FORBIDDEN_ROLE`）：
+
+| 工具名稱 | 說明 |
+| :--- | :--- |
+| `dnsworker_admin_get_runtime_status` | 檢視 Serverfull 節點執行時資訊、當前版本、釋出通道（`latest` / `alpha` / `canary`）、Worker 數量及更新可用狀態（不提供重啟指令）。 |
+| `dnsworker_admin_get_database_status` | 巡檢資料庫後端型別（D1 / Turso / 本地 SQLite）、遷移執行進度（`appliedCount` / `pendingCount`）、磁碟容量統計及快照數量（自動剔除宿主機本地檔案路徑）。 |
+| `dnsworker_admin_list_users_summary` | 分頁檢視已註冊賬號的角色、TOTP / Passkey / MFA 開啟狀態與會話 PIN 鎖屏配置概覽，限制單次最多返回 `50` 條。 |
+| `dnsworker_admin_get_system_config_summary` | 檢視脫敏後的系統配置項（自動過濾鍵名含 `secret` / `token` / `key` / `password` 的敏感條目）、前 4 位掩碼化邀請碼容量統計及全網下發列表彙總。 |
+
+---
+
+## 4. 介面即時聯動
+
+當工具修改接入點繫結關係或更新 Profile 策略與暫停過濾狀態後，WebMCP 排程層會自動廣播 `dns_worker_webmcp_data_changed` 事件（`scope: "access_points"` 或 `"profile_settings"`），同步重新整理已開啟的 **接入點管理（AccessPointsManageView）**、**安裝嚮導（SetupView）** 與 **配置設定（SettingsView）** 介面狀態。

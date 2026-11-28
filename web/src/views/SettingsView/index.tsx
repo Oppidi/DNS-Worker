@@ -24,6 +24,7 @@ import {
   getProfileLists
 } from "../../services";
 import { executeWithTimeout } from "../../utils/async";
+import { subscribeWebMcpDataChanged } from "../../webmcp";
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ profileId, toasterRef, currentUser, onSavingChange }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -59,30 +60,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ profileId, toasterRe
   const [testResult, setTestResult] = useState<TestResponse | null>(null);
   const [testing, setTesting] = useState(false);
 
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = (await getProfileDetails(profileId)) as Profile;
+      setProfile(data);
+      setEditName(data.name);
+      const parsed = JSON.parse(data.settings) as ProfileSettings;
+      lastConfirmedSettingsRef.current = cloneSettings(parsed);
+      setSettings(parsed);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileId]);
+
   useEffect(() => {
     isInitialLoad.current = true;
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
       debounceTimer.current = null;
     }
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        const data = await getProfileDetails(profileId) as any;
-        setProfile(data);
-        setEditName(data.name);
-        const parsed = JSON.parse(data.settings);
-        lastConfirmedSettingsRef.current = cloneSettings(parsed);
-        setSettings(parsed);
-        return profile;
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+    void fetchProfile();
+  }, [fetchProfile]);
+
+  // Auto-refresh Profile details and settings when a WebMCP agent modifies policy or pause state
+  useEffect(() => {
+    return subscribeWebMcpDataChanged((detail) => {
+      if (
+        (detail.scope === "profile_settings" || detail.scope === "all") &&
+        (!detail.profileId || detail.profileId === profileId)
+      ) {
+        isInitialLoad.current = true;
+        void fetchProfile();
       }
-    };
-    fetchProfile();
-  }, [profileId]);
+    });
+  }, [fetchProfile, profileId]);
 
   useEffect(() => {
     if (!loading && settings && isInitialLoad.current) {

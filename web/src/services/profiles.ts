@@ -111,12 +111,21 @@ export async function deleteProfile(id: string): Promise<void> {
   profileAccessPointsCache.invalidate(id);
 }
 
-export async function updateProfileSettings(profileId: string, settings: GlobalProfileSettings): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/settings`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(settings)
-  });
+export async function updateProfileSettings(
+  profileId: string,
+  settings: GlobalProfileSettings,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/settings`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   profileDetailsCache.invalidate(profileId);
 }
@@ -600,12 +609,21 @@ export async function testResolution(
   return res.json();
 }
 
-export async function renameProfile(profileId: string, name: string): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name })
-  });
+export async function renameProfile(
+  profileId: string,
+  name: string,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   profileDetailsCache.invalidate(profileId);
 }

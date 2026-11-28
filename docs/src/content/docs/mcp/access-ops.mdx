@@ -1,0 +1,51 @@
+---
+title: "Access Points, Profiles & Admin Ops"
+description: Reference for DNS Worker WebMCP device and operations modules covering Access Point binding and creation (access_points), Profile policy tuning and pause toggles (profiles), read-only administrator diagnostics (admin_ops), and strict secret filtering.
+sidebar:
+  order: 4
+---
+
+**DNS Worker** exposes device management, DNS policy tuning, and read-only system observability through three additional WebMCP modules — **`access_points`**, **`profiles`**, and **`admin_ops`** — providing **10 schema-validated tools** with strict secret isolation.
+
+> **Access & Secret Boundaries**: Mutating tools in `access_points` and `profiles` enforce `access: 'write'` human confirmation (HITL). Tools in `admin_ops` specify `roleScope: 'admin'` and remain invisible and inaccessible (`FORBIDDEN_ROLE`) to non-admin sessions. Access Point tokens, `profile_key` secrets, full invite codes, and sensitive server settings are never exposed to AI contexts.
+
+---
+
+## 1. Access Points Tools (`access_points`)
+
+| Tool Name | Access | Purpose |
+| :--- | :--- | :--- |
+| `dnsworker_list_access_points` | Read | Lists user-owned DNS Access Points filtered by `all`, `profile`, or `unbound`, projecting `hasToken` while stripping plaintext endpoint tokens. |
+| `dnsworker_bind_access_point` | Write (HITL) | Updates the bound `profileId` (pass `null` to unbind), display `name`, or `deviceType` of a specific `apId` and refreshes open dashboard views. |
+| `dnsworker_create_access_point` | Write (HITL) | Creates a new Access Point optionally bound to a target Profile while keeping generated connection tokens confined to the Setup UI. |
+
+> **Security Exclusions**: Access Point token rotation (`rotateAccessPointToken`) and deletion (`deleteAccessPoint`) are permanently excluded from WebMCP tools.
+
+---
+
+## 2. Profile Policy Tools (`profiles`)
+
+| Tool Name | Access | Purpose |
+| :--- | :--- | :--- |
+| `dnsworker_get_profile_settings` | Read | Reads Profile strategy settings (`upstream`, `default_policy`, `block_mode`, ECS, Best-Effort ECH, `log_retention_days`, and `pause_filtering`) while stripping `profile_key`. |
+| `dnsworker_update_profile_settings` | Write (HITL) | Safely merge-patches Profile settings and optional display name; enforces IP target requirements when switching `block_mode` to `CUSTOM_IP`. |
+| `dnsworker_toggle_pause_filtering` | Write (HITL) | Temporarily pauses or immediately resumes DNS filtering on a Profile (`60–86400` seconds) with a Unix-second expiration timestamp (`expires_at`). |
+
+---
+
+## 3. Read-Only Admin Diagnostics (`admin_ops`)
+
+Every tool in `admin_ops` declares `roleScope: "admin"` and `readOnlyHint: true`:
+
+| Tool Name | Purpose |
+| :--- | :--- |
+| `dnsworker_admin_get_runtime_status` | Inspects Serverfull Node runtime metrics, current version, release channel (`latest` / `alpha` / `canary`), worker count, and update status (restart actions remain excluded). |
+| `dnsworker_admin_get_database_status` | Checks active database engine (D1 / Turso / Local SQLite), migration progress, disk storage totals, and snapshot counts while omitting host filesystem paths. |
+| `dnsworker_admin_list_users_summary` | Returns bounded (`1–50`) user account summaries including roles, MFA/TOTP/Passkey counts, and PIN lock flags without credential material. |
+| `dnsworker_admin_get_system_config_summary` | Summarizes non-secret global settings (keys matching `secret`, `token`, `password`, `key`, `salt`, or `jwt` are excluded), 4-char prefixed invite capacity, and distributed system filters. |
+
+---
+
+## 4. Dashboard View Synchronization
+
+Successful mutations emit `dns_worker_webmcp_data_changed` events (`scope: "access_points"` or `"profile_settings"`), triggering automatic refreshes across open **Manage Access Points**, **Setup**, and **Profile Settings** views without full page reloads.

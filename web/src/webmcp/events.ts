@@ -8,7 +8,13 @@ export const WEBMCP_DATA_CHANGED_EVENT = "dns_worker_webmcp_data_changed";
 export const WEBMCP_PREF_CHANGED_EVENT = "dns_worker_webmcp_pref_changed";
 export const WEBMCP_TOOLS_CHANGED_EVENT = "dns_worker_webmcp_tools_changed";
 
-export type WebMcpDataScope = "rules" | "filtering" | "user_lists" | "all";
+export type WebMcpDataScope =
+  | "rules"
+  | "filtering"
+  | "user_lists"
+  | "access_points"
+  | "profile_settings"
+  | "all";
 
 export interface WebMcpDataChangedDetail {
   scope: WebMcpDataScope;
