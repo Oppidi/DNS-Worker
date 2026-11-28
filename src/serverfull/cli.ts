@@ -55,6 +55,7 @@ export async function parseCli(): Promise<ServerfullCliArgs> {
         'ech-enabled': { type: 'boolean' },
         'ech-config': { type: 'string' },
         'ech-fronting-domain': { type: 'string' },
+        'min-http-version': { type: 'string' },
         user: { type: 'string', short: 'u' },
         status: { type: 'boolean', short: 's' },
         force: { type: 'boolean', short: 'f' },

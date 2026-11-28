@@ -109,6 +109,9 @@ DATABASE_SERVICE = "D1"
 # Default upstream for fail-open emergency fallback.
 # Supports HTTPS (DoH, e.g. "https://security.cloudflare-dns.com/dns-query"), TLS/DoT (e.g. "tls://1.1.1.1" or "tls://dns.google:853"), TCP (e.g. "tcp://1.1.1.1:53"), and DNS Stamps ("sdns://...").
 FAIL_OPEN_UPSTREAM = "tls://no-ads-malware-typo.freedns.controld.com"
+# Minimum allowed HTTP version for inbound DoH requests ("1.0", "1.1", "2", "3"; default "1.1").
+# Allowed HTTP/1.x responses still advertise Alt-Svc / Upgrade headers to guide clients toward HTTP/2 and HTTP/3.
+MIN_HTTP_VERSION = "1.1"
 # Maximum number of access points allowed per profile
 MAX_ACCESS_POINTS_PER_PROFILE = 100
 # Maximum number of profiles allowed per user

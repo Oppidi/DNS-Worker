@@ -4,6 +4,7 @@ import { importJwtSecret, verifyJWT } from './jwt';
 import { SessionModel } from '../models/session';
 import { getAbsoluteSessionExpiry } from './session';
 import { cacheUtils } from '../utils/cache';
+import { buildAltSvcHeader } from './httpVersion';
 
 /**
  * Applies standard security headers and Content-Security-Policy (CSP) with a nonce.
@@ -25,7 +26,7 @@ export function applySecurityHeaders(response: Response, nonce: string): Respons
   }
 
   if (!newHeaders.has('Alt-Svc')) {
-    newHeaders.set('Alt-Svc', 'h3=":443"; ma=86400, h3-29=":443"; ma=86400');
+    newHeaders.set('Alt-Svc', buildAltSvcHeader(443));
   }
 
   return new Response(response.body, {

@@ -38,6 +38,10 @@ SERVERFULL_HTTP_PORT=10080
 # HTTPS 服务在配置了有效 TLS 证书时自动启用；未配置证书或文件不存在时仅启用 HTTP 服务
 SERVERFULL_HTTPS_PORT=10443
 
+# Minimum allowed HTTP version for inbound DoH requests / 允许接入 DoH 的最低 HTTP 版本 (1.0, 1.1, 2, 3; default: 1.1)
+# Requests below this threshold receive HTTP 505 with Upgrade & Alt-Svc headers; HTTP/1.x gets Alt-Svc/Upgrade guidance
+MIN_HTTP_VERSION=1.1
+
 # ------------------------------------------------------------------------------
 # DNS over TLS (DoT) Domain & TLS Certificates / 加密 DoT 域名与 TLS 证书配置
 # ------------------------------------------------------------------------------

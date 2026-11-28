@@ -15,6 +15,12 @@ import { lookupAccessKeyInDo, syncResolvedProfileKeyToDo } from '../lib/accessKe
 import { recordActiveDnsConnection } from '../lib/activeDns';
 import { detectServerfullMode } from '../router/runtimeConfig';
 import { zeroizeBuffer } from '../utils/memory';
+import {
+  applyHttpUpgradeGuidanceHeaders,
+  buildHttpVersionRejectedResponse,
+  getMinHttpVersion,
+  getRequestHttpVersion
+} from '../lib/httpVersion';
 
 /** In-memory throttle tracker for user last DNS resolution database updates */
 const activeThrottleMemoryMap = new Map<string, number>();
@@ -223,8 +229,12 @@ export async function handleDoHRequest(
   ctx: ExecutionContext,
   profileKey: string
 ): Promise<Response> {
-  // RFC 8484 §5.2 makes HTTP/2 the minimum RECOMMENDED version, not a requirement, so
-  // HTTP/1.1 DoH clients (e.g. MikroTik RouterOS) are served rather than rejected with 505.
+  const minHttpVersion = getMinHttpVersion(env);
+  const requestHttpVersion = getRequestHttpVersion(request);
+  if (requestHttpVersion !== null && requestHttpVersion < minHttpVersion) {
+    return buildHttpVersionRejectedResponse(requestHttpVersion, minHttpVersion);
+  }
+
   const cache = typeof caches !== "undefined" ? (caches as any).default : null;
   let queryRaw: Uint8Array | null = null;
 
@@ -309,12 +319,16 @@ export async function handleDoHRequest(
         try {
           const fallbackRes = await resolveFailOpenFallback(env, queryRaw);
           if (fallbackRes.answer && fallbackRes.answer.length > 0) {
-            return new Response(fallbackRes.answer as any, {
-              headers: {
-                'Content-Type': 'application/dns-message',
-                'Cache-Control': 'max-age=60'
-              }
-            });
+            return applyHttpUpgradeGuidanceHeaders(
+              new Response(fallbackRes.answer as any, {
+                headers: {
+                  'Content-Type': 'application/dns-message',
+                  'Cache-Control': 'max-age=60'
+                }
+              }),
+              requestHttpVersion,
+              minHttpVersion
+            );
           }
         } catch (fallbackErr) {
           console.error('[DoH Pipeline] Fail-open upstream fallback failed:', fallbackErr);
@@ -323,12 +337,16 @@ export async function handleDoHRequest(
       return new Response('Upstream Resolution Failed', { status: 502 });
     }
 
-    return new Response(result.answer as any, {
-      headers: {
-        'Content-Type': 'application/dns-message',
-        'Cache-Control': `max-age=${result.ttl}`
-      }
-    });
+    return applyHttpUpgradeGuidanceHeaders(
+      new Response(result.answer as any, {
+        headers: {
+          'Content-Type': 'application/dns-message',
+          'Cache-Control': `max-age=${result.ttl}`
+        }
+      }),
+      requestHttpVersion,
+      minHttpVersion
+    );
   } catch (e: any) {
     console.error(`[DoH Pipeline] Internal Error:`, e);
     try {
@@ -339,12 +357,16 @@ export async function handleDoHRequest(
 
       if (rawBytes && rawBytes.length > 0) {
         const transportRes = await resolveFailOpenFallback(env, rawBytes);
-        return new Response(transportRes.answer as any, {
-          headers: {
-            "Content-Type": "application/dns-message",
-            "Cache-Control": "max-age=60"
-          }
-        });
+        return applyHttpUpgradeGuidanceHeaders(
+          new Response(transportRes.answer as any, {
+            headers: {
+              "Content-Type": "application/dns-message",
+              "Cache-Control": "max-age=60"
+            }
+          }),
+          requestHttpVersion,
+          minHttpVersion
+        );
       }
 
       // If wire query bytes couldn't be decoded and upstream is HTTP(S), proxy request directly

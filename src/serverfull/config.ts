@@ -46,6 +46,7 @@ export interface ServerfullCliArgs {
   'ech-enabled'?: boolean;
   'ech-config'?: string;
   'ech-fronting-domain'?: string;
+  'min-http-version'?: string;
   'turso-url'?: string;
   'turso-token'?: string;
   workers?: string;
@@ -80,6 +81,7 @@ export interface ServerfullConfig {
   echFrontingDomain: string;
   workers: number;
   dnsCacheSize: number;
+  minHttpVersion: string;
   packageRoot: string;
 }
 
@@ -188,6 +190,12 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
   const rawCacheSize = cliArgs?.['dns-cache-size'] || process.env.DNS_CACHE_SIZE || '20000';
   const parsedCacheSize = parseInt(rawCacheSize, 10);
   const dnsCacheSize = isNaN(parsedCacheSize) || parsedCacheSize <= 0 ? 20000 : parsedCacheSize;
+  const minHttpVersion = (
+    cliArgs?.['min-http-version'] ||
+    process.env.MIN_HTTP_VERSION ||
+    process.env.SERVERFULL_MIN_HTTP_VERSION ||
+    '1.1'
+  ).trim();
 
   const config: ServerfullConfig = {
     tlsKeyPath: effectiveKeyPath,
@@ -212,6 +220,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     echFrontingDomain,
     workers,
     dnsCacheSize,
+    minHttpVersion,
     packageRoot
   };
 
@@ -223,6 +232,7 @@ export function getServerfullConfig(cliArgs?: ServerfullCliArgs): { config: Serv
     ASSETS: null as any, // Set by http.ts
     JWT_SECRET: getOrInitPersistentJwtSecret(),
     FAIL_OPEN_UPSTREAM: process.env.FAIL_OPEN_UPSTREAM || DEFAULT_FAIL_OPEN_UPSTREAM,
+    MIN_HTTP_VERSION: minHttpVersion,
     SUBSTITUTE_DOMAIN: process.env.SUBSTITUTE_DOMAIN || DEFAULT_SUBSTITUTE_DOMAIN,
     PRESET_UPSTREAMS: process.env.PRESET_UPSTREAMS || JSON.stringify(DEFAULT_PRESET_UPSTREAMS),
     PRESET_EXTERNAL_FILTERS: process.env.PRESET_EXTERNAL_FILTERS || JSON.stringify(DEFAULT_PRESET_EXTERNAL_FILTERS),
