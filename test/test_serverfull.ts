@@ -464,13 +464,17 @@ async function runTests() {
   console.log('\n>>> [TEST E] Testing Auth Refresh & RTR Grace Window on HTTP...');
   const { createSession } = await import('../src/lib/auth');
   const { refreshToken } = await createSession(env, 'user1', '127.0.0.1', 'Serverfull-Test-Agent', 0.0, 0.0, false);
+  // /api/auth/refresh requires the CSRF double-submit cookie and matching X-CSRF-Token header
+  const csrfToken = crypto.randomUUID();
+  const refreshHeaders = {
+    'Cookie': `auth_refresh=${refreshToken}; csrf_token=${csrfToken}`,
+    'X-CSRF-Token': csrfToken
+  };
 
   // 1. Initial refresh via HTTP
   const refreshRes1 = await fetch(`http://127.0.0.1:${HTTP_TEST_PORT}/api/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Cookie': `auth_refresh=${refreshToken}`
-    }
+    headers: refreshHeaders
   });
 
   console.log('>>> [TEST E] HTTP refresh status:', refreshRes1.status);
@@ -495,9 +499,7 @@ async function runTests() {
   console.log('>>> [TEST E] Testing RTR Concurrency Grace Window (simulating in-flight parallel refresh)...');
   const refreshRes2 = await fetch(`http://127.0.0.1:${HTTP_TEST_PORT}/api/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Cookie': `auth_refresh=${refreshToken}`
-    }
+    headers: refreshHeaders
   });
 
   console.log('>>> [TEST E] Parallel refresh status:', refreshRes2.status);
