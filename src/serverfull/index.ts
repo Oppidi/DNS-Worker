@@ -1,110 +1,28 @@
 /**
  * @file index.ts
  * @description Master entry point for DNS Worker Serverfull mode.
- * Boots and coordinates UDP DNS, DoT (DNS over TLS), HTTP/HTTPS Web Dashboard & DoH,
- * cluster multi-worker concurrency, and scheduled database maintenance jobs.
+ * Boots and coordinates runtime setup, database initialization, cluster workers,
+ * network transports, and graceful shutdown via `./bootstrap/*`.
  */
 
-import path from 'node:path';
 import { initNodeGlobals } from './cache';
 import { getPackageVersion, getServerfullConfig } from './config';
-import { initServerfullDb } from './db';
-import { ServerfullSnapshotManager } from './snapshot';
-import { createTursoClient, maskDatabaseUrl } from '../lib/turso';
-import { runTursoMigrations } from '../lib/turso/migrate';
-import { UdpDnsServer } from './udp';
-import { TcpDnsServer } from './tcp';
-import { DotDnsServer } from './dot';
-import { HttpServer, HttpsServer } from './http';
-import { inspectTlsCertificate, getCertbotDiagnosticOptions } from './cert';
 import { flushLogBatch } from '../pipeline/logBatcher';
-import worker from '../app';
-import { Env, ExecutionContext } from '../types';
-import { isUsableJwtSecret, isStrongJwtSecret } from '../lib/jwt';
-import { formatBanner, formatDiagnostic, formatKeyValueSection } from './format';
+import { formatDiagnostic } from './format';
 import { checkNodeVersion, parseCli, getActiveRuntimeDescription } from './cli';
 import { tuneV8Engine } from './v8';
 import { getClusterInfo, forkClusterWorkers, shutdownClusterWorkers } from './cluster';
-import { registerActiveDnsSyncPublisher, applySyncedActiveDnsConnection } from '../lib/activeDns';
-import {
-  registerProfileKeyInvalidatePublisher,
-  invalidateProfileKeyCache,
-  registerProfileCacheInvalidatePublisher,
-  clearLocalProfileCache
-} from '../pipeline/cache';
-import {
-  registerAuthCacheInvalidatePublisher,
-  invalidateAuthUserCache,
-  invalidateAuthUserCacheByUserId
-} from '../lib/middleware';
-import {
-  registerSystemSettingsInvalidatePublisher,
-  invalidateSystemSettingsCache
-} from '../models/systemSettings';
-import { initCloudflareIpRanges } from '../utils/ech/sync';
 import { ServerfullLifecycleManager } from './lifecycle';
+import { startServerfullCronLoop } from './bootstrap/cron';
+import { initConfiguredDatabase, closeLocalSqliteSafely } from './bootstrap/database';
+import { logPrimaryStartupDiagnostics, printRuntimeStartupBanner } from './bootstrap/diagnostics';
+import { registerWorkerIpcHandlers } from './bootstrap/ipc';
+import { startServerfullTransports, stopServerfullTransports } from './bootstrap/transports';
 
 export * from './cli';
 
-interface SqliteMaintenanceHandle {
-  rawDb: { close(): void };
-  checkpoint?(mode?: 'PASSIVE' | 'FULL' | 'RESTART' | 'TRUNCATE'): void;
-  optimize?(): void;
-}
-
-/**
- * Starts the 60-second background cron scheduler with a re-entrancy lock so long-running
- * list syncs or SQLite maintenance tasks never overlap across ticks and spike CPU.
- */
-function startServerfullCronLoop(
-  env: Env,
-  localSqliteDb: SqliteMaintenanceHandle | null
-): NodeJS.Timeout {
-  let cronCounter = 0;
-  let isCronRunning = false;
-
-  return setInterval(async () => {
-    if (isCronRunning) {
-      console.warn('[Cron Scheduler] Previous scheduled run is still in progress; skipping overlapping tick.');
-      return;
-    }
-    isCronRunning = true;
-    try {
-      cronCounter++;
-      // Periodic non-blocking WAL checkpoint and snapshot retention pruning every 10 minutes
-      if (localSqliteDb?.checkpoint && cronCounter % 10 === 0) {
-        localSqliteDb.checkpoint('PASSIVE');
-        env.SERVERFULL_SNAPSHOT_BRIDGE?.getOverview().catch(() => {});
-      }
-      // Periodic PRAGMA optimize every 6 hours
-      if (localSqliteDb?.optimize && cronCounter % 360 === 0) {
-        localSqliteDb.optimize();
-      }
-
-      const scheduledEvent = {
-        cron: '* * * * *',
-        scheduledTime: Date.now(),
-        type: 'scheduled' as const,
-        noRetry() {}
-      };
-      const ctx: ExecutionContext = {
-        waitUntil(promise: Promise<any>) {
-          promise.catch((err) => console.error('[Cron Task Error]:', err));
-        },
-        passThroughOnException() {}
-      } as any;
-
-      await worker.scheduled(scheduledEvent as any, env, ctx);
-    } catch (err) {
-      console.error('[Cron Scheduler Error]:', err);
-    } finally {
-      isCronRunning = false;
-    }
-  }, 60000);
-}
-
 async function bootstrap(): Promise<void> {
-  // 1. Parse CLI arguments & execute progressive runtime handoff (prefers Bun >= 1.4.0 with Node fallback) before V8 tuning
+  // 1. Parse CLI arguments & execute progressive runtime handoff before V8 tuning
   const cliArgs = await parseCli();
   tuneV8Engine();
   checkNodeVersion();
@@ -124,209 +42,34 @@ async function bootstrap(): Promise<void> {
     process.env.SERVERFULL_STARTED_AT = String(processStartedAt);
   }
 
-  // 4. Primary Process setup and diagnostics
+  // 4. Primary process startup diagnostics
   if (clusterInfo.isPrimary) {
-    console.log(formatBanner({
-      title: `Initializing DNS Worker v${getPackageVersion()} (Serverfull)`,
-      borderChar: '-'
-    }));
-
-    // Inspect TLS certificate and determine HTTPS / DoT availability
-    const certInfo = inspectTlsCertificate(config.tlsCertPath, config.tlsKeyPath);
-    const canStartHttps = certInfo.configured && certInfo.filesExist && !config.disableHttps;
-
-    if (!certInfo.configured) {
-      console.log(formatDiagnostic(getCertbotDiagnosticOptions('missing', config.dotDomain)));
-    } else if (!certInfo.filesExist) {
-      console.log(formatDiagnostic({
-        level: 'warning',
-        title: 'TLS Certificate Files Inaccessible',
-        message: certInfo.error || 'Configured TLS certificate or private key files could not be read on disk.',
-        details: [
-          `Cert path configured: ${config.tlsCertPath ? 'yes' : 'no'}`,
-          `Key path configured : ${config.tlsKeyPath ? 'yes' : 'no'}`,
-          'Running user details are omitted for security.'
-        ],
-        solutions: [
-          'Check that the paths configured in .env exist and are accessible.',
-          'If using Let\'s Encrypt (/etc/letsencrypt/), grant read permissions to the service user (e.g. chmod 755 /etc/letsencrypt/{live,archive} and chmod 644 on keys).'
-        ]
-      }));
-    } else if (!certInfo.isWildcard) {
-      console.log(formatDiagnostic(getCertbotDiagnosticOptions('non_wildcard', config.dotDomain)));
-    }
-
-    const httpsDisplay = config.disableHttps
-      ? 'Disabled (--disable-https)'
-      : canStartHttps
-        ? `https://${config.host}:${config.httpsPort}`
-        : !certInfo.configured
-          ? 'Disabled (TLS Certificates Not Configured)'
-          : `Disabled (Files Inaccessible: ${certInfo.error || 'Check Permissions'})`;
-
-    const dotDisplay = config.disableDot
-      ? 'Disabled (--disable-dot)'
-      : !certInfo.configured
-        ? 'Disabled (TLS Certificates Not Configured)'
-        : !certInfo.filesExist
-          ? `Disabled (Files Inaccessible: ${certInfo.error || 'Check Permissions'})`
-          : !certInfo.isWildcard
-            ? 'Paused (Requires Wildcard Certificate *.domain)'
-            : `tls://${config.host}:${config.dotPort}`;
-
-    console.log(formatKeyValueSection({
-      title: '[Services] Configured Ports & Transports:',
-      items: [
-        {
-          label: 'Web Dashboard & DoH (HTTP)',
-          value: canStartHttps
-            ? `http://${config.host}:${config.httpPort} (Redirects to HTTPS)`
-            : `http://${config.host}:${config.httpPort}`
-        },
-        { label: 'Web Dashboard & DoH (HTTPS)', value: httpsDisplay },
-        { label: 'Classic UDP DNS', value: config.disableUdp ? 'Disabled' : `udp://${config.host}:${config.udpPort}` },
-        { label: 'Classic TCP DNS', value: config.disableTcp ? 'Disabled' : `tcp://${config.host}:${config.udpPort}` },
-        { label: 'DNS over TLS (DoT)', value: dotDisplay }
-      ]
-    }));
-
-    // Non-blocking security check for legacy short JWT_SECRET
-    if (isUsableJwtSecret(env.JWT_SECRET) && !isStrongJwtSecret(env.JWT_SECRET)) {
-      console.warn(formatDiagnostic({
-        level: 'warning',
-        title: 'SECURITY WARNING',
-        message: 'JWT_SECRET is shorter than 32 characters.',
-        solutions: [
-          'Please configure KEK_v1 in your environment before rotating JWT_SECRET to prevent existing encrypted credentials from becoming unrecoverable.'
-        ]
-      }));
-    }
+    logPrimaryStartupDiagnostics(config, env);
   }
 
-  // 5. Initialize Database adapter (Run schema migrations on primary process only)
-  let localSqliteDb: { rawDb: { close(): void }; checkpoint?(mode?: string): void; optimize?(): void } | null = null;
+  // 5. Initialize Database adapter & synced Cloudflare proxy CIDRs
+  const localSqliteDb = await initConfiguredDatabase(config, env, clusterInfo.isPrimary);
 
-  if (config.databaseService === 'Turso') {
-    if (!config.tursoDatabaseUrl || !config.tursoAuthToken) {
-      console.error(formatDiagnostic({
-        level: 'error',
-        title: 'Database Configuration Error',
-        message: "DATABASE_SERVICE is set to 'Turso', but TURSO_DATABASE_URL or TURSO_AUTH_TOKEN is missing.",
-        solutions: [
-          'Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env or via CLI arguments (--turso-url, --turso-token).',
-          "Alternatively, set DATABASE_SERVICE='File' to use local SQLite."
-        ]
-      }));
-      process.exit(1);
-    }
-    const tursoDb = createTursoClient(config.tursoDatabaseUrl, config.tursoAuthToken);
-    if (clusterInfo.isPrimary) {
-      console.log(`[Database] Using Turso Database: ${maskDatabaseUrl(config.tursoDatabaseUrl)}`);
-      const migrationsDir = path.join(config.packageRoot, 'migrations');
-      try {
-        await runTursoMigrations(tursoDb, migrationsDir);
-      } catch (err: unknown) {
-        console.warn(
-          '[Database] Turso startup migration check failed; continuing in fail-open DNS mode:',
-          err instanceof Error ? err.message : String(err)
-        );
-      }
-    }
-    env.DB = tursoDb;
-  } else if (config.databaseService === 'D1') {
-    console.error(formatDiagnostic({
-      level: 'error',
-      title: 'Database Configuration Error',
-      message: "DATABASE_SERVICE='D1' is designed for Cloudflare Workers environments with D1 bindings.",
-      solutions: [
-        "In Serverfull mode, please set DATABASE_SERVICE='File' (default local SQLite) or DATABASE_SERVICE='Turso'."
-      ]
-    }));
-    process.exit(1);
-  } else {
-    // Default: 'File' (Local SQLite with WAL mode)
-    const skipMigrations = !clusterInfo.isPrimary;
-    const db = initServerfullDb(config.dbPath, config.packageRoot, skipMigrations);
-    localSqliteDb = db;
-    env.DB = db;
-    env.SERVERFULL_SNAPSHOT_BRIDGE = new ServerfullSnapshotManager(env);
-  }
-
-  // Load synced Cloudflare Proxy CIDRs from DB so CF-Connecting-IP passthrough verification uses latest ranges
-  if (env.DB) {
-    await initCloudflareIpRanges(env.DB);
-  }
-
-  // 6. Cluster Primary Process: Fork workers and coordinate background cron
+  // 6. Cluster Primary Process: fork workers and run scheduled background cron
   if (clusterInfo.isPrimary && clusterInfo.workersCount > 1) {
-    const certInfo = inspectTlsCertificate(config.tlsCertPath, config.tlsKeyPath);
-    const hasTls = !!(certInfo.configured && certInfo.filesExist);
-
-    console.log(formatBanner({
-      title: 'DNS Worker (Serverfull Master) Started Successfully',
-      borderChar: '=',
-      bullet: '• ',
-      items: [
-        { label: 'Runtime Engine', value: getActiveRuntimeDescription() },
-        { label: 'Multi-Core Concurrency', value: `${clusterInfo.workersCount} Workers (Cluster Mode)` },
-        { label: 'In-Memory DNS Cache', value: `${config.dnsCacheSize.toLocaleString()} entries` },
-        {
-          label: 'Classic UDP DNS',
-          value: !config.disableUdp ? `udp://${config.host}:${config.udpPort}` : 'Disabled'
-        },
-        {
-          label: 'Classic TCP DNS',
-          value: !config.disableTcp ? `tcp://${config.host}:${config.udpPort}` : 'Disabled'
-        },
-        {
-          label: 'DoT (TLS DNS)',
-          value: (!config.disableDot && hasTls) ? `tls://${config.dotDomain || config.host}:${config.dotPort}` : 'Disabled'
-        },
-        {
-          label: 'Web UI & DoH (HTTP)',
-          value: `http://${config.host}:${config.httpPort}`
-        },
-        {
-          label: 'Web UI & DoH (HTTPS)',
-          value: (hasTls && !config.disableHttps) ? `https://${config.dotDomain || config.host}:${config.httpsPort}` : 'Disabled'
-        },
-        {
-          label: 'Database Engine',
-          value: config.databaseService === 'Turso' ? `Turso (${maskDatabaseUrl(config.tursoDatabaseUrl)})` : `SQLite (${config.dbPath})`
-        }
-      ]
-    }));
-
-    // Start background cron on Primary process (every 60s, non-overlapping)
+    printRuntimeStartupBanner(config, clusterInfo.workersCount);
     const cronTimer = startServerfullCronLoop(env, localSqliteDb);
 
     let primaryShuttingDown = false;
     const shutdownPrimary = async (signal: string) => {
-      if (primaryShuttingDown) {
-        return;
-      }
+      if (primaryShuttingDown) return;
       primaryShuttingDown = true;
       console.log(`\n[Serverfull Master] Received ${signal}. Shutting down cluster...`);
       clearInterval(cronTimer);
       await shutdownClusterWorkers();
 
-      try {
-        await flushLogBatch(env);
-      } catch {}
-
-      if (localSqliteDb) {
-        try {
-          localSqliteDb.checkpoint?.('TRUNCATE');
-          localSqliteDb.rawDb.close();
-          console.log('[Serverfull Master] Database connection closed.');
-        } catch {}
-      }
+      try { await flushLogBatch(env); } catch {}
+      closeLocalSqliteSafely(localSqliteDb, true, '[Serverfull Master]');
 
       console.log('[Serverfull Master] Cluster shutdown complete. Goodbye.');
       process.exit(0);
     };
 
-    // Fork worker processes and relay console restart requests to primary shutdown
     forkClusterWorkers(clusterInfo.workersCount, () => {
       void shutdownPrimary('CONSOLE_RESTART');
     });
@@ -336,81 +79,9 @@ async function bootstrap(): Promise<void> {
     return;
   }
 
-  // 7. Worker Process (or Single Process Mode): Initialize and start network servers
+  // 7. Worker Process (or Single Process Mode): wire IPC & lifecycle bridge, start transports
   if (clusterInfo.isWorker) {
-    registerActiveDnsSyncPublisher((ip, profileId, expiresAt) => {
-      try {
-        process.send?.({ type: 'ACTIVE_DNS_SYNC', ip, profileId, expiresAt });
-      } catch {
-        // Ignore IPC send errors during worker shutdown
-      }
-    });
-
-    registerProfileKeyInvalidatePublisher((profileKey) => {
-      try {
-        process.send?.({ type: 'PROFILE_KEY_INVALIDATE', profileKey });
-      } catch {
-        // Ignore IPC send errors during worker shutdown
-      }
-    });
-
-    registerAuthCacheInvalidatePublisher((payload) => {
-      try {
-        process.send?.({ type: 'AUTH_CACHE_INVALIDATE', ...payload });
-      } catch {}
-    });
-
-    registerProfileCacheInvalidatePublisher((profileId, clearBloom) => {
-      try {
-        process.send?.({ type: 'PROFILE_CACHE_INVALIDATE', profileId, clearBloom });
-      } catch {}
-    });
-
-    registerSystemSettingsInvalidatePublisher((keys) => {
-      try {
-        process.send?.({ type: 'SYSTEM_SETTINGS_INVALIDATE', keys });
-      } catch {}
-    });
-
-    process.on('message', (message: unknown) => {
-      if (!message || typeof message !== 'object') {
-        return;
-      }
-      const msgType = (message as { type?: string }).type;
-      if (msgType === 'ACTIVE_DNS_SYNC') {
-        const payload = message as { ip?: unknown; profileId?: unknown; expiresAt?: unknown };
-        if (
-          typeof payload.ip === 'string' &&
-          typeof payload.profileId === 'string' &&
-          typeof payload.expiresAt === 'number'
-        ) {
-          applySyncedActiveDnsConnection(payload.ip, payload.profileId, payload.expiresAt);
-        }
-      } else if (msgType === 'PROFILE_KEY_INVALIDATE') {
-        const payload = message as { profileKey?: unknown };
-        if (typeof payload.profileKey === 'string') {
-          invalidateProfileKeyCache(payload.profileKey, false);
-        }
-      } else if (msgType === 'AUTH_CACHE_INVALIDATE') {
-        const payload = message as { sessionId?: unknown; userId?: unknown };
-        if (typeof payload.sessionId === 'string') {
-          invalidateAuthUserCache(payload.sessionId, false);
-        }
-        if (typeof payload.userId === 'string') {
-          invalidateAuthUserCacheByUserId(payload.userId, false);
-        }
-      } else if (msgType === 'PROFILE_CACHE_INVALIDATE') {
-        const payload = message as { profileId?: unknown; clearBloom?: unknown };
-        if (typeof payload.profileId === 'string') {
-          void clearLocalProfileCache(payload.profileId, Boolean(payload.clearBloom), true);
-        }
-      } else if (msgType === 'SYSTEM_SETTINGS_INVALIDATE') {
-        const payload = message as { keys?: unknown };
-        if (Array.isArray(payload.keys)) {
-          invalidateSystemSettingsCache(payload.keys.filter((k): k is string => typeof k === 'string'));
-        }
-      }
-    });
+    registerWorkerIpcHandlers();
   }
 
   let triggerConsoleRestart: (() => void) | null = null;
@@ -429,150 +100,28 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  const certInfo = inspectTlsCertificate(config.tlsCertPath, config.tlsKeyPath);
-  const canStartHttps = certInfo.configured && certInfo.filesExist && !config.disableHttps;
-  const canStartDot = !config.disableDot && certInfo.configured && certInfo.filesExist && certInfo.isWildcard;
+  const transports = await startServerfullTransports(config, env);
 
-  const udpServer = !config.disableUdp ? new UdpDnsServer({
-    port: config.udpPort,
-    host: config.host,
-    defaultProfileKey: config.defaultProfileKey,
-    env
-  }) : null;
-
-  const tcpServer = !config.disableTcp ? new TcpDnsServer({
-    port: config.udpPort,
-    host: config.host,
-    defaultProfileKey: config.defaultProfileKey,
-    env
-  }) : null;
-
-  const dotServer = canStartDot ? new DotDnsServer({
-    port: config.dotPort,
-    host: config.host,
-    tlsKeyPath: config.tlsKeyPath,
-    tlsCertPath: config.tlsCertPath,
-    dotDomain: config.dotDomain,
-    defaultProfileKey: config.defaultProfileKey,
-    env
-  }) : null;
-
-  const httpServer = new HttpServer({
-    port: config.httpPort,
-    host: config.host,
-    env,
-    httpsRedirect: canStartHttps ? {
-      enabled: true,
-      httpsPort: config.httpsPort
-    } : undefined
-  });
-
-  const httpsServer = canStartHttps ? new HttpsServer({
-    port: config.httpsPort,
-    host: config.host,
-    certPath: config.tlsCertPath,
-    keyPath: config.tlsKeyPath,
-    env
-  }) : null;
-
-  // Start all server transports
-  if (udpServer) await udpServer.start();
-  if (tcpServer) await tcpServer.start();
-  if (dotServer) await dotServer.start();
-  await httpServer.start();
-  if (httpsServer) await httpsServer.start();
-
-  // If running in single-process mode (workers === 1), start background cron
   let cronTimer: NodeJS.Timeout | null = null;
   if (clusterInfo.workersCount === 1) {
     cronTimer = startServerfullCronLoop(env, localSqliteDb);
-
-    const hasTls = !!(certInfo.configured && certInfo.filesExist);
-    console.log(formatBanner({
-      title: 'DNS Worker (Serverfull Mode) Started Successfully',
-      borderChar: '=',
-      bullet: '• ',
-      items: [
-        { label: 'Runtime Engine', value: getActiveRuntimeDescription() },
-        { label: 'Concurrency', value: 'Single Process' },
-        { label: 'In-Memory DNS Cache', value: `${config.dnsCacheSize.toLocaleString()} entries` },
-        {
-          label: 'Classic UDP DNS',
-          value: udpServer ? `udp://${config.host}:${config.udpPort}` : 'Disabled (--disable-udp)'
-        },
-        {
-          label: 'Classic TCP DNS',
-          value: tcpServer ? `tcp://${config.host}:${config.udpPort}` : 'Disabled (--disable-tcp)'
-        },
-        {
-          label: 'DoT (TLS DNS)',
-          value: (dotServer && hasTls)
-            ? `tls://${config.dotDomain || config.host}:${config.dotPort}`
-            : (!certInfo.configured)
-              ? 'Disabled / Not Configured'
-              : (!certInfo.filesExist)
-                ? `Disabled (Files Inaccessible: ${certInfo.error || 'Check Permissions'})`
-                : (!certInfo.isWildcard)
-                  ? 'Paused (Requires Wildcard Certificate *.domain)'
-                  : 'Disabled'
-        },
-        {
-          label: 'Web UI & DoH (HTTP)',
-          value: `http://${config.host}:${config.httpPort}`
-        },
-        {
-          label: 'Web UI & DoH (HTTPS)',
-          value: httpsServer
-            ? `https://${config.dotDomain || config.host}:${config.httpsPort}`
-            : (!certInfo.configured)
-              ? 'Disabled / Not Configured'
-              : (!certInfo.filesExist)
-                ? `Disabled (Files Inaccessible: ${certInfo.error || 'Check Permissions'})`
-                : 'Disabled'
-        },
-        {
-          label: 'Database Engine',
-          value: config.databaseService === 'Turso' ? `Turso (${maskDatabaseUrl(config.tursoDatabaseUrl)})` : `SQLite (${config.dbPath})`
-        }
-      ]
-    }));
+    printRuntimeStartupBanner(config, clusterInfo.workersCount);
   } else {
-    const workerTag = `Worker #${clusterInfo.workerId || 1}`;
-    console.log(`[${workerTag}] All server transports bound and listening.`);
+    console.log(`[Worker #${clusterInfo.workerId || 1}] All server transports bound and listening.`);
   }
 
   // 8. Graceful shutdown handler
   let isShuttingDown = false;
   const shutdown = async (signal: string) => {
-    if (isShuttingDown) {
-      return;
-    }
+    if (isShuttingDown) return;
     isShuttingDown = true;
     const prefix = clusterInfo.workersCount > 1 ? `[Worker #${clusterInfo.workerId || 1}]` : '[Serverfull]';
     console.log(`\n${prefix} Received ${signal}. Shutting down gracefully...`);
     if (cronTimer) clearInterval(cronTimer);
 
-    await Promise.all([
-      udpServer?.stop(),
-      tcpServer?.stop(),
-      dotServer?.stop(),
-      httpServer.stop(),
-      httpsServer?.stop()
-    ]);
-
-    try {
-      await flushLogBatch(env);
-    } catch {}
-
-    if (localSqliteDb) {
-      try {
-        if (clusterInfo.workersCount === 1) {
-          localSqliteDb.checkpoint?.('TRUNCATE');
-        }
-        localSqliteDb.rawDb.close();
-        console.log(`${prefix} Database connection closed.`);
-      } catch {}
-    }
+    await stopServerfullTransports(transports);
+    try { await flushLogBatch(env); } catch {}
+    closeLocalSqliteSafely(localSqliteDb, clusterInfo.workersCount === 1, prefix);
 
     console.log(`${prefix} Services stopped. Goodbye.`);
     process.exit(0);
@@ -593,7 +142,7 @@ bootstrap().catch((err: unknown) => {
     console.error(formatDiagnostic({
       level: 'error',
       title: 'Serverfull - Fatal Startup Error',
-      message: errorMsg
+      message: errorMsg,
     }));
   }
   process.exit(1);
