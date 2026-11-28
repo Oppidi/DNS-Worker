@@ -1,9 +1,9 @@
 ---
 title: DNS Worker Documentation
-description: Privacy-First Protective DNS Resolver & DoH / DoT Server with Dual-Engine Architecture.
+description: DNS Worker is a privacy-focused Protective DNS (domain-blocking system) supporting Adblock/Hosts filtering, DoH/DoT/DoQ, Cloudflare Workers Edge, and standalone Serverfull deployment.
 template: splash
 hero:
-  tagline: Protect your first hop on the internet · Intelligent Ad & Threat Blocklists · Full-Stack Protocol Coverage · Local-First 0ms Analytics · NIST FIPS 203 Post-Quantum Zero-Knowledge E2EE
+  tagline: Protective DNS Domain Blocking · Multi-Format Filter Engine · Full-Stack Encrypted DNS · Local-First 0ms Analytics · Post-Quantum E2EE Logs
   image:
     file: ../../assets/logo.svg
   actions:
@@ -24,36 +24,36 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid stagger>
-  <Card title="Serverless-First Edge Network" icon="rocket">
-    Born for Cloudflare Workers & D1 across 300+ global edge locations with zero server maintenance, while also offering standalone self-hosted Serverfull deployment for home routers.
+  <Card title="Protective Domain Blocking" icon="magnifier">
+    Evaluates hundreds of thousands of ad, telemetry, phishing, and malware rules at the DNS resolution layer using a Dual-State Prefix-Encoded Bloom Filter and pattern pool within tight memory budgets.
   </Card>
-  <Card title="Intelligent Ad & Threat Blocking" icon="magnifier">
-    Built-in protective DNS engine intercepts millions of intrusive ads, cross-site telemetry trackers, malware, and phishing domains before connections are established. Accelerated by a high-precision single-layer Bloom filter with sub-millisecond evaluation latency and minimal memory footprint.
+  <Card title="Custom Rules & Access Point Isolation" icon="list-format">
+    Subscribe to public filter feeds (OISD, AdGuard, HaGeZi, StevenBlack), add local allow/block/rewrite overrides, and switch per-device Profiles dynamically via Access Point tokens.
   </Card>
-  <Card title="Custom Rules & Multi-Profile Routing" icon="list-format">
-    Seamlessly subscribe to popular blocklists (OISD, AdGuard, HaGeZi, StevenBlack), configure custom allowlists/blocklists and DNS rewrites, and isolate policies across devices with unique profile keys.
+  <Card title="Full-Stack DNS Protocols" icon="setting">
+    Supports Classic UDP 53, DoT 853 (with TLS SNI routing), DoH (RFC 8484 over HTTP/2 & HTTP/3), DoQ (RFC 9250), and ECH / DDR (RFC 9460).
   </Card>
-  <Card title="Full-Stack Protocols" icon="setting">
-    Native support for Classic UDP 53, DoT 853 (with TLS SNI profile routing), DoH (RFC 8484 over HTTP/2 & HTTP/3), DoQ (RFC 9250), and ECH / DDR (RFC 9460).
+  <Card title="Dual Runtime Deployment" icon="rocket">
+    Runs serverless on Cloudflare Workers & D1 across 300+ global edge PoPs, or standalone (Serverfull) on your own Linux/Windows host with Node.js/Bun and SQLite.
   </Card>
   <Card title="Post-Quantum Zero-Knowledge E2EE" icon="shield">
-    Powered by NIST FIPS 203 **P256-MLKEM768** hybrid lattice cryptography and hardware Passkeys (WebAuthn), rendering query logs safe from future quantum decryption.
+    Powered by NIST FIPS 203 **P256-MLKEM768** hybrid lattice cryptography and WebAuthn Passkeys so encrypted query logs can only be decrypted on authorized client devices.
   </Card>
-  <Card title="Local-First 0ms Analytics" icon="laptop">
-    Embedded in-browser SQLite (WASM + OPFS) delivers instant 0ms log filtering and interactive charts with zero cloud database queries.
+  <Card title="Local-First Analytics (OPFS)" icon="laptop">
+    Runs in-browser SQLite (WASM + OPFS) inside a Web Worker for instant 0ms log filtering and chart aggregation while minimizing server database reads.
   </Card>
 </CardGrid>
 
 ---
 
-## 🛡️ Ad & Threat Interception
+## Domain Blocking & Filtering Engine
 
-DNS Worker is engineered from the ground up as a **Protective DNS** resolver that safeguards your network, mobile devices, and IoT appliances at the internet's foundation:
+**DNS Worker** acts as a Protective DNS (domain-blocking system) that filters traffic at the resolution layer before network connections are established:
 
-- **Intrusive Ad & Telemetry Blocking**: Silently suppresses banner ads, video commercials, popups, and invasive operating system telemetry across iOS, Android, macOS, Windows, and Smart TVs without installing client software.
-- **Proactive Threat Neutralization**: Real-time interception of malware distribution nodes, ransomware callbacks, phishing portals, cryptominers, and botnet Command & Control (C2) domains.
-- **High-Performance Bloom Filter Engine**: Powered by a compact bitset Bloom filter architecture, evaluating hundreds of thousands of rules with sub-millisecond latency and near-zero memory footprint without heavy prefix trees.
-- **Flexible Rule Management**: Pre-loaded with top-tier filter subscriptions (OISD Big, AdGuard Base, HaGeZi Multi PRO++, StevenBlack Hosts), alongside custom wildcard/regex matching and DNS rewrites.
-- **Real-Time Audit & Logs**: Live inspection of permitted, blocked, and rewritten queries with an interactive drawer showing matched filter rules, client origin, and latency breakdown.
+- **Ad & Telemetry Filtering**: Blocks banner ads, trackers, and OS diagnostic telemetry across routers, phones, tablets, and smart TVs without client extensions.
+- **Threat Interception**: Stops malware distribution hosts, ransomware callbacks, phishing domains, cryptominers, and botnet C2 domains at the DNS layer.
+- **Compact Bloom Filter Architecture**: Separates exact domain and `||` wildcard subdomain matching while maintaining low memory usage even inside 128 MB edge isolates.
+- **Flexible Rule Governance**: Supports preset public blocklists (OISD Big, AdGuard Base, HaGeZi Multi PRO++, StevenBlack Hosts) alongside custom exact/wildcard/regex rules and DNS rewrites.
+- **Real-Time Query Inspection**: Shows permitted, blocked, and rewritten queries with per-domain list checking and a detailed audit drawer.
 
-👉 [Explore Domain Filtering & Threat Blocklists Documentation](/DNS-Worker/filtering/rules/)
+👉 [Explore Domain Filtering & Threat Blocklists](/DNS-Worker/filtering/rules/)

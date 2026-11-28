@@ -1,7 +1,17 @@
 ---
 title: Troubleshooting & FAQ
-description: Common issues including Permission Denied (EACCES), DoT Wildcard certificates, and service environments.
+description: Troubleshooting guide and FAQ for DNS Worker covering TLS EACCES permission errors, DoT wildcard certificates, systemd /etc/dns-worker/.env paths, unbound FAIL_OPEN behavior, and dev world-map caching.
 ---
+
+This page answers common operational questions and errors when running **DNS Worker** across Serverfull hosts, TLS/DoT endpoints, and Cloudflare Workers local development.
+
+| Symptom | Root Cause | Fix / Key Path |
+| :--- | :--- | :--- |
+| `Permission denied (EACCES)` | Unprivileged daemon cannot read `0600` key | Delegate via `ssl-cert` group (mode `640`) |
+| `DoT Paused (Requires Wildcard)` | DoT SNI routing requires `*.domain` cert | Issue wildcard cert for `*.domain` and `domain` |
+| `.env` edits ignored after restart | `systemd` service reads global env path | Edit `/etc/dns-worker/.env` |
+| Queries succeed without rules or logs | Access Point is unbound (`profile_id = null`) | Bind a Profile under **Access Points > Manage** |
+| Blank world map in `npm run dev` | Stale dev cache or 30-day HTTP cache | Remove `.wrangler/state/v3/cache` and hard reload |
 
 ## 1. TLS Certificate Inaccessible: Permission denied (EACCES)
 

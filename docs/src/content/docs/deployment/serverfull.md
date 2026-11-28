@@ -1,9 +1,9 @@
 ---
 title: Standalone Server / VPS Guide
-description: Deploy and operate DNS Worker independently on Linux, macOS, or Windows servers.
+description: Deploy and operate DNS Worker independently on Linux, macOS, or Windows hosts via Node.js/Bun with native UDP 53, DoT 853, HTTP 10080, and HTTPS 10443 listeners.
 ---
 
-DNS Worker can run completely independent of Cloudflare Workers on your own VPS, home server, or virtual machine.
+**DNS Worker** runs independently of Cloudflare Workers on Linux, Windows, or macOS hosts in Serverfull mode, serving classic UDP `53`, DoT `853`, and DoH / Web Dashboard (`10080` / `10443`).
 
 ## System Requirements
 - **Runtime (Node.js / Bun)**:

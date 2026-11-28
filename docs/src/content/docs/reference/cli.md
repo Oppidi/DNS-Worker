@@ -1,9 +1,17 @@
 ---
 title: CLI Reference
-description: Complete command and flag reference for the dns-worker CLI.
+description: Complete command and flag reference for the dns-worker CLI covering foreground flags (ports 53, 853, 10080, 10443), status diagnostics, config templates, factory reset, and systemd/Windows service lifecycle.
 ---
 
-When installed globally via `npm install -g dns-worker`, access the following subcommands:
+The **DNS Worker CLI (`dns-worker`)** starts standalone DNS/HTTP/DoT listeners, manages `/etc/dns-worker/.env` configuration files, inspects runtime health, and registers OS background services. Install globally with `npm install -g dns-worker` (or `bun install -g dns-worker`). Configuration precedence follows **CLI flags > environment / `.env` > built-in defaults**.
+
+| Command | Purpose | Typical Use |
+| :--- | :--- | :--- |
+| `dns-worker [options]` | Start DNS / HTTP / DoT server in foreground | Direct host run or container entrypoint |
+| `dns-worker status` | Check listeners, TLS certs, and SQLite health | Diagnose UDP 53 / DoT 853 readiness |
+| `dns-worker config <subcommand>` | Initialize, print, or export `.env` templates | Configure Serverfull environment files |
+| `dns-worker reset [--force\|-y]` | Restore default config and re-apply migrations | Wipe local state cleanly |
+| `sudo dns-worker service <action>` | Manage Linux `systemd` or Windows Task Scheduler | Production daemon & boot autostart |
 
 ## Main Daemon
 

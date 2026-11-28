@@ -71,6 +71,7 @@ export const IdleSessionLock: React.FC<IdleSessionLockProps> = ({
         void localDb.clearAll();
         setIsLocked(true);
         sessionStorage.setItem("dns_worker_session_locked", "true");
+        window.dispatchEvent(new CustomEvent("dns_worker_lock_changed", { detail: { locked: true } }));
         try {
           await lockSession();
         } catch (e) {
@@ -94,6 +95,7 @@ export const IdleSessionLock: React.FC<IdleSessionLockProps> = ({
       void localDb.clearAll();
       setIsLocked(true);
       sessionStorage.setItem("dns_worker_session_locked", "true");
+      window.dispatchEvent(new CustomEvent("dns_worker_lock_changed", { detail: { locked: true } }));
     };
 
     window.addEventListener("session_paused", handlePaused);
@@ -105,6 +107,7 @@ export const IdleSessionLock: React.FC<IdleSessionLockProps> = ({
   const handleUnlockSuccess = (): void => {
     setIsLocked(false);
     sessionStorage.removeItem("dns_worker_session_locked");
+    window.dispatchEvent(new CustomEvent("dns_worker_lock_changed", { detail: { locked: false } }));
     lastActivityRef.current = Date.now();
     if (onUnlock) {
       onUnlock();

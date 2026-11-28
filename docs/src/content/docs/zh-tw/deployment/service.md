@@ -1,9 +1,14 @@
 ---
 title: 常駐後臺服務管理 (systemd & Windows)
-description: 在 Linux systemd 與 Windows 計劃任務中以守護程序執行 DNS Worker。
+description: 使用 dns-worker service 子命令在 Linux systemd（最小許可權 CAP_NET_BIND_SERVICE）與 Windows 計劃任務中註冊、啟動、開機自啟與運維 DNS Worker 守護程序。
 ---
 
-DNS Worker 內建完善的服務生命週期管理器，可一鍵完成服務的註冊、配置、啟停與自啟。
+**DNS Worker** 內建跨平臺服務生命週期管理器（`dns-worker service`），支援將 Serverfull DNS 服務註冊為 **Linux systemd 守護程序**或 **Windows 計劃任務**，統一管理啟停、開機自啟與日誌追蹤。
+
+| 平臺 | 服務後端 | 預設執行許可權 | 特權埠（53 / 853）機制 | 配置與日誌位置 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Linux** | `systemd` 服務 | 呼叫 `sudo` 的非 root 使用者 | 通過 `CAP_NET_BIND_SERVICE` 授予繫結許可權 | `/etc/dns-worker/.env` · `journalctl` |
+| **Windows** | Windows 計劃任務 (`schtasks`) | 系統管理員許可權控制台 | 計劃任務系統許可權執行 | 預設 `.env` 目錄 · 計劃任務事件 |
 
 ## Linux systemd 服務
 

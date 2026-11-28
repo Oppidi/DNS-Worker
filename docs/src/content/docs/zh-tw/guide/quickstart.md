@@ -1,9 +1,14 @@
 ---
 title: 快速上手
-description: 在 60 秒內體驗與部署您的專屬 DNS Worker 例項。
+description: 快速部署並執行 DNS Worker 的兩種方式：通過 Wrangler CLI 一條龍初始化 Cloudflare Workers + D1 邊緣例項，或使用 npm/bun 安裝 dns-worker CLI 啟動本地獨立服務（埠 53 / 10080）。
 ---
 
-DNS Worker 提供兩種適配不同場景的部署路徑。作為**以 Serverless 為核心優先**的專案，將服務部署至 Cloudflare Workers 是最推薦的零運維全球邊緣防護方案。
+**DNS Worker** 提供兩種部署路徑：**Cloudflare Workers 無伺服器邊緣模式**（面向免運維的網際網路 DoH 接入）以及 **Serverfull 獨立伺服器模式**（面向需要本地 UDP 53 埠或 Android 原生 DoT 853 的自建主機）。
+
+| 部署方式 | 前置條件 | 核心命令 | 預設服務入口 |
+| :--- | :--- | :--- | :--- |
+| **Cloudflare Workers** | Cloudflare 賬號、Node.js、`wrangler` | `npm run db:setup && npm run db:migrate:prod && npm run deploy` | `https://<worker>.workers.dev` |
+| **Serverfull (CLI)** | `Node.js >= 22.5` 或 `Bun >= 1.4` | `npm install -g dns-worker && dns-worker config init && dns-worker` | `http://localhost:10080` · `127.0.0.1:53` |
 
 ---
 

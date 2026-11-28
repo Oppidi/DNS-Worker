@@ -1,4 +1,25 @@
 User-agent: *
 Allow: /
 
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# LLM-friendly index & full documentation corpus
+# https://oppidi.github.io/DNS-Worker/llms.txt
+# https://oppidi.github.io/DNS-Worker/llms-full.txt
 Sitemap: https://oppidi.github.io/DNS-Worker/sitemap-index.xml

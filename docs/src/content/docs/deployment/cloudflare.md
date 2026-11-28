@@ -1,9 +1,9 @@
 ---
 title: Cloudflare Workers Edge Deployment
-description: Deploy serverless across 300+ edge locations with Cloudflare Workers and D1 database.
+description: Deploy DNS Worker serverless on Cloudflare Workers and D1 via Git integration or Wrangler CLI, including JWT_SECRET, KEK_v1 secrets, and runtime variables.
 ---
 
-The Cloudflare Workers deployment allows you to run a globally distributed, high-availability DoH resolver with zero infrastructure management.
+Deploying **DNS Worker** on Cloudflare Workers runs the DoH resolver, Web Dashboard, and scheduled filter-sync cron jobs without managing host servers or OS daemons.
 
 ## Method 1: Git-Connected Automated Deployment (Recommended)
 

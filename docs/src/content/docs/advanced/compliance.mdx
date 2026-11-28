@@ -7,7 +7,17 @@ sidebar:
 
 import { Aside } from '@astrojs/starlight/components';
 
-This chapter documents DNS Worker's formal standards conformance and security compliance statements across authentication, session security, cryptography, and network protocols.
+DNS Worker follows published engineering and security standards across authentication, session control, cryptography, and DNS transport protocols. This chapter indexes verified standards conformance statements for **DNS Worker** to support security reviews and architecture audits.
+
+## Standards Conformance Summary
+
+| Domain | Applicable Standard / RFC | Scope in DNS Worker |
+| :--- | :--- | :--- |
+| **Authentication & Sessions** | **NIST SP 800-63B-4 (AAL2)** / **NIST SP 800-63A (IAL1)** | Login auth, Passkeys, TOTP, RTR token rotation, absolute session ceiling |
+| **Post-Quantum Log E2EE** | **NIST FIPS 203 (P256-MLKEM768)** | Zero-knowledge query log key encapsulation & hourly rotating DEKs |
+| **Passwordless & MFA** | **WebAuthn / FIDO2**, **RFC 6238 (TOTP)** | Hardware Passkeys, replay-guarded TOTP codes, single-use recovery keys |
+| **DNS Transport Protocols** | **RFC 1035**, **RFC 7858 (DoT)**, **RFC 8484 (DoH)**, **RFC 9250 (DoQ)**, **RFC 9460 (ECH / DDR)** | Inbound listeners and multi-protocol upstream forwarding |
+| **HTTP Protocol Guidance** | **RFC 7838 (`Alt-Svc`)**, **RFC 9110 §7.8 (`Upgrade`)** | DoH minimum HTTP policy (`MIN_HTTP_VERSION`) and upgrade headers |
 
 ---
 

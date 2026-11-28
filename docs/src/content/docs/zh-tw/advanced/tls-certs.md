@@ -1,9 +1,9 @@
 ---
 title: TLS 證書配置與許可權安全最佳實踐
-description: 配置 Let's Encrypt 證書、普通使用者許可權安全、ssl-cert 組授權與萬用字元要求。
+description: 配置 DNS Worker Serverfull 模式的 TLS 證書（HTTPS 10443 與 DoT 853）、Let's Encrypt ssl-cert 組授權、非 root 最小許可權與 *.domain 萬用字元要求。
 ---
 
-啟用 HTTPS Web 控制台（埠 10443）與 DoT（埠 853）需要配置 TLS 證書。
+**DNS Worker** 在 Serverfull 獨立部署模式下啟用內建 HTTPS Web 控制台（埠 `10443`）與 DoT 服務（埠 `853`）時，需配置有效的 TLS 證書。
 
 > [!TIP]
 > 若您僅需要為 Web 管理面板與 DoH 提供 HTTPS 支援，可免去在 DNS Worker 內部配置證書的步驟，直接使用 **Caddy** 或 **Nginx** 反向代理 `10080`（HTTP）埠。詳見 [使用 Caddy 或 Nginx 反向代理 HTTP](/DNS-Worker/zh-tw/deployment/serverfull/#使用-caddy-或-nginx-反向代理-http10080-端口)。
@@ -30,7 +30,7 @@ Certbot 預設生成的私鑰檔案許可權為 `0600 (root:root)`，父目錄�
 **絕不推薦將私鑰設定為全域性可讀（如 `chmod 644`）**！這樣會讓主機上的其他程序或指令碼都能竊取 TLS 私鑰。
 :::
 
-### 推薦方案 1：使用標準 `ssl-cert` 使用者組授權（最優雅）
+### 推薦方案 1：使用標準 `ssl-cert` 使用者組授權（推薦）
 
 Debian / Ubuntu 原生提供了專用的 `ssl-cert` 組，可在不提升至 root 的前提下安全授權私鑰：
 

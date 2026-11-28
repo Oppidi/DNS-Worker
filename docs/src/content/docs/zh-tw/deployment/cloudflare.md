@@ -1,9 +1,9 @@
 ---
 title: Cloudflare Workers 邊緣模式部署
-description: 依託 Cloudflare Workers 與 D1 資料庫，在 300+ 邊緣節點無伺服器部署。
+description: 在 Cloudflare Workers 與 D1 資料庫部署 DNS Worker，涵蓋 Git 自動部署、Wrangler CLI、JWT_SECRET / KEK_v1 金鑰配置與執行時環境變數。
 ---
 
-Cloudflare Workers 部署方式讓您能夠一鍵執行具備全球高可用特性的現代化 DoH 解析服務，徹底免除底層伺服器的運維開銷。
+在 Cloudflare Workers 上部署 **DNS Worker** 可直接提供 DoH 解析端點、Web 管理控制台與後臺規則定時同步任務，無需管理底層伺服器或系統守護程序。
 
 ## 方案 1：Git 關聯自動化部署 (推薦)
 

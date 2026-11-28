@@ -1,24 +1,24 @@
 ---
 title: 架构与部署选型
-description: Cloudflare Workers 边缘模式 (首选推荐) 与独立服务器 Serverfull 模式全维度特性对比矩阵。
+description: 对比 DNS Worker 的 Cloudflare Workers 边缘无服务器模式与独立服务器 Serverfull 模式在协议支持（UDP 53、DoT 853、DoH）、数据库后端与运维成本上的差异。
 ---
 
-无论您看重全球 300+ 节点的零运维免托管与极速 Anycast 加速，还是追求 100% 数据主权并在局域网路由器通过 UDP 53 及 Android DoT 853 接入，DNS Worker 均提供亚毫秒级规则匹配、本地优先统计与后量子零知识加密审计日志。
+**DNS Worker** 可运行于 Cloudflare Workers 无服务器边缘环境，也可独立部署在自有 Linux / Windows 主机或 VPS（Serverfull 模式）上。两种部署方式共享同一套域名拦截引擎、本地优先分析面板与后量子端到端加密日志体系，但在网络协议入口与运维方式上各有侧重。
 
-## 双引擎特性对比矩阵
+## 部署模式对比矩阵
 
-| 特性维度 | ☁️ Cloudflare Workers 边缘模式 (首选推荐) | 🖥️ 独立服务器 / VPS (Serverfull 自建可选) |
+| 特性维度 | ☁️ Cloudflare Workers 边缘模式 (默认推荐) | 🖥️ 独立服务器 / VPS (Serverfull 自建模式) |
 |---|---|---|
-| **核心价值** | **全球极速 Anycast 边缘加速、免服务器运维** | 100% 数据自主、家庭局域网与路由器 UDP 53、安卓 DoT |
-| **运行平台** | **Cloudflare 全球 300+ 边缘数据中心** | Linux / VPS / macOS / Windows (`Node.js >= 22.5` / `Bun >= 1.4`) |
-| **存储后端** | **Cloudflare D1 (全球分布式 SQL 数据库)** | 原生内置 SQLite (`node:sqlite`) |
-| **支持协议** | **DoH** (RFC 8484，兼容 HTTP/2 与 HTTP/3) | **UDP 53** (RFC 1035) + **DoT 853** (RFC 7858，兼容 DoQ) + **DoH** (兼容 HTTP/2 与 HTTP/3) |
-| **运维成本** | **完全零服务器运维**，全球弹性自适应伸缩 | 需自行维护服务器操作系统、防火墙规则与常驻服务 |
-| **路由器 / 内网接入** | 需前置 DoH 转发客户端（如 OpenWrt、AdGuard Home） | **原生支持 UDP 53**（路由器 DNS 直接填写服务器 IP） |
-| **安卓原生私密 DNS** | 需配合 DoH 模板或第三方 App | **原生支持 DoT 853**（支持 SNI 路由 `<token>.dns.example.com`） |
+| **适用特点** | **免服务器运维，依托 Cloudflare Anycast 网络接入** | 100% 本地数据控制，原生支持路由器 UDP 53 与安卓 DoT |
+| **运行平台** | Cloudflare 全球边缘节点 | Linux / VPS / macOS / Windows (`Node.js >= 22.5` / `Bun >= 1.4`) |
+| **存储后端** | Cloudflare D1（或 Turso / libSQL） | 原生内置 SQLite (`node:sqlite`) 或 Turso / libSQL |
+| **支持协议** | **DoH** (RFC 8484，兼容 HTTP/1.1+、HTTP/2 与 HTTP/3) | **UDP 53** (RFC 1035) + **DoT 853** (RFC 7858) + **DoH** (HTTP/1.1+ / HTTP/2 / HTTP/3) |
+| **运维开销** | 无需管理主机系统、防火墙或守护进程 | 需自行维护宿主机系统、TLS 证书与 `systemd` 服务 |
+| **路由器 / 内网接入** | 需前置 DoH 转发客户端（如 OpenWrt、`cloudflared`、AdGuard Home） | **原生支持 UDP 53**（路由器 DNS 直接填写服务器 IP） |
+| **安卓原生私密 DNS** | 需配合支持 DoH 的系统版本或客户端 | **原生支持 DoT 853**（支持 SNI 路由 `<token>.dns.example.com`） |
 | **后量子零知识 E2EE** | ✅ NIST FIPS 203 **P256-MLKEM768** + Passkey WebAuthn | ✅ NIST FIPS 203 **P256-MLKEM768** + Passkey WebAuthn |
-| **本地优先 Web 仪表盘** | ✅ 浏览器端 SQLite WASM + OPFS 0ms 闪电查询 | ✅ 浏览器端 SQLite WASM + OPFS 0ms 闪电查询 |
-| **硬件与成本要求** | **完全适用 Cloudflare 免费套餐** | 基于自有 VPS、小主机或家庭 NAS 运行 |
+| **本地优先 Web 仪表盘** | ✅ 浏览器端 SQLite WASM + OPFS 0ms 查询 | ✅ 浏览器端 SQLite WASM + OPFS 0ms 查询 |
+| **运行成本** | 兼容 Cloudflare 免费配额 | 运行在自有 VPS、小主机或家庭 NAS |
 
 ---
 

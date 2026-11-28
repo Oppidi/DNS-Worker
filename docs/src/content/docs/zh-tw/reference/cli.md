@@ -1,9 +1,17 @@
 ---
 title: CLI 命令手冊
-description: dns-worker 命令列子命令與引數完整參考。
+description: dns-worker 命令列完整參考手冊，涵蓋前臺守護程序引數（UDP 53、DoT 853、HTTP 10080、HTTPS 10443）、status 診斷、config 配置管理、reset 出廠重置與 service 後臺服務管理。
 ---
 
-通過 `npm install -g dns-worker` 全域性安裝後，可在終端中直接使用以下命令：
+**DNS Worker CLI（`dns-worker`）** 用於獨立部署模式下啟動解析服務、管理 `/etc/dns-worker/.env` 配置、執行執行狀態診斷與註冊系統級後臺服務。通過 `npm install -g dns-worker`（或 `bun install -g dns-worker`）安裝後即可使用；配置優先順序遵循 **命令列引數 > 環境變數 / `.env` > 內建預設值**。
+
+| 命令 | 用途 | 常用場景 |
+| :--- | :--- | :--- |
+| `dns-worker [options]` | 在前臺啟動 DNS / HTTP / DoT 服務 | 除錯驗證或容器前臺入口 |
+| `dns-worker status` | 檢查埠監聽、證書與 SQLite 連通性 | 排查 UDP 53 / DoT 853 啟動異常 |
+| `dns-worker config <subcommand>` | 初始化、檢視或匯出 `.env` 模板 | 管理 Serverfull 配置檔案 |
+| `dns-worker reset [--force\|-y]` | 恢復預設配置並重建空資料庫 | 重置環境或指令碼化測試初始化 |
+| `sudo dns-worker service <action>` | 管理 Linux `systemd` / Windows 計劃任務 | 生產環境守護程序與開機自啟 |
 
 ## 主守護程序
 

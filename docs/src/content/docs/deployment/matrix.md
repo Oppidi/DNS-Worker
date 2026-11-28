@@ -1,24 +1,24 @@
 ---
 title: Architecture & Comparison Matrix
-description: Comprehensive feature matrix comparing Cloudflare Workers Edge mode (Primary) and Standalone Serverfull mode.
+description: Feature comparison between DNS Worker's Cloudflare Workers Edge (Serverless) mode and standalone Serverfull mode across DNS protocols (UDP 53, DoT 853, DoH), storage backends, and operations.
 ---
 
-Whether you prioritize global edge acceleration with zero maintenance across 300+ PoPs, or complete data sovereignty with native UDP 53 on your router and Android DoT 853, DNS Worker delivers high-performance filtering, instant local analytics, and post-quantum zero-knowledge encrypted logging.
+**DNS Worker** can be deployed serverless on Cloudflare Workers or standalone (Serverfull) on your own Linux/Windows host or VPS. Both modes share the same domain-blocking engine, local-first dashboard, and post-quantum encrypted audit logging, while differing in transport listeners and operational ownership.
 
-## Dual-Engine Comparison Matrix
+## Deployment Mode Comparison Matrix
 
-| Feature / Dimension | ☁️ Cloudflare Workers Edge (Primary / Recommended) | 🖥️ Standalone Server / VPS (Serverfull Self-Hosted) |
+| Feature / Dimension | ☁️ Cloudflare Workers Edge (Recommended) | 🖥️ Standalone Server / VPS (Serverfull) |
 |---|---|---|
-| **Core Value** | **Global Ultra-Low Latency, Zero Maintenance** | 100% Data Sovereignty, Home LAN/Router, Android DoT |
-| **Runtime Platform** | **Cloudflare Global 300+ Edge Locations** | Linux / VPS / macOS / Windows (`Node.js >= 22.5` / `Bun >= 1.4`) |
-| **Storage Engine** | **Cloudflare D1 (Global Distributed SQL)** | Native SQLite (`node:sqlite`) on NVMe/SSD |
-| **Supported Protocols** | **DoH** (RFC 8484, HTTP/2 & HTTP/3 compatible) | **UDP 53** (RFC 1035) + **DoT 853** (RFC 7858, DoQ compatible) + **DoH** (HTTP/2 & HTTP/3 compatible) |
-| **Infrastructure Overhead** | **Zero Server Maintenance**, auto-scaling worldwide | Requires host maintenance, OS patching, systemd daemon |
-| **Router / LAN Integration** | Forward via DoH proxy (AdGuard Home, OpenWrt) | **Direct UDP 53** (Point router DNS directly to server IP) |
-| **Android Private DNS** | Native DoH URL or third-party client | **Native DoT 853** with SNI routing (`<token>.dns.example.com`) |
+| **Primary Advantage** | **Zero server maintenance** via Cloudflare Anycast | Complete local data control, native UDP 53 & Android DoT 853 |
+| **Runtime Platform** | Cloudflare Global Edge Network | Linux / VPS / macOS / Windows (`Node.js >= 22.5` / `Bun >= 1.4`) |
+| **Storage Backend** | Cloudflare D1 (or Turso / libSQL) | Native SQLite (`node:sqlite`) or Turso / libSQL |
+| **Supported Protocols** | **DoH** (RFC 8484, HTTP/1.1+, HTTP/2, and HTTP/3) | **UDP 53** (RFC 1035) + **DoT 853** (RFC 7858) + **DoH** (HTTP/1.1+, HTTP/2, HTTP/3) |
+| **Maintenance Overhead** | No OS patching, firewalls, or daemon management | Self-managed OS, TLS certificates, and `systemd` service |
+| **Router / LAN Integration** | Forward via DoH client (`cloudflared`, AdGuard Home, OpenWrt) | **Direct UDP 53** (point router DNS directly to host IP) |
+| **Android Private DNS** | Supported via DoH clients or compatible OS releases | **Native DoT 853** with SNI routing (`<token>.dns.example.com`) |
 | **Post-Quantum Zero-Knowledge E2EE** | ✅ NIST FIPS 203 **P256-MLKEM768** + Passkey WebAuthn | ✅ NIST FIPS 203 **P256-MLKEM768** + Passkey WebAuthn |
 | **Local-First Web Dashboard** | ✅ In-browser SQLite WASM + OPFS 0ms queries | ✅ In-browser SQLite WASM + OPFS 0ms queries |
-| **Cost & Requirements** | **Free tier eligible** on Cloudflare | Runs on existing VPS or home server hardware |
+| **Cost & Infrastructure** | Fits Cloudflare free tier quotas | Runs on existing VPS, mini-PC, or home NAS |
 
 ---
 

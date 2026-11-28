@@ -1,9 +1,9 @@
 ---
 title: DNS Worker 使用者文件
-description: 隱私優先 Protective DNS 解析器 & DoH / DoT 服務端，雙引擎自主架構。
+description: DNS Worker 是注重隱私保護的保護性 DNS（域名攔截系統），支援 AdBlock/Hosts 過濾、DoH/DoT/DoQ 協議、Cloudflare Workers 無伺服器部署與獨立自建執行。
 template: splash
 hero:
-  tagline: 守護您的網際網路第一跳 · 智慧廣告與惡意威脅攔截 · 全棧協議覆蓋 · 本地優先 0ms 分析 · NIST FIPS 203 後量子零知識 E2EE
+  tagline: 保護性 DNS 域名攔截 · 多格式過濾引擎 · 全棧加密 DNS 協議 · 本地優先 0ms 日誌分析 · 後量子端到端加密
   image:
     file: ../../../assets/logo.svg
   actions:
@@ -24,36 +24,36 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid stagger>
-  <Card title="Serverless 邊緣優先" icon="rocket">
-    專為 Cloudflare Workers & D1 打造，全球 300+ 邊緣資料中心免運維執行；同時支援在自有 VPS / 路由器上獨立部署 Serverfull 模式。
-  </Card>
-  <Card title="智慧廣告與惡意威脅攔截" icon="magnifier">
-    內建企業級保護性 DNS 引擎，在網路底層即時攔截侵入式廣告、全網遙測追蹤、釣魚欺詐與惡意軟體。基於高精度單層布隆過濾器（Bloom Filter）加速，實現微秒級低延遲攔截與極致記憶體節省。
+  <Card title="保護性域名攔截" icon="magnifier">
+    內建多層混合過濾引擎，在 DNS 解析階段攔截廣告、追蹤域名、釣魚欺詐與惡意軟體。通過雙態字首布隆過濾器（Bloom Filter）與規則池兼顧精度與低記憶體佔用。
   </Card>
   <Card title="自定義規則與多接入點隔離" icon="list-format">
-    無縫訂閱主流規則源（OISD、AdGuard、HaGeZi、StevenBlack 等），靈活配置自定義白名單/黑名單與 DNS 重寫，並通過獨立的接入點金鑰實現裝置級分流管控。
+    相容主流公開規則源（OISD、AdGuard、HaGeZi、StevenBlack 等），支援本地白名單/黑名單與 DNS 重寫，並通過接入點金鑰實現裝置級策略切換。
   </Card>
   <Card title="全棧協議覆蓋" icon="setting">
-    原生支援 Classic UDP 53、DoT 853（TLS SNI 路由）、DoH（RFC 8484 over HTTP/2 & HTTP/3）、DoQ（RFC 9250）與 ECH / DDR（RFC 9460）。
+    支援傳統 UDP 53、DoT 853（TLS SNI 路由）、DoH（RFC 8484 over HTTP/2 & HTTP/3）、DoQ（RFC 9250）與 ECH / DDR（RFC 9460）。
+  </Card>
+  <Card title="雙執行形態部署" icon="rocket">
+    支援在 Cloudflare Workers & D1 無伺服器邊緣環境免運維執行，也支援在自有 Linux / Windows 主機以 Serverfull 模式獨立部署。
   </Card>
   <Card title="後量子零知識 E2EE" icon="shield">
-    基於 NIST FIPS 203 **P256-MLKEM768** 後量子混合格密碼學與硬體通行金鑰（Passkey / WebAuthn），全面抵禦前向量子計算窺探。
+    基於 NIST FIPS 203 **P256-MLKEM768** 混合格密碼學與硬體通行金鑰（Passkey / WebAuthn），日誌僅在使用者授權裝置上解密。
   </Card>
   <Card title="本地優先 (Local-First)" icon="laptop">
-    嵌入瀏覽器端 SQLite（WASM + OPFS）驅動，日誌篩選與統計圖表 0ms 瞬間渲染，離線可用且徹底節省資料庫讀配額。
+    瀏覽器內建 SQLite（WASM + OPFS）儲存加密同步後的日誌，篩選與統計圖表在本地即時渲染，減少雲端資料庫讀取開銷。
   </Card>
 </CardGrid>
 
 ---
 
-## 🛡️ 廣告與惡意域名攔截
+## 域名攔截與過濾能力
 
-DNS Worker 從底層架構起即作為**保護性 DNS**設計，在網路最基礎的解析層為所有裝置提供全天候威脅防禦與隱私屏障：
+**DNS Worker** 作為保護性 DNS 解析系統，在網路通訊建立前的域名解析階段提供流量過濾與安全審計：
 
-- **廣告與全網遙測靜默遮蔽**：無需在終端安裝繁重的過濾外掛，即可在路由器、手機、平板與電視盒子全域性遮蔽橫幅廣告、影片貼片、誘導彈窗以及 Windows / Android 系統級診斷遙測。
-- **主動威脅防禦與反釣魚**：即時攔截木馬分發點、勒索病毒回撥、釣魚詐騙頁面、挖礦指令碼以及殭屍網路命令與控制（C2）惡意域名。
-- **高效能布隆過濾器引擎**：採用緊湊點陣圖雜湊架構，單層微秒級併發評估數十萬條規則，極致節省記憶體與儲存空間。
-- **靈活完備的規則體系**：開箱即用支援主流精選規則源（OISD Big、AdGuard Base、HaGeZi Multi PRO++、StevenBlack Hosts），並支援自定義精確/萬用字元/正則白名單與黑名單，以及區域網 DNS 重寫對映。
-- **即時審計與威脅日誌**：直觀展示放行、阻斷與重寫狀態，一鍵展開抽屜深入排查攔截規則歸屬、客戶端來源及解析耗時。
+- **廣告與系統遙測過濾**：在路由器、移動裝置與桌面端統一遮蔽橫幅廣告、追蹤域名與作業系統診斷遙測，無需安裝客戶端擴充套件。
+- **惡意域名攔截**：阻斷已知惡意軟體分發節點、勒索軟體回撥、釣魚域名、挖礦指令碼及殭屍網路（C2）控制域名。
+- **緊湊布隆過濾器引擎**：區分精確域名與 `||` 泛子域規則，在 128 MB 等受限執行環境下併發評估數十萬條過濾規則。
+- **多層級規則與重寫體系**：預置公開規則源（OISD Big、AdGuard Base、HaGeZi Multi PRO++、StevenBlack Hosts），支援本地高優先順序放行/攔截規則及區域網 DNS 重寫。
+- **即時查詢日誌與規則排查**：清晰展示放行、阻斷與重寫狀態，支援單域名規則命中測試與日誌詳情抽屜審計。
 
 👉 [檢視完整配置指南：域名過濾與威脅攔截](/DNS-Worker/zh-tw/filtering/rules/)
