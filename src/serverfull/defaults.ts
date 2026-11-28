@@ -92,9 +92,11 @@ DATABASE_SERVICE=File
 # Snapshot storage directory; defaults to the same directory as SERVERFULL_DB_PATH when empty
 # 快照存储目录；留空时默认与 SERVERFULL_DB_PATH 所在目录相同
 # SERVERFULL_SNAPSHOT_DIR=
+
 # Snapshot retention validity in days (0 = never expire, default: 7)
 # 快照有效期（天，0 表示永不过期，默认：7）
 # SERVERFULL_SNAPSHOT_RETENTION_DAYS=7
+
 # Maximum number of retained snapshots (oldest snapshots are pruned when exceeded, default: 3)
 # 保留快照最大数量限制（超出时自动清理最早的快照，默认：3）
 # SERVERFULL_SNAPSHOT_MAX_COUNT=3
@@ -104,6 +106,7 @@ DATABASE_SERVICE=File
 # 当配置了 TURSO_DATABASE_URL 与 TURSO_AUTH_TOKEN 时，系统将自动使用 Turso 远程数据库替代本地 SQLite。
 # Supports both libsql:// and https:// URLs (e.g. libsql://your-db-org.turso.io)
 # TURSO_DATABASE_URL=libsql://your-db-org.turso.io
+
 # TURSO_AUTH_TOKEN=your_turso_jwt_auth_token_here
 
 # ------------------------------------------------------------------------------
@@ -229,13 +232,96 @@ SUBSTITUTE_DOMAIN=www.wto.org
 # Preset Upstream Services & External Filters (Optional) / 预设上游服务与外部过滤规则 (选填)
 # ------------------------------------------------------------------------------
 # Preset Upstream Services (JSON string) / 预设上游服务列表 (JSON 字符串)
-PRESET_UPSTREAMS='[{"label":"settings.presetCloudflareSecurity","url":"https://security.cloudflare-dns.com/dns-query"},{"label":"settings.presetCloudflareFamilies","url":"https://family.cloudflare-dns.com/dns-query"},{"label":"Cloudflare","url":"https://cloudflare-dns.com/dns-query"},{"label":"settings.presetQuad9","url":"tls://dns.quad9.net"},{"label":"settings.presetQuad9Ecs","url":"tls://dns11.quad9.net"},{"label":"settings.presetControlDFree","url":"tls://no-ads-malware-typo.freedns.controld.com"},{"label":"settings.presetControlDUncensored","url":"tls://uncensored.freedns.controld.com"},{"label":"settings.presetAdGuard","url":"https://dns.adguard-dns.com/dns-query"},{"label":"settings.presetAdGuardFamily","url":"https://family.adguard-dns.com/dns-query"},{"label":"Cloudflare Security (1.1.1.2)","url":"tcp://1.1.1.2:53"},{"label":"Cloudflare (1.1.1.1)","url":"tcp://1.1.1.1:53"},{"label":"Quad9 ECS (9.9.9.11)","url":"tcp://9.9.9.11:9953"},{"label":"Google (8.8.8.8)","url":"tcp://8.8.8.8:53"}]'
+PRESET_UPSTREAMS="""
+[
+  {
+    "label": "settings.presetCloudflareSecurity",
+    "url": "https://security.cloudflare-dns.com/dns-query"
+  },
+  {
+    "label": "settings.presetCloudflareFamilies",
+    "url": "https://family.cloudflare-dns.com/dns-query"
+  },
+  {
+    "label": "Cloudflare",
+    "url": "https://cloudflare-dns.com/dns-query"
+  },
+  {
+    "label": "settings.presetQuad9",
+    "url": "tls://dns.quad9.net"
+  },
+  {
+    "label": "settings.presetQuad9Ecs",
+    "url": "tls://dns11.quad9.net"
+  },
+  {
+    "label": "settings.presetControlDFree",
+    "url": "tls://no-ads-malware-typo.freedns.controld.com"
+  },
+  {
+    "label": "settings.presetControlDUncensored",
+    "url": "tls://uncensored.freedns.controld.com"
+  },
+  {
+    "label": "settings.presetAdGuard",
+    "url": "https://dns.adguard-dns.com/dns-query"
+  },
+  {
+    "label": "settings.presetAdGuardFamily",
+    "url": "https://family.adguard-dns.com/dns-query"
+  },
+  {
+    "label": "Cloudflare Security (1.1.1.2)",
+    "url": "tcp://1.1.1.2:53"
+  },
+  {
+    "label": "Cloudflare (1.1.1.1)",
+    "url": "tcp://1.1.1.1:53"
+  },
+  {
+    "label": "Quad9 ECS (9.9.9.11)",
+    "url": "tcp://9.9.9.11:9953"
+  },
+  {
+    "label": "Google (8.8.8.8)",
+    "url": "tcp://8.8.8.8:53"
+  }
+]
+"""
 
 # Preset External Filters (JSON string) / 预设外部规则过滤列表 (JSON 字符串)
-PRESET_EXTERNAL_FILTERS='[{"label":"filtering.presetOisdBig","url":"https://big.oisd.nl"},{"label":"filtering.presetOisdNsfw","url":"https://nsfw.oisd.nl"},{"label":"filtering.presetAdGuard","url":"https://adguardteam.github.io/AdguardFilters/BaseFilter/sections/adservers.txt"},{"label":"filtering.presetStevenBlack","url":"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"}]'
+PRESET_EXTERNAL_FILTERS="""
+[
+  {
+    "label": "filtering.presetOisdBig",
+    "url": "https://big.oisd.nl"
+  },
+  {
+    "label": "filtering.presetOisdNsfw",
+    "url": "https://nsfw.oisd.nl"
+  },
+  {
+    "label": "filtering.presetAdGuard",
+    "url": "https://adguardteam.github.io/AdguardFilters/BaseFilter/sections/adservers.txt"
+  },
+  {
+    "label": "filtering.presetStevenBlack",
+    "url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+  }
+]
+"""
 
 # Preset ECH Fronting (outer SNI) domains (JSON string) / 预设 ECH 前置外层 SNI 域名 (JSON 字符串)
-PRESET_ECH_FRONTING_DOMAINS='["cloudflare-ech.com","crypto.cloudflare.com","one.one.one.one","www.cloudflare.com","encryptedsni.com","cdnjs.com"]'
+PRESET_ECH_FRONTING_DOMAINS="""
+[
+  "cloudflare-ech.com",
+  "crypto.cloudflare.com",
+  "one.one.one.one",
+  "www.cloudflare.com",
+  "encryptedsni.com",
+  "cdnjs.com"
+]
+"""
 
 # ------------------------------------------------------------------------------
 # Demo Mode (Optional) / 演示模式配置 (选填)
@@ -243,6 +329,7 @@ PRESET_ECH_FRONTING_DOMAINS='["cloudflare-ech.com","crypto.cloudflare.com","one.
 # Enable Demo Mode (replaces hostnames with DEMO_DOMAIN and seeds sample APs, rules, lists, stats & logs)
 # 开启演示模式 (统一将对外展示域名替换为 DEMO_DOMAIN，并自动注入多设备 Access Points、规则、列表、统计与日志演示数据)
 # DEMO_MODE=false
+
 # DEMO_DOMAIN=dns.worker.domain
 `;
 

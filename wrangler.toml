@@ -109,54 +109,76 @@ DATABASE_SERVICE = "D1"
 # Default upstream for fail-open emergency fallback.
 # Supports HTTPS (DoH, e.g. "https://security.cloudflare-dns.com/dns-query"), TLS/DoT (e.g. "tls://1.1.1.1" or "tls://dns.google:853"), TCP (e.g. "tcp://1.1.1.1:53"), and DNS Stamps ("sdns://...").
 FAIL_OPEN_UPSTREAM = "tls://no-ads-malware-typo.freedns.controld.com"
+
 # Minimum allowed HTTP version for inbound DoH requests ("1.0", "1.1", "2", "3"; default "1.1").
 # Allowed HTTP/1.x responses still advertise Alt-Svc / Upgrade headers to guide clients toward HTTP/2 and HTTP/3.
 MIN_HTTP_VERSION = "1.1"
+
 # Maximum number of access points allowed per profile
 MAX_ACCESS_POINTS_PER_PROFILE = 100
+
 # Maximum number of profiles allowed per user
 MAX_PROFILES_PER_USER = 10
+
 # Used to resolve DoH domains
-SUBSTITUTE_DOMAIN="www.wto.org"
+SUBSTITUTE_DOMAIN = "www.wto.org"
+
 # Time constants
 # Session duration for authenticated users by default (in minutes)
-DEFAULT_SESSION_EXPIRATION_MINUTES=1440
+DEFAULT_SESSION_EXPIRATION_MINUTES = 1440
+
 # Session duration for authenticated users when keeping logged in option is selected (in days)
-OPTIONAL_SESSION_EXPIRATION_DAYS=7
+OPTIONAL_SESSION_EXPIRATION_DAYS = 7
+
 # Access Token expiration time (in minutes)
-ACCESS_TOKEN_EXPIRATION_MINUTES=1
+ACCESS_TOKEN_EXPIRATION_MINUTES = 1
+
 # Maximum allowed distance (in km) between session login and current request
-SESSION_GEO_DISTANCE_KM=50
+SESSION_GEO_DISTANCE_KM = 50
+
 # TTL for temporary pre-auth session during login (in seconds)
-PREAUTH_TTL_SECONDS=300
+PREAUTH_TTL_SECONDS = 300
+
 # In-memory retention time for profile bloom filters (in milliseconds)
-BLOOM_MEM_TTL=600000
+BLOOM_MEM_TTL = 600000
+
 # In-memory retention time for profile config per isolate (in milliseconds).
 # Bounds how long a settings change takes to reach isolates that already cached it;
 # the Cache-Tag purge clears colo caches but cannot reach other isolates' memory.
-CONFIG_MEM_TTL=300000
+CONFIG_MEM_TTL = 300000
+
 # Timeout threshold when downloading upstream blocklists (in milliseconds)
-SYNC_TIMEOUT_MS=30000
+SYNC_TIMEOUT_MS = 30000
+
 # Number of days of DNS resolution inactivity before an account is considered abandoned and deleted by cron jobs
-INACTIVITY_THRESHOLD_DAYS=180
+INACTIVITY_THRESHOLD_DAYS = 180
+
 # Number of days of DNS resolution inactivity before historical logs are automatically purged (configurations preserved)
-INACTIVE_LOG_PURGE_DAYS=30
+INACTIVE_LOG_PURGE_DAYS = 30
+
 # Maximum in-memory DNS resolution cache capacity / 内存 DNS 解析结果缓存最大容量条数 (default: 20000)
 DNS_CACHE_SIZE = 20000
+
 # Throttle interval for updating session "last active" status in D1 (in seconds)
-SESSION_LAST_ACTIVE_UPDATE_INTERVAL=60
+SESSION_LAST_ACTIVE_UPDATE_INTERVAL = 60
+
 # In-memory authentication micro-cache TTL for dashboard requests (in seconds)
-AUTH_CACHE_TTL_SEC=30
+AUTH_CACHE_TTL_SEC = 30
+
 # Throttle interval for updating profile "last active" status (in seconds)
-THROTTLE_ACTIVE_SEC=3600
+THROTTLE_ACTIVE_SEC = 3600
+
 # Minimum interval between automated blocklist profile syncs (in seconds)
-SYNC_PROFILE_INTERVAL_SEC=86400
+SYNC_PROFILE_INTERVAL_SEC = 86400
+
 # Maximum log rows deleted per cron cleanup run across all profiles (prevents write quota exhaustion)
-LOG_CLEANUP_BATCH_LIMIT=1000
+LOG_CLEANUP_BATCH_LIMIT = 1000
+
 # Daily budget for log row deletions across all profiles (default: 20000, 20% of 100k daily write quota)
-LOG_CLEANUP_DAILY_BUDGET=20000
+LOG_CLEANUP_DAILY_BUDGET = 20000
+
 # Minimum query count threshold for domain hourly rollup aggregation (filters single-query noise domains)
-DOMAIN_ROLLUP_MIN_COUNT=2
+DOMAIN_ROLLUP_MIN_COUNT = 2
 
 # Preset Upstream Services
 PRESET_UPSTREAMS = """
@@ -258,26 +280,29 @@ PRESET_ECH_FRONTING_DOMAINS = """
 # Restored to 0.0001 (1 in 10,000) — safe now because each cron trigger
 # processes only ONE list at a time (~100-150k domains), dramatically reducing
 # per-trigger CPU usage vs. the old all-at-once approach.
-BLOOM_FALSE_POSITIVE_RATE=0.0001
+BLOOM_FALSE_POSITIVE_RATE = 0.0001
 
 # 1M domains @ p=0.0001: bitArray ≈ 2.4 MB (5 × 512KB D1 chunks)
-MAX_SYNC_DOMAINS=1000000
+MAX_SYNC_DOMAINS = 1000000
 
 # Maximum domains processed from a single list per cron trigger.
-MAX_LIST_DOMAINS=500000
+MAX_LIST_DOMAINS = 500000
 
 # Hard cap on log retention days (overrides per-profile user setting).
 # Prevents high-retention profiles (e.g. 360 days) from filling up D1's 500 MB limit.
-MAX_LOG_RETENTION_DAYS=30
-DEFAULT_LOG_RETENTION_DAYS=7
+MAX_LOG_RETENTION_DAYS = 30
 
-NORMAL_USER_MAX_LOG_RETENTION_DAYS=7
-NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS=1
+DEFAULT_LOG_RETENTION_DAYS = 7
+
+NORMAL_USER_MAX_LOG_RETENTION_DAYS = 7
+
+NORMAL_USER_DEFAULT_LOG_RETENTION_DAYS = 1
 
 # Hard cap on log row count per profile. Acts as a circuit-breaker when write
 # rate temporarily exceeds cleanup rate (e.g. high-traffic profiles).
-MAX_LOGS_PER_PROFILE=500000
+MAX_LOGS_PER_PROFILE = 500000
 
 # Demo Mode (optional): replaces displayed hostnames with DEMO_DOMAIN and seeds sample UI data
 # DEMO_MODE = "false"
+
 # DEMO_DOMAIN = "dns.worker.domain"
