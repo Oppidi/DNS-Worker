@@ -9,12 +9,19 @@ import type { UserInfo } from "../services";
 import { e2ee } from "../services";
 import { getAccessToken } from "../utils/token";
 import { createBaseWebMcpTools } from "./baseTools";
-import { createDiagnosticsWebMcpTools } from "./tools/diagnosticsTools";
+import { WEBMCP_PREF_CHANGED_EVENT } from "./events";
 import { createAnalyticsLogsWebMcpTools } from "./tools/analyticsLogsTools";
+import { createDiagnosticsWebMcpTools } from "./tools/diagnosticsTools";
+import { createFilteringWebMcpTools } from "./tools/filteringTools";
 import {
   createBrowserAnalyticsLogsDeps,
   createBrowserDiagnosticsDeps,
 } from "./tools/phase1Defaults";
+import {
+  createBrowserFilteringDeps,
+  createBrowserRulesDeps,
+} from "./tools/phase2Defaults";
+import { createRulesWebMcpTools } from "./tools/rulesTools";
 import {
   isBrowserWebMcpSupported,
   isWebMcpPreferenceEnabled,
@@ -73,7 +80,7 @@ export function useWebMcpBridge({
     setIsEnabledState(enabled);
   }, []);
 
-  // Register foundational and Phase 1 read-only diagnostic/analytics tool groups
+  // Register foundational, Phase 1 (diagnostics/analytics), and Phase 2 (rules/filtering) tool groups
   useEffect(() => {
     webMcpRegistry.registerGroup("base", createBaseWebMcpTools(webMcpRegistry));
     webMcpRegistry.registerGroup(
@@ -84,7 +91,11 @@ export function useWebMcpBridge({
       "analytics_logs",
       createAnalyticsLogsWebMcpTools(createBrowserAnalyticsLogsDeps())
     );
+    webMcpRegistry.registerGroup("rules", createRulesWebMcpTools(createBrowserRulesDeps()));
+    webMcpRegistry.registerGroup("filtering", createFilteringWebMcpTools(createBrowserFilteringDeps()));
     return () => {
+      webMcpRegistry.unregisterGroup("filtering");
+      webMcpRegistry.unregisterGroup("rules");
       webMcpRegistry.unregisterGroup("analytics_logs");
       webMcpRegistry.unregisterGroup("diagnostics");
       webMcpRegistry.unregisterGroup("base");
@@ -116,7 +127,7 @@ export function useWebMcpBridge({
     };
   }, [isLoggedIn, isLocked, currentUser?.id]);
 
-  // Track IdleSessionLock transitions emitted by axios interceptors or lock screen
+  // Track IdleSessionLock transitions and local WebMCP preference toggles from Settings cards
   useEffect(() => {
     const handleLockChange = (event: Event): void => {
       const customEvent = event as CustomEvent<{ locked?: boolean }>;
@@ -129,12 +140,22 @@ export function useWebMcpBridge({
     const handlePaused = (): void => {
       setIsLocked(true);
     };
+    const handlePrefChange = (event: Event): void => {
+      const customEvent = event as CustomEvent<{ enabled?: boolean }>;
+      if (typeof customEvent.detail?.enabled === "boolean") {
+        setIsEnabledState(customEvent.detail.enabled);
+      } else {
+        setIsEnabledState(isWebMcpPreferenceEnabled());
+      }
+    };
 
     window.addEventListener("dns_worker_lock_changed", handleLockChange);
     window.addEventListener("session_paused", handlePaused);
+    window.addEventListener(WEBMCP_PREF_CHANGED_EVENT, handlePrefChange);
     return () => {
       window.removeEventListener("dns_worker_lock_changed", handleLockChange);
       window.removeEventListener("session_paused", handlePaused);
+      window.removeEventListener(WEBMCP_PREF_CHANGED_EVENT, handlePrefChange);
     };
   }, []);
 

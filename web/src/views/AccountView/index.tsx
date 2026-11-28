@@ -17,6 +17,7 @@ import { PersonalInfoCard } from "./components/PersonalInfoCard";
 import { ChangePasswordCard } from "./components/ChangePasswordCard";
 import { SessionLockCard } from "./components/SessionLockCard";
 import { UserFilterListsCard } from "./components/UserFilterListsCard";
+import { WebMcpSettingsCard } from "./components/WebMcpSettingsCard";
 import { E2eeCard } from "./components/E2eeCard";
 import { USERNAME_REGEX, formatApiErrorMessage } from "../../utils/auth";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -208,6 +209,9 @@ export const AccountView: React.FC<AccountViewProps> = ({ onSavingChange, toaste
           toasterRef={toasterRef}
         />
       )}
+
+      {/* Browser WebMCP Agent Integration Preferences */}
+      {me && <WebMcpSettingsCard />}
 
       {/* Active Sessions */}
       {me && (

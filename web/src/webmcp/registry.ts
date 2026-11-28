@@ -4,6 +4,7 @@
  * Decouples business tool modules from `navigator.modelContext` lifecycle and fail-closed security guards.
  */
 
+import { emitWebMcpToolsChanged } from "./events";
 import { evaluateToolExecutionPolicy, isToolEligibleForRegistration } from "./policy";
 import { sanitizeUntrustedString } from "./sanitize";
 import type {
@@ -200,6 +201,7 @@ export class WebMcpRegistry {
     const modelContext = this.getModelContext();
     if (!modelContext || typeof modelContext.registerTool !== "function") {
       this.activeNames.clear();
+      emitWebMcpToolsChanged();
       return;
     }
 
@@ -244,6 +246,7 @@ export class WebMcpRegistry {
         }
       }
     }
+    emitWebMcpToolsChanged();
   }
 
   private toNativeDescriptor(tool: AppToolDefinition): WebMcpNativeToolDescriptor {

@@ -536,6 +536,47 @@ export default defineConfig({
           ],
         },
         {
+          label: 'WebMCP (AI Integration)',
+          translations: {
+            'zh-CN': 'MCP 与 AI 集成',
+            'zh-cn': 'MCP 与 AI 集成',
+            'zh-TW': 'MCP 與 AI 整合',
+            'zh-tw': 'MCP 與 AI 整合',
+          },
+          items: [
+            {
+              label: 'WebMCP Overview & Architecture',
+              translations: {
+                'zh-CN': 'WebMCP 总览与安全架构',
+                'zh-cn': 'WebMCP 总览与安全架构',
+                'zh-TW': 'WebMCP 總覽與安全架構',
+                'zh-tw': 'WebMCP 總覽與安全架構',
+              },
+              slug: 'mcp/overview',
+            },
+            {
+              label: 'Read-Only Diagnostics & Analytics',
+              translations: {
+                'zh-CN': '只读诊断与分析',
+                'zh-cn': '只读诊断与分析',
+                'zh-TW': '唯讀診斷與分析',
+                'zh-tw': '唯讀診斷與分析',
+              },
+              slug: 'mcp/diagnostics',
+            },
+            {
+              label: 'Rules & Filter Subscriptions',
+              translations: {
+                'zh-CN': '规则编排与列表订阅',
+                'zh-cn': '规则编排与列表订阅',
+                'zh-TW': '規則編排與清單訂閱',
+                'zh-tw': '規則編排與清單訂閱',
+              },
+              slug: 'mcp/rules-filtering',
+            },
+          ],
+        },
+        {
           label: 'Reference & FAQ',
           translations: {
             'zh-CN': '参考与排错',

@@ -18,6 +18,9 @@ const ALLOWED_RECORD_TYPES = new Set([
 
 const PROFILE_ID_REGEX = /^[a-zA-Z0-9_-]{3,32}$/;
 const DOMAIN_CHAR_REGEX = /^[a-z0-9_.-]+$/;
+const RULE_PATTERN_CHAR_REGEX = /^[a-z0-9*._-]+$/;
+const ALLOWED_RULE_TYPES = new Set(["ALLOW", "BLOCK", "REDIRECT"] as const);
+const MAX_RULE_BATCH_ITEMS = 50;
 
 /**
  * Normalizes and validates a queried hostname (strips optional URL scheme, port, path, and trailing dots).
@@ -99,4 +102,120 @@ export function parsePositiveIntInput(
     return { ok: false, error: `${fieldName} must be a positive integer.` };
   }
   return { ok: true, value: raw };
+}
+
+/**
+ * Parses and deduplicates a bounded non-empty array of positive integer IDs.
+ */
+export function parsePositiveIntArrayInput(
+  raw: unknown,
+  fieldName: string,
+  maxItems: number = MAX_RULE_BATCH_ITEMS
+): { ok: true; value: number[] } | { ok: false; error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { ok: false, error: `${fieldName} must be a non-empty array of positive integers.` };
+  }
+  if (raw.length > maxItems) {
+    return { ok: false, error: `${fieldName} supports at most ${maxItems} items per call.` };
+  }
+  const uniqueIds = new Set<number>();
+  for (const item of raw) {
+    if (typeof item !== "number" || !Number.isInteger(item) || item < 1) {
+      return { ok: false, error: `${fieldName} contains an invalid ID; expected positive integers.` };
+    }
+    uniqueIds.add(item);
+  }
+  return { ok: true, value: Array.from(uniqueIds) };
+}
+
+/**
+ * Validates and normalizes a custom DNS rule type (`ALLOW`, `BLOCK`, `REDIRECT`).
+ */
+export function validateRuleTypeInput(
+  raw: unknown
+): { ok: true; value: "ALLOW" | "BLOCK" | "REDIRECT" } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: "type must be ALLOW, BLOCK, or REDIRECT." };
+  }
+  const upper = raw.trim().toUpperCase();
+  if (!ALLOWED_RULE_TYPES.has(upper as "ALLOW" | "BLOCK" | "REDIRECT")) {
+    return { ok: false, error: `Unsupported rule type "${upper}". Expected ALLOW, BLOCK, or REDIRECT.` };
+  }
+  return { ok: true, value: upper as "ALLOW" | "BLOCK" | "REDIRECT" };
+}
+
+/**
+ * Validates and normalizes a custom DNS rule domain/wildcard pattern while rejecting bare catch-all wildcards.
+ */
+export function validateRulePatternInput(
+  raw: unknown
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: "pattern must be a string." };
+  }
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) {
+    return { ok: false, error: "pattern must not be empty." };
+  }
+  if (/[\s/:@#?]/.test(trimmed)) {
+    return { ok: false, error: "pattern must be a hostname or wildcard pattern without URL scheme, spaces, or paths." };
+  }
+  const cleaned = trimmed.replace(/\.+$/, "");
+  if (!cleaned || cleaned.length > 253 || cleaned.includes("..")) {
+    return { ok: false, error: "pattern must be 1-253 characters without empty labels." };
+  }
+  if (!RULE_PATTERN_CHAR_REGEX.test(cleaned)) {
+    return { ok: false, error: "pattern contains invalid characters; allowed: a-z, 0-9, ., -, _, *." };
+  }
+  if (cleaned.replace(/[*.]/g, "") === "") {
+    return { ok: false, error: "pattern cannot be a bare catch-all wildcard (such as * or *.*)." };
+  }
+  return { ok: true, value: cleaned };
+}
+
+/**
+ * Validates an optional short record payload string (`v_a`, `v_aaaa`, `v_cname`, `v_txt`) for REDIRECT rules.
+ */
+export function validateOptionalRuleTarget(
+  raw: unknown,
+  fieldName: string
+): { ok: true; value: string | undefined } | { ok: false; error: string } {
+  if (raw === undefined || raw === null) {
+    return { ok: true, value: undefined };
+  }
+  if (typeof raw !== "string") {
+    return { ok: false, error: `${fieldName} must be a string when provided.` };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { ok: true, value: undefined };
+  }
+  if (trimmed.length > 255 || /[\r\n\0]/.test(trimmed)) {
+    return { ok: false, error: `${fieldName} exceeds 255 characters or contains invalid control characters.` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/**
+ * Validates a filter list subscription URL (restricting to HTTP/HTTPS URLs <= 1024 characters).
+ */
+export function validateSubscriptionUrlInput(
+  raw: unknown
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string") {
+    return { ok: false, error: "url must be a string." };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 1024 || /\s/.test(trimmed)) {
+    return { ok: false, error: "url must be a valid HTTP(S) URL up to 1024 characters without whitespace." };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.hostname) {
+      return { ok: false, error: "url must use http:// or https:// with a valid hostname." };
+    }
+    return { ok: true, value: parsed.toString() };
+  } catch {
+    return { ok: false, error: "url is not a syntactically valid URL." };
+  }
 }

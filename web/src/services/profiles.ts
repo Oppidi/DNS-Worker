@@ -171,12 +171,22 @@ export async function checkDomainAgainstList(
  * skipped by the sync orchestrator and excluded when the merged profile bloom
  * is rebuilt, so the subscription and its sync history are preserved.
  */
-export async function toggleProfileList(profileId: string, listId: number, enabled: boolean): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists/${listId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ enabled })
-  });
+export async function toggleProfileList(
+  profileId: string,
+  listId: number,
+  enabled: boolean,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists/${listId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
@@ -194,12 +204,21 @@ export async function keepProfileList(profileId: string, listId: number): Promis
   return res.json();
 }
 
-export async function addCustomProfileList(profileId: string, url: string): Promise<{ id?: number }> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url })
-  });
+export async function addCustomProfileList(
+  profileId: string,
+  url: string,
+  options?: ProfileFetchOptions
+): Promise<{ id?: number }> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   try {
     return await res.json();
@@ -217,10 +236,15 @@ export async function deleteCustomProfileList(profileId: string, listId: number)
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function syncProfileLists(profileId: string): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists/sync`, {
-    method: "POST"
-  });
+export async function syncProfileLists(profileId: string, options?: ProfileFetchOptions): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists/sync`,
+    {
+      method: "POST",
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
@@ -234,16 +258,32 @@ export interface SyncProgress {
   percent: number;
 }
 
-export async function getProfileSyncStatus(profileId: string): Promise<SyncProgress> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists/sync-status`);
+export async function getProfileSyncStatus(
+  profileId: string,
+  options?: ProfileFetchOptions
+): Promise<SyncProgress> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists/sync-status`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-export async function syncSingleProfileList(profileId: string, listId: number): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists/${listId}/sync`, {
-    method: "POST"
-  });
+export async function syncSingleProfileList(
+  profileId: string,
+  listId: number,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists/${listId}/sync`,
+    {
+      method: "POST",
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
@@ -257,21 +297,39 @@ export async function getProfileRules(profileId: string, options?: ProfileFetchO
   return res.json();
 }
 
-export async function addProfileRule(profileId: string, rule: Omit<Rule, "id">): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(rule)
-  });
+export async function addProfileRule(
+  profileId: string,
+  rule: Omit<Rule, "id">,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rule),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function addProfileRulesBulk(profileId: string, rules: Omit<Rule, "id">[]): Promise<{ count: number }> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(rules)
-  });
+export async function addProfileRulesBulk(
+  profileId: string,
+  rules: Omit<Rule, "id">[],
+  options?: ProfileFetchOptions
+): Promise<{ count: number }> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rules),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -289,33 +347,60 @@ export async function addProfileListsBulk(
   return res.json();
 }
 
-export async function updateProfileRule(profileId: string, rule: Rule): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(rule)
-  });
+export async function updateProfileRule(
+  profileId: string,
+  rule: Rule,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rule),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function deleteProfileRule(profileId: string, ruleId: number): Promise<void> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: ruleId })
-  });
+export async function deleteProfileRule(
+  profileId: string,
+  ruleId: number,
+  options?: ProfileFetchOptions
+): Promise<void> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ruleId }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
 }
 
 /**
  * Deletes multiple custom rules from a profile in a single batch API call.
  */
-export async function deleteProfileRulesBulk(profileId: string, ruleIds: number[]): Promise<{ success: boolean; count: number }> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids: ruleIds })
-  });
+export async function deleteProfileRulesBulk(
+  profileId: string,
+  ruleIds: number[],
+  options?: ProfileFetchOptions
+): Promise<{ success: boolean; count: number }> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ruleIds }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -326,13 +411,19 @@ export async function deleteProfileRulesBulk(profileId: string, ruleIds: number[
 export async function toggleProfileRulesBulk(
   profileId: string,
   ruleIds: number[],
-  enabled: boolean
+  enabled: boolean,
+  options?: ProfileFetchOptions
 ): Promise<{ success: boolean; count: number; enabled: boolean }> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids: ruleIds, enabled })
-  });
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ruleIds, enabled }),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Intent, Callout } from "@blueprintjs/core";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -12,6 +12,7 @@ import { SyncProgressButton } from "./components/SyncProgressButton";
 import { PAGE_CONTAINER_STANDARD } from "../../constants/layout";
 import { useStickyHeaderTitle } from "../../layouts/HeaderTitleContext";
 import { getProfileLists, addCustomProfileList, deleteCustomProfileList, syncProfileLists, syncSingleProfileList, getProfileSyncStatus, toggleProfileList, addProfileRule } from "../../services";
+import { subscribeWebMcpDataChanged } from "../../webmcp";
 
 /**
  * Merges duplicate user-level and system-level filter list entries sharing the same URL
@@ -67,7 +68,7 @@ export const FilteringView: React.FC<FilteringViewProps> = ({ profileId, toaster
   const profileLists = useMemo(() => lists.filter((l) => l.scope === "profile"), [lists]);
   const userAndSystemLists = useMemo(() => mergeUserAndSystemLists(lists), [lists]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getProfileLists(profileId);
@@ -77,7 +78,7 @@ export const FilteringView: React.FC<FilteringViewProps> = ({ profileId, toaster
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -367,8 +368,20 @@ export const FilteringView: React.FC<FilteringViewProps> = ({ profileId, toaster
   };
 
   useEffect(() => {
-    fetchData();
-  }, [profileId]);
+    void fetchData();
+  }, [fetchData]);
+
+  // Auto-refresh filter list tables when an authorized WebMCP agent modifies lists or triggers sync
+  useEffect(() => {
+    return subscribeWebMcpDataChanged((detail) => {
+      if (
+        (detail.scope === "filtering" || detail.scope === "user_lists" || detail.scope === "all") &&
+        (!detail.profileId || detail.profileId === profileId)
+      ) {
+        void fetchData();
+      }
+    });
+  }, [fetchData, profileId]);
 
   return (
     <div className={clsx("md:px-8 w-full min-w-0 mx-auto", PAGE_CONTAINER_STANDARD, isMobile ? "p-1" : "px-8")}>

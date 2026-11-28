@@ -13,6 +13,7 @@ import {
   toggleProfileRulesBulk,
   getClientInfo,
 } from "../../../services";
+import { subscribeWebMcpDataChanged } from "../../../webmcp";
 
 export interface NewRuleDraft {
   type: Rule["type"];
@@ -180,6 +181,18 @@ export function useRulesManager({
     setSelectedRuleIds([]);
     void fetchRules();
   }, [fetchRules]);
+
+  // Auto-refresh custom rules when an authorized WebMCP agent mutates rules for this Profile
+  useEffect(() => {
+    return subscribeWebMcpDataChanged((detail) => {
+      if (
+        (detail.scope === "rules" || detail.scope === "all") &&
+        (!detail.profileId || detail.profileId === profileId)
+      ) {
+        void fetchRules();
+      }
+    });
+  }, [fetchRules, profileId]);
 
   const getBlockDetail = useCallback((): string => {
     if (!settings) return t("rules.detailBlock");

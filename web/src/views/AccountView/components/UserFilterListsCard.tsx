@@ -26,6 +26,7 @@ import {
   type UserList,
 } from "../../../services";
 import { formatDateTime } from "../../../utils/date";
+import { subscribeWebMcpDataChanged } from "../../../webmcp";
 
 interface MergedUserListRow {
   url: string;
@@ -78,6 +79,12 @@ export const UserFilterListsCard: React.FC<UserFilterListsCardProps> = ({
         }
       })
       .catch((e) => console.warn("Failed to fetch presets", e));
+
+    return subscribeWebMcpDataChanged((detail) => {
+      if (detail.scope === "user_lists" || detail.scope === "all") {
+        void fetchLists();
+      }
+    });
   }, [fetchLists, t]);
 
   const handleAdd = async () => {

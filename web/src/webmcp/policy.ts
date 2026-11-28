@@ -5,6 +5,7 @@
  * and human-in-the-loop confirmation before mutating tools execute.
  */
 
+import { emitWebMcpPreferenceChanged } from "./events";
 import type {
   AppToolDefinition,
   HumanConfirmFn,
@@ -53,18 +54,18 @@ export function isWebMcpPreferenceEnabled(): boolean {
 }
 
 /**
- * Persists user preference for exposing WebMCP tools on this device.
+ * Persists user preference for exposing WebMCP tools on this device and notifies active listeners.
  */
 export function setWebMcpPreferenceEnabled(enabled: boolean): void {
   const storage = getGlobalStorage();
-  if (!storage) {
-    return;
+  if (storage) {
+    try {
+      storage.setItem(WEBMCP_ENABLED_STORAGE_KEY, enabled ? "true" : "false");
+    } catch {
+      // Ignore storage quota/security errors in restricted contexts
+    }
   }
-  try {
-    storage.setItem(WEBMCP_ENABLED_STORAGE_KEY, enabled ? "true" : "false");
-  } catch {
-    // Ignore storage quota/security errors in restricted contexts
-  }
+  emitWebMcpPreferenceChanged(enabled);
 }
 
 /**

@@ -4,6 +4,7 @@
  */
 
 export * from "./types";
+export * from "./events";
 export * from "./sanitize";
 export * from "./policy";
 export * from "./registry";
@@ -13,3 +14,6 @@ export * from "./tools/validation";
 export * from "./tools/diagnosticsTools";
 export * from "./tools/analyticsLogsTools";
 export * from "./tools/phase1Defaults";
+export * from "./tools/rulesTools";
+export * from "./tools/filteringTools";
+export * from "./tools/phase2Defaults";

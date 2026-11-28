@@ -138,6 +138,7 @@ const SECTION_LABELS = {
     filtering: 'Domain Blocking & Rules',
     advanced: 'Security & Privacy',
     maintenance: 'Maintenance & Lifecycle',
+    mcp: 'WebMCP & AI Integration',
     reference: 'CLI & API Reference',
     faq: 'Troubleshooting & FAQ',
   },
@@ -150,6 +151,7 @@ const SECTION_LABELS = {
     filtering: '域名拦截与过滤规则',
     advanced: '安全与隐私机制',
     maintenance: '留存与维护',
+    mcp: 'WebMCP 与 AI 集成',
     reference: 'CLI 与 API 参考',
     faq: '常见问题与排错',
   },
@@ -162,6 +164,7 @@ const SECTION_LABELS = {
     filtering: '域名攔截與過濾規則',
     advanced: '安全與隱私機制',
     maintenance: '留存與維護',
+    mcp: 'WebMCP 與 AI 整合',
     reference: 'CLI 與 API 參考',
     faq: '常見問題與排錯',
   },
@@ -210,7 +213,7 @@ function buildLlmsTxt(localeKey, entries) {
     grouped.get(item.section).push(item);
   }
 
-  const sectionOrder = ['overview', 'guide', 'filtering', 'architecture', 'deployment', 'networking', 'advanced', 'maintenance', 'reference', 'faq'];
+  const sectionOrder = ['overview', 'guide', 'filtering', 'architecture', 'deployment', 'networking', 'advanced', 'maintenance', 'mcp', 'reference', 'faq'];
   const lines = [...header];
   for (const sec of sectionOrder) {
     const list = grouped.get(sec);
