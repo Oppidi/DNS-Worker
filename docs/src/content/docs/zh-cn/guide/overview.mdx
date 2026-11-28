@@ -1,6 +1,6 @@
 ---
 title: 项目概述
-description: 了解 DNS Worker 的设计理念、双引擎架构及核心功能特性。
+description: 了解以域名拦截为核心的保护性 DNS 解析系统 DNS Worker 的主要功能、过滤引擎与部署方式。
 ---
 
 import { Image } from 'astro:assets';
@@ -9,14 +9,11 @@ import statsDestImg from '../../../../../screenshots/dns_worker-stats_dest.webp'
 import mobileStatsImg from '../../../../../screenshots/dns_worker-mobile_stats.webp';
 import mobileLogImg from '../../../../../screenshots/dns_worker-mobile_log.webp';
 
-## 什么是 DNS Worker？
+## 何为 DNS Worker？
 
-**DNS Worker** 是一款主打隐私优先的现代化保护性 DNS 解析系统，采用创新的**双引擎架构**构建：
+**DNS Worker** 是一套注重隐私保护的**保护性 DNS（Protective DNS）与域名拦截系统**。它在网络请求的解析阶段直接阻断广告、行为追踪、钓鱼网站、恶意软件、挖矿脚本及僵尸网络（C2）域名，在 TCP 握手或 TLS 协商建立前终止异常连接。
 
-1. **☁️ Serverless 边缘模式 (首选推荐)**：
-   运行于遍布全球 300+ 边缘节点的 Cloudflare Workers 与 Cloudflare D1 分布式 SQL 数据库之上，享有零维护成本、全网 Anycast 智能就近调度以及极速边缘响应。
-2. **🖥️ Serverfull 独立服务模式 (自由自建)**：
-   摆脱对任何公有云厂商的依赖，在自有 VPS、家庭主机或实体服务器上运行。依托 Node.js / Bun 原生 `node:sqlite`，原生提供经典 UDP 53、DoT 853（支持 TLS SNI 多接入点分流）以及一体化 Web 管理面板与 DoH。
+系统支持订阅常用外部过滤列表并结合本地自定义规则进行裁决，可按设备或使用场景划分为多个独立策略配置（Profile），同时提供加密 DNS 传输、浏览器本地查询分析及后量子端到端加密日志审计能力。
 
 ---
 
@@ -48,11 +45,29 @@ DNS Worker 会自动记录并将解析归属地上报绘制成全球流向地图
 * **加密 DoQ (RFC 9250)**：基于 QUIC 协议的高性能 DNS，具备 0-RTT 极速握手并彻底消除队头阻塞。
 * **ECH 与 DDR (RFC 9460)**：广播加密客户端问候（ECH）与专用解析器自动发现（DDR）记录。
 
-### 2. 本地优先架构 (Local-First)
+### 2. 域名拦截与过滤引擎
+DNS Worker 在 DNS 解析阶段阻断广告、跟踪器、钓鱼网站、恶意软件、挖矿脚本、系统遥测及僵尸网络 C2 域名，在建立 TCP / TLS 连接前拦截风险请求（[查看规则与架构详解](/DNS-Worker/zh-cn/filtering/rules/)）：
+* **分层混合匹配架构**：结合**双态前缀布隆过滤器**（区分精确域名与 `||` 泛子域，万分之一误报率基线）、内存散列表 `@@` 白名单例外回溯、`$dnsrewrite` 重写与顶级域名索引的正则/复杂通配符池（受 `MAX_REGEX_RULES` 上限约束），可在资源受限环境中稳定处理数十万条规则。
+* **多格式语法与自定义规则**：兼容 Adblock Plus 语法（`||domain^`、`@@||`、`$dnsrewrite`、`/regex/`）、Hosts 文件及纯域名列表；预置常用公开黑名单源并支持全局 URL 去重与基于 HTTP `304` 的增量同步，同时支持本地配置的白名单（`ALLOW`）、黑名单（`BLOCK`）与重定向规则（`REDIRECT`）。
+* **三级列表分层与确定性仲裁**：支持 **Profile 级（配置级）**、**User 级（用户级）** 与 **System 级（系统级）** 三层规则管理（支持单配置覆写停用及同名 URL 联动停用）；冲突裁决顺序明确：本地规则（`ALLOW > REDIRECT > BLOCK`）高于外部订阅列表（`@@ 放行 > $dnsrewrite > 拦截`）。
+* **可选拦截响应与单域排查**：支持按 Profile 配置 `Zero IP`（`0.0.0.0` / `::`）、`NXDOMAIN`、`NODATA` 或自定义拦截 IP；列表详情内置基于紧凑过滤器的单域名命中测试与一键放行，配合查询日志抽屉追溯具体命中来源。
+
+### 3. 本地优先架构 (Local-First)
 依托浏览器内嵌的 WebAssembly SQLite 与 OPFS 技术，在前端实现 0ms 闪电级的日志筛选与多维图表分析，无需消耗服务端数据库读取额度。
 
-### 3. 后量子零知识端到端加密 (PQC E2EE)
+### 4. 后量子零知识端到端加密 (PQC E2EE)
 采用 NIST FIPS 203 **P256-MLKEM768** 混合格密码体系，结合硬件通行密钥（WebAuthn）授权。服务端仅存储不可逆密文，唯有用户授权设备方可完成解密。
+
+---
+
+## 双引擎架构
+
+同一套域名过滤与解析内核支持以两种运行时形态部署（详见 [系统架构](/DNS-Worker/zh-cn/architecture/overview/)）：
+
+1. **☁️ Serverless 边缘模式 (首选推荐)**：
+   运行于遍布全球 300+ 边缘节点的 Cloudflare Workers 与 Cloudflare D1 分布式 SQL 数据库之上，享有零维护成本、全网 Anycast 智能就近调度以及极速边缘响应。
+2. **🖥️ Serverfull 独立服务模式 (自由自建)**：
+   摆脱对任何公有云厂商的依赖，在自有 VPS、家庭主机或实体服务器上运行。依托 Node.js / Bun 原生 `node:sqlite`，原生提供经典 UDP 53、DoT 853（支持 TLS SNI 多接入点分流）以及一体化 Web 管理面板与 DoH。
 
 ---
 
