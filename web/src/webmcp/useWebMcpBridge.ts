@@ -9,6 +9,12 @@ import type { UserInfo } from "../services";
 import { e2ee } from "../services";
 import { getAccessToken } from "../utils/token";
 import { createBaseWebMcpTools } from "./baseTools";
+import { createDiagnosticsWebMcpTools } from "./tools/diagnosticsTools";
+import { createAnalyticsLogsWebMcpTools } from "./tools/analyticsLogsTools";
+import {
+  createBrowserAnalyticsLogsDeps,
+  createBrowserDiagnosticsDeps,
+} from "./tools/phase1Defaults";
 import {
   isBrowserWebMcpSupported,
   isWebMcpPreferenceEnabled,
@@ -67,10 +73,20 @@ export function useWebMcpBridge({
     setIsEnabledState(enabled);
   }, []);
 
-  // Register foundational tool group once
+  // Register foundational and Phase 1 read-only diagnostic/analytics tool groups
   useEffect(() => {
     webMcpRegistry.registerGroup("base", createBaseWebMcpTools(webMcpRegistry));
+    webMcpRegistry.registerGroup(
+      "diagnostics",
+      createDiagnosticsWebMcpTools(createBrowserDiagnosticsDeps())
+    );
+    webMcpRegistry.registerGroup(
+      "analytics_logs",
+      createAnalyticsLogsWebMcpTools(createBrowserAnalyticsLogsDeps())
+    );
     return () => {
+      webMcpRegistry.unregisterGroup("analytics_logs");
+      webMcpRegistry.unregisterGroup("diagnostics");
       webMcpRegistry.unregisterGroup("base");
     };
   }, []);

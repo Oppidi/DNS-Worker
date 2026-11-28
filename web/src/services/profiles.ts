@@ -8,12 +8,22 @@ import type {
   TestResponse
 } from "./types";
 
+export interface ProfileFetchOptions {
+  signal?: AbortSignal;
+  /** Redirects to `/404` on HTTP 404 when true (default for UI views); set false for headless/WebMCP callers. */
+  redirectOn404?: boolean;
+}
+
 /**
  * 包装 fetch 方法，当请求 Profile 相关接口遇到 404 (不存在或无权限) 时，直接引导前端至 404 界面
  */
-export async function profileFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function profileFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  redirectOn404: boolean = true
+): Promise<Response> {
   const res = await fetch(input, init);
-  if (res.status === 404) {
+  if (res.status === 404 && redirectOn404) {
     window.location.href = "/404";
   }
   return res;
@@ -65,15 +75,20 @@ class TtlResourceCache<T> {
 const profileDetailsCache = new TtlResourceCache<Profile>();
 const profileAccessPointsCache = new TtlResourceCache<AccessPoint[]>();
 
-export async function getProfiles(): Promise<Profile[]> {
-  const res = await profileFetch("/api/profiles");
-  if (!res.ok) throw new Error("Failed to fetch profiles");
+export async function getProfiles(options?: ProfileFetchOptions): Promise<Profile[]> {
+  const res = await profileFetch("/api/profiles", { signal: options?.signal }, options?.redirectOn404 ?? true);
+  if (!res.ok) throw new Error(`Failed to fetch profiles (${res.status})`);
   return res.json();
 }
 
-export async function getProfileDetails(profileId: string): Promise<Profile> {
+export async function getProfileDetails(profileId: string, options?: ProfileFetchOptions): Promise<Profile> {
+  if (options?.redirectOn404 === false) {
+    const res = await profileFetch(`/api/profiles/${profileId}`, { signal: options.signal }, false);
+    if (!res.ok) throw new Error(`Failed to fetch profile details (${res.status})`);
+    return res.json();
+  }
   return profileDetailsCache.getOrFetch(profileId, async () => {
-    const res = await profileFetch(`/api/profiles/${profileId}`);
+    const res = await profileFetch(`/api/profiles/${profileId}`, { signal: options?.signal });
     if (!res.ok) throw new Error("Failed to fetch profile details");
     return res.json();
   });
@@ -106,9 +121,13 @@ export async function updateProfileSettings(profileId: string, settings: GlobalP
   profileDetailsCache.invalidate(profileId);
 }
 
-export async function getProfileLists(profileId: string): Promise<FilterList[]> {
-  const res = await profileFetch(`/api/profiles/${profileId}/lists`);
-  if (!res.ok) throw new Error("Failed to fetch lists");
+export async function getProfileLists(profileId: string, options?: ProfileFetchOptions): Promise<FilterList[]> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/lists`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Failed to fetch lists (${res.status})`);
   return res.json();
 }
 
@@ -135,10 +154,13 @@ export interface ListCheckResult {
 export async function checkDomainAgainstList(
   profileId: string,
   listId: number,
-  domain: string
+  domain: string,
+  options?: ProfileFetchOptions
 ): Promise<ListCheckResult> {
   const res = await profileFetch(
-    `/api/profiles/${profileId}/lists/${listId}/check?domain=${encodeURIComponent(domain)}`
+    `/api/profiles/${profileId}/lists/${listId}/check?domain=${encodeURIComponent(domain)}`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
   );
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -225,9 +247,13 @@ export async function syncSingleProfileList(profileId: string, listId: number): 
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function getProfileRules(profileId: string): Promise<Rule[]> {
-  const res = await profileFetch(`/api/profiles/${profileId}/rules`);
-  if (!res.ok) throw new Error("Failed to fetch rules");
+export async function getProfileRules(profileId: string, options?: ProfileFetchOptions): Promise<Rule[]> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/rules`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Failed to fetch rules (${res.status})`);
   return res.json();
 }
 
@@ -411,10 +437,14 @@ export async function rotateProfileAccessPointToken(profileId: string, apId: str
   return res.json();
 }
 
-export async function getProfileLogs(profileId: string, queryParams: string, options?: { signal?: AbortSignal }): Promise<LogEntry[]> {
+export async function getProfileLogs(profileId: string, queryParams: string, options?: ProfileFetchOptions): Promise<LogEntry[]> {
   const query = queryParams.startsWith("?") ? queryParams.slice(1) : queryParams;
-  const res = await profileFetch(`/api/profiles/${profileId}/logs?${query}`, { signal: options?.signal });
-  if (!res.ok) throw new Error("Failed to fetch logs");
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/logs?${query}`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Failed to fetch logs (${res.status})`);
   return res.json();
 }
 
@@ -429,11 +459,15 @@ export async function getProfileLogDetails(
   profileId: string,
   logId: number,
   timestamp?: number,
-  options?: { signal?: AbortSignal }
+  options?: ProfileFetchOptions
 ): Promise<LogEntry> {
   const query = timestamp !== undefined ? `?timestamp=${timestamp}` : "";
-  const res = await profileFetch(`/api/profiles/${profileId}/logs/${logId}${query}`, { signal: options?.signal });
-  if (!res.ok) throw new Error("Failed to fetch log details");
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/logs/${logId}${query}`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Failed to fetch log details (${res.status})`);
   return res.json();
 }
 
@@ -444,21 +478,34 @@ export async function clearProfileLogs(profileId: string): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
-export async function getProfileAnalytics(profileId: string, type: string, queryParams: string, options?: { signal?: AbortSignal }): Promise<any> {
+export async function getProfileAnalytics(profileId: string, type: string, queryParams: string, options?: ProfileFetchOptions): Promise<any> {
   const query = queryParams.startsWith("?") ? queryParams.slice(1) : queryParams;
   const path = type ? `/${type}` : "";
-  const res = await profileFetch(`/api/profiles/${profileId}/analytics${path}?${query}`, { signal: options?.signal });
-  if (!res.ok) throw new Error(`Failed to fetch analytics${type ? ` for ${type}` : ""}`);
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/analytics${path}?${query}`,
+    { signal: options?.signal },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Failed to fetch analytics${type ? ` for ${type}` : ""} (${res.status})`);
   return res.json();
 }
 
-export async function testResolution(profileId: string, payload: { domain: string; type: string }): Promise<TestResponse> {
-  const res = await profileFetch(`/api/profiles/${profileId}/test`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error("Resolution test failed");
+export async function testResolution(
+  profileId: string,
+  payload: { domain: string; type: string },
+  options?: ProfileFetchOptions
+): Promise<TestResponse> {
+  const res = await profileFetch(
+    `/api/profiles/${profileId}/test`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: options?.signal,
+    },
+    options?.redirectOn404 ?? true
+  );
+  if (!res.ok) throw new Error(`Resolution test failed (${res.status})`);
   return res.json();
 }
 

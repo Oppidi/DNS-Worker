@@ -9,3 +9,7 @@ export * from "./policy";
 export * from "./registry";
 export * from "./baseTools";
 export * from "./useWebMcpBridge";
+export * from "./tools/validation";
+export * from "./tools/diagnosticsTools";
+export * from "./tools/analyticsLogsTools";
+export * from "./tools/phase1Defaults";

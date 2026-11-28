@@ -113,4 +113,21 @@ export interface AppToolDefinition<TInput extends Record<string, unknown> = Reco
   execute: AppToolHandler<TInput>;
 }
 
+/**
+ * Normalizes a strongly-typed `AppToolDefinition<TInput>` into a generic `AppToolDefinition`
+ * so typed modules can be registered uniformly without unsafe type casts.
+ */
+export function defineWebMcpTool<TInput extends Record<string, unknown>>(
+  tool: AppToolDefinition<TInput>
+): AppToolDefinition {
+  return {
+    ...tool,
+    validateInput: tool.validateInput ? (raw) => tool.validateInput!(raw) : undefined,
+    confirmDescription: tool.confirmDescription
+      ? (raw) => tool.confirmDescription!(raw as TInput)
+      : undefined,
+    execute: (raw, ctx) => tool.execute(raw as TInput, ctx),
+  };
+}
+
 export type HumanConfirmFn = (toolName: string, summary: string, client?: WebMcpClient) => Promise<boolean>;
