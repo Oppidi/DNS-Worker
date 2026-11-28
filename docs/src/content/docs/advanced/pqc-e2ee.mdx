@@ -1,13 +1,22 @@
 ---
 title: Post-Quantum Zero-Knowledge E2EE
-description: Architectural breakdown of NIST FIPS 203 ML-KEM-768, hardware Passkeys, and hourly rotating KEM DEKs.
+description: Architectural details of DNS Worker's NIST FIPS 203 P256-MLKEM768, WebAuthn Passkey key unwrapping, and hourly rotating KEM DEKs for encrypted DNS logs.
 ---
 
 import { Image } from 'astro:assets';
 import { Aside } from '@astrojs/starlight/components';
 import mfaImg from '../../../../screenshots/dns_worker-mfa.webp';
 
-DNS Worker provides an industry-leading **Post-Quantum Zero-Knowledge End-to-End Encryption (E2EE)** architecture for query logging, ensuring historical DNS traffic remains mathematically irreversible even under future quantum computer attacks.
+**DNS Worker** provides opt-in **Post-Quantum Zero-Knowledge End-to-End Encryption (PQC E2EE)** for DNS query logs. Once enabled, the server holds only public encapsulation keys while private decryption keys exist solely inside authorized client browsers, preserving confidentiality against storage exposure and future quantum attacks.
+
+## Cryptographic Specification
+
+| Component | Algorithm / Mechanism | Behavior |
+| :--- | :--- | :--- |
+| **Key Encapsulation (KEM)** | NIST FIPS 203 **P256-MLKEM768** hybrid cryptography | Combines ECDH P-256 with ML-KEM-768 lattice encapsulation |
+| **DEK Rotation** | Automatic hourly rotation | Limits per-key exposure window; `kem_ct` stored alongside logs |
+| **Key Protection & Unlock** | WebAuthn Passkeys (Touch ID / Face ID / Hello / YubiKey) or Recovery Key | Master private key unwrapped strictly inside client Web Worker |
+| **Default State** | Disabled by default (opt-in per account) | Plaintext storage by default for cross-device immediate viewing |
 
 ## Default State & Activation
 

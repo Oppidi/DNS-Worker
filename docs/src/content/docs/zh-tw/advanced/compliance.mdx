@@ -7,7 +7,17 @@ sidebar:
 
 import { Aside } from '@astrojs/starlight/components';
 
-本章集中收錄 DNS Worker 在身份認證、會話安全、密碼學與網路協議方面的**標準符合性宣告**。
+DNS Worker 在身份認證、會話控制、密碼學與 DNS 傳輸協議上遵循多項公開工程與安全規範。本章彙總 **DNS Worker** 經驗證的標準符合性宣告，便於安全審計與架構評估。
+
+## 標準符合性總覽
+
+| 領域 | 遵循標準 / 規範 | 應用模組 |
+| :--- | :--- | :--- |
+| **身份認證與會話控制** | **NIST SP 800-63B-4 (AAL2)** / **NIST SP 800-63A (IAL1)** | 登入鑑權、通行金鑰、TOTP、RTR 輪換、絕對會話上限 |
+| **抗量子日誌加密** | **NIST FIPS 203 (P256-MLKEM768)** | 後量子零知識 E2EE 查詢日誌封裝與輪換 DEK |
+| **無密碼與二次認證** | **WebAuthn / FIDO2**、**RFC 6238 (TOTP)** | 硬體通行金鑰、防重放 TOTP 令牌、一次性恢復金鑰 |
+| **DNS 與加密傳輸協議** | **RFC 1035**、**RFC 7858 (DoT)**、**RFC 8484 (DoH)**、**RFC 9250 (DoQ)**、**RFC 9460 (ECH / DDR)** | 全棧入站監聽與遞迴上游排程 |
+| **HTTP 協議升級引導** | **RFC 7838 (`Alt-Svc`)**、**RFC 9110 §7.8 (`Upgrade`)** | DoH 協議版本策略（`MIN_HTTP_VERSION`）與升級響應頭 |
 
 ---
 

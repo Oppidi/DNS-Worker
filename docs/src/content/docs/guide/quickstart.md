@@ -1,9 +1,14 @@
 ---
 title: Quick Start
-description: Launch and experience DNS Worker in less than 60 seconds.
+description: "Two fast deployment paths for DNS Worker: Cloudflare Workers + D1 Serverless DoH via Wrangler CLI, or standalone Serverfull Node.js/Bun daemon with UDP port 53 and Web Dashboard on port 10080."
 ---
 
-DNS Worker offers two deployment paths tailored to your needs. As a **Serverless-First** platform, deploying to Cloudflare Workers is the primary, recommended approach for zero-maintenance global edge resolution.
+**DNS Worker** supports two deployment workflows: **Cloudflare Workers Serverless Mode** for zero-maintenance DoH endpoints, and **Serverfull Standalone Mode** for self-hosted servers requiring native UDP port 53 or Android DoT port 853.
+
+| Deployment Mode | Prerequisites | Setup Commands | Default Endpoint |
+| :--- | :--- | :--- | :--- |
+| **Cloudflare Workers** | Cloudflare account, Node.js, `wrangler` | `npm run db:setup && npm run db:migrate:prod && npm run deploy` | `https://<worker>.workers.dev` |
+| **Serverfull (CLI)** | `Node.js >= 22.5` or `Bun >= 1.4` | `npm install -g dns-worker && dns-worker config init && dns-worker` | `http://localhost:10080` · `127.0.0.1:53` |
 
 ---
 

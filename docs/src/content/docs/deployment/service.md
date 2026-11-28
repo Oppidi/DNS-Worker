@@ -1,9 +1,14 @@
 ---
 title: Background Service Management
-description: Manage background services with Linux systemd and Windows Scheduled Tasks.
+description: Register, start, autostart, and monitor the DNS Worker Serverfull daemon using Linux systemd (with CAP_NET_BIND_SERVICE) or Windows Scheduled Tasks.
 ---
 
-DNS Worker includes built-in service lifecycle management to register, control, and autostart background daemons.
+**DNS Worker** includes a cross-platform service manager (`dns-worker service`) for running the standalone Serverfull daemon under **Linux `systemd`** or **Windows Scheduled Tasks**, handling daemon registration, boot autostart, and log inspection.
+
+| Platform | Service Backend | Default Privilege Model | Privileged Ports (`53` / `853`) | Config & Logs |
+| :--- | :--- | :--- | :--- | :--- |
+| **Linux** | `systemd` unit | Invoking non-root `sudo` user | Granted via `CAP_NET_BIND_SERVICE` | `/etc/dns-worker/.env` · `journalctl` |
+| **Windows** | Scheduled Task (`schtasks`) | Elevated Administrator shell | Task Scheduler execution privilege | Standard `.env` dir · Task Scheduler events |
 
 ## Linux systemd Service
 

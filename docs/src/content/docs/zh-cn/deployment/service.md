@@ -1,9 +1,14 @@
 ---
 title: 常驻后台服务管理 (systemd & Windows)
-description: 在 Linux systemd 与 Windows 计划任务中以守护进程运行 DNS Worker。
+description: 使用 dns-worker service 子命令在 Linux systemd（最小权限 CAP_NET_BIND_SERVICE）与 Windows 计划任务中注册、启动、开机自启与运维 DNS Worker 守护进程。
 ---
 
-DNS Worker 内置完善的服务生命周期管理器，可一键完成服务的注册、配置、启停与自启。
+**DNS Worker** 内置跨平台服务生命周期管理器（`dns-worker service`），支持将 Serverfull DNS 服务注册为 **Linux systemd 守护进程**或 **Windows 计划任务**，统一管理启停、开机自启与日志追踪。
+
+| 平台 | 服务后端 | 默认执行权限 | 特权端口（53 / 853）机制 | 配置与日志位置 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Linux** | `systemd` 服务 | 调用 `sudo` 的非 root 用户 | 通过 `CAP_NET_BIND_SERVICE` 授予绑定权限 | `/etc/dns-worker/.env` · `journalctl` |
+| **Windows** | Windows 计划任务 (`schtasks`) | 系统管理员权限控制台 | 计划任务系统权限运行 | 默认 `.env` 目录 · 计划任务事件 |
 
 ## Linux systemd 服务
 

@@ -1,13 +1,22 @@
 ---
 title: 後量子零知識 E2EE
-description: NIST FIPS 203 ML-KEM-768、硬體通行金鑰與每小時輪換 KEM DEK 的架構解析。
+description: DNS Worker 基於 NIST FIPS 203 P256-MLKEM768 混合格密碼、WebAuthn 硬體通行金鑰與每小時輪換 KEM DEK 的端到端加密日誌方案。
 ---
 
 import { Image } from 'astro:assets';
 import { Aside } from '@astrojs/starlight/components';
 import mfaImg from '../../../../../screenshots/dns_worker-mfa.webp';
 
-DNS Worker 為查詢日誌提供了行業領先的**後量子零知識端到端加密（E2EE）**架構，確保即便在未來量子計算機攻擊下，歷史 DNS 訪問記錄在數學上依然保持不可逆性。
+**DNS Worker** 為 DNS 查詢日誌提供可選的**後量子零知識端到端加密（PQC E2EE）**。啟用後，服務端僅持有公鑰用於寫入前加密封裝，查詢記錄私鑰僅在授權客戶端瀏覽器內解密，確保儲存的密文在面對儲存洩露或未來量子計算攻擊時仍保持不可逆性。
+
+## 密碼學引數概覽
+
+| 元件 | 規範 / 實現機制 | 說明 |
+| :--- | :--- | :--- |
+| **金鑰封裝機制 (KEM)** | NIST FIPS 203 **P256-MLKEM768** 混合格密碼 | 兼顧經典橢圓曲線強度與抗 Shor 量子演算法能力 |
+| **資料加密金鑰 (DEK) 輪換** | 每小時自動輪換 | 收斂單批金鑰暴露視窗，封裝密文（`kem_ct`）隨記錄儲存 |
+| **私鑰保護與解鎖** | WebAuthn 通行金鑰（Touch ID / Face ID / Hello / YubiKey）或恢復金鑰 | 私鑰解密運算嚴格限制在客戶端瀏覽器 Web Worker 內執行 |
+| **預設狀態** | 預設關閉（按賬號按需開啟） | 關閉狀態下以明文寫入查詢日誌，保留跨裝置直接查閱與更高吞吐 |
 
 ## 預設狀態與開啟方式
 

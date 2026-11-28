@@ -11,14 +11,14 @@ DNS Worker 在與控制台 / Worker 相同的域名下同時提供 **根路徑 `
 
 | 路徑 / 傳輸方式 | 方法 / 協議 | 引數與格式要求 | 說明 |
 | --- | --- | --- | --- |
-| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或攜帶 `Accept: application/dns-message`；`POST` 請求體為原始 DNS 二進位制報文（`application/dns-message`，Serverfull 模式上限 64 KB） | **DoH 接入端點（RFC 8484）**。優先匹配使用者級 `access_points.token`（用於裝置歸因與動態 Profile 繫結路由），其次匹配 `profiles.profile_key` 或 `profiles.id`。若匹配的接入點處於未繫結狀態（`profile_id IS NULL`），將直接回退至 `FAIL_OPEN_UPSTREAM` 解析（不匹配 `profile_key`，也不返回 `404` 且不記日誌）；系統刻意不開放無金鑰的 `/dns-query` 路徑。響應返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 與全放行 CORS 頭（`*`）。 |
+| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/1.1+，推薦 HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或攜帶 `Accept: application/dns-message`；`POST` 請求體為原始 DNS 二進位制報文（`application/dns-message`，Serverfull 模式上限 64 KB） | **DoH 接入端點（RFC 8484）**。優先匹配使用者級 `access_points.token`（用於裝置歸因與動態 Profile 繫結路由），其次匹配 `profiles.profile_key` 或 `profiles.id`。若匹配的接入點處於未繫結狀態（`profile_id IS NULL`），將直接回退至 `FAIL_OPEN_UPSTREAM` 解析（不匹配 `profile_key`，也不返回 `404` 且不記日誌）；系統刻意不開放無金鑰的 `/dns-query` 路徑。響應返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 與全放行 CORS 頭（`*`）。 |
 | `/setup.sh` | `GET` | 查詢引數 `key` 需匹配 `^[a-zA-Z0-9]{5,12}$`，且 `Host` 須為合法 HTTP/HTTPS 來源 | 動態生成 `text/plain` 格式的 Linux 一鍵安裝指令碼（安裝 `cloudflared` 並註冊 `systemd` 服務 `cloudflared-dns.service`，將 `--upstream <origin>/<key>` 對映到本地 `53` 埠）。 |
 | `/world-110m.json` | `GET` | 無 | GeoIP 世界地圖 TopoJSON 代理介面，自動補全 3 位國家數字 ID 並啟用邊緣快取（`max-age=2592000`，30 天），響應帶 `Access-Control-Allow-Origin: *`。 |
 
 ### DoH 協議約束與響應說明（`/:key`）
 
 - **Access Key 校驗與 Durable Objects 容災**：合法的 Access Key（含 `access_points.token`、`profiles.profile_key` 與 `profiles.id`）會同步寫入基於 SQLite 的 Durable Objects（`ACCESS_KEY_DO`，分為 16 個確定性分片）。已繫結的接入點按其當前 `profile_id` 路由，未繫結接入點（`profile_id = null`）直接回退至 `FAIL_OPEN_UPSTREAM`（零日誌）；當 D1 或 Turso 下線或達到讀取配額進入 `FAIL_OPEN` 狀態時，合法 Access Key 仍可通過 DO 容災繼續完成解析，而未註冊或已吊銷的無效 Key 將被拒絕（`404 Invalid Profile Key`）。
-- **HTTP/2+ 強制校驗（RFC 8484 §5.2）**：若請求以 `HTTP/1.0` 或 `HTTP/1.1` 到達（通過 `request.cf.httpProtocol` 或 `X-Http-Version` 檢測），服務端將返回 `505 HTTP Version Not Supported`。
+- **HTTP 最低版本策略與協議升級引導（`MIN_HTTP_VERSION`）**：入站 DoH 版本下限由環境變數 `MIN_HTTP_VERSION` 控制，預設為 `1.1`（允許 `HTTP/1.1`、`HTTP/2`、`HTTP/3`，相容僅支援 HTTP/1.1 的路由器與嵌入式客戶端）。對允許通行的 `HTTP/1.x` 請求，響應會附帶 `Alt-Svc`（通告 `h3` 與 `h2`）及 RFC 9110 §7.8 `Upgrade` / `Connection: Upgrade` 引導頭部，鼓勵客戶端自動升級；若請求版本低於當前配置的 `MIN_HTTP_VERSION`（例如將下限嚴格設為 `2` 或 `3`，或預設拒收 `HTTP/1.0`），服務端將返回 `505 HTTP Version Not Supported` 並提示建議協議。
 - **CORS 預檢（`OPTIONS`）**：返回 `204 No Content`，攜帶 `Access-Control-Allow-Origin: *`、`Access-Control-Allow-Methods: GET, POST, OPTIONS`、`Access-Control-Allow-Headers: Content-Type, Accept` 與 `Access-Control-Max-Age: 86400`。
 - **異常與故障開放（Fail-Open）**：
   - `400 Invalid DNS Query`：非標準或損壞的 DNS 線纜格式請求報文（要求 `QR=0`、`OPCODE=0`、`QDCOUNT=1`、`QNAME <= 253` 字元）。

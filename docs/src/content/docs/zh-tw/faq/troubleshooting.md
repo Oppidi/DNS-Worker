@@ -1,7 +1,17 @@
 ---
 title: 常見問題與排錯指引
-description: 覆蓋許可權問題 (EACCES)、DoT 證書要求、401 會話過期等常見場景。
+description: DNS Worker 常見問題排查手冊：涵蓋 Linux TLS 證書 EACCES 許可權錯誤、DoT 萬用字元證書暫停、systemd .env 路徑未生效、接入點未繫結 Fail-Open 回退與本地開發地圖快取問題。
 ---
+
+本頁彙總 **DNS Worker** 在 Serverfull 獨立部署、TLS/DoT 接入與 Cloudflare Workers 開發除錯過程中的高頻問題，提供症狀定位、根本原因與可直接執行的排查命令。
+
+| 症狀關鍵詞 | 根本原因 | 關鍵路徑 / 命令 |
+| :--- | :--- | :--- |
+| `Permission denied (EACCES)` | 非 root 服務賬號無權讀取 `0600` 私鑰 | `ssl-cert` 使用者組授權或專用證書目錄 |
+| `DoT Paused (Requires Wildcard)` | DoT SNI 分流需要 `*.domain` 萬用字元證書 | `certbot certonly -d *.your.domain -d your.domain` |
+| 修改 `.env` 重啟未生效 | `systemd` 服務固定讀取全域性路徑 | 編輯 `/etc/dns-worker/.env` |
+| 接入成功但規則與日誌未生效 | 接入點處於 `profile_id = null` 未繫結狀態 | 在 **接入點 > 管理** 重新繫結 Profile |
+| `npm run dev` 世界地圖不顯示 | 本地開發快取損壞或命中舊版 30 天快取 | 清理 `.wrangler/state/v3/cache` 並強刷瀏覽器 |
 
 ## 1. TLS 證書顯示 Permission denied (EACCES)
 

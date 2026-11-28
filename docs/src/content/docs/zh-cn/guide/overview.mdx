@@ -9,6 +9,8 @@ import statsDestImg from '../../../../../screenshots/dns_worker-stats_dest.webp'
 import mobileStatsImg from '../../../../../screenshots/dns_worker-mobile_stats.webp';
 import mobileLogImg from '../../../../../screenshots/dns_worker-mobile_log.webp';
 
+**DNS Worker** 是一个注重隐私的保护性 DNS（域名拦截系统）。本文档概述其域名过滤机制、协议支持、审计架构与部署方式。
+
 ## 何为 DNS Worker？
 
 **DNS Worker** 是一套注重隐私保护的**保护性 DNS（域名拦截系统）**。它在网络请求的解析阶段直接阻断广告、行为追踪、钓鱼网站、恶意软件、挖矿脚本及僵尸网络（C2）域名，在 TCP 握手或 TLS 协商建立前终止异常连接。
@@ -49,7 +51,7 @@ DNS Worker 会自动记录并将解析归属地上报绘制成全球流向地图
 DNS Worker 在 DNS 解析阶段阻断广告、跟踪器、钓鱼网站、恶意软件、挖矿脚本、系统遥测及僵尸网络 C2 域名，在建立 TCP / TLS 连接前拦截风险请求（[查看规则与架构详解](/DNS-Worker/zh-cn/filtering/rules/)）：
 * **分层混合匹配架构**：结合**双态前缀布隆过滤器**（区分精确域名与 `||` 泛子域，万分之一误报率基线）、内存散列表 `@@` 白名单例外回溯、`$dnsrewrite` 重写与顶级域名索引的正则/复杂通配符池（受 `MAX_REGEX_RULES` 上限约束），可在资源受限环境中稳定处理数十万条规则。
 * **多格式语法与自定义规则**：兼容 Adblock Plus 语法（`||domain^`、`@@||`、`$dnsrewrite`、`/regex/`）、Hosts 文件及纯域名列表；预置常用公开黑名单源并支持全局 URL 去重与基于 HTTP `304` 的增量同步，同时支持本地配置的白名单（`ALLOW`）、黑名单（`BLOCK`）与重定向规则（`REDIRECT`）。
-* **三级列表分层与确定性仲裁**：支持 **Profile 级（配置级）**、**User 级（用户级）** 与 **System 级（系统级）** 三层规则管理（支持单配置覆写停用及同名 URL 联动停用）；冲突裁决顺序明确：本地规则（`ALLOW > REDIRECT > BLOCK`）高于外部订阅列表（`@@ 放行 > $dnsrewrite > 拦截`）。
+* **三级列表分层与确定性仲裁**：支持 **Profile 级（配置级）**、**User 级（用户级）** 与 **System 级（系统级）** 三层规则管理（支持单配置覆写停用及同名 URL 联动停用）；冲突裁决顺序明确：本地规则（`ALLOW` > `REDIRECT` > `BLOCK`）高于外部订阅列表（`@@` 放行 > `$dnsrewrite` > 拦截）。
 * **可选拦截响应与单域排查**：支持按 Profile 配置 `Zero IP`（`0.0.0.0` / `::`）、`NXDOMAIN`、`NODATA` 或自定义拦截 IP；列表详情内置基于紧凑过滤器的单域名命中测试与一键放行，配合查询日志抽屉追溯具体命中来源。
 
 ### 3. 本地优先架构 (Local-First)

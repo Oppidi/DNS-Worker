@@ -1,0 +1,177 @@
+---
+import DefaultHead from '@astrojs/starlight/components/Head.astro';
+
+const SITE_ORIGIN = 'https://oppidi.github.io';
+const SITE_BASE = '/DNS-Worker';
+const REPO_URL = 'https://github.com/Oppidi/DNS-Worker';
+
+const { entry, id, lang, locale } = Astro.locals.starlightRoute;
+const pageTitle = entry.data.title || 'DNS Worker';
+const pageDescription =
+  entry.data.description ||
+  'Privacy-focused Protective DNS (domain-blocking system) supporting DoH, DoT, DoQ, Cloudflare Workers Edge, and standalone Serverfull deployment.';
+
+const normalizedId = (id || '').replace(/^\/+|\/+$/g, '');
+const cleanRoute = normalizedId
+  .replace(/\/index\.mdx?$/i, '')
+  .replace(/^index\.mdx?$/i, '')
+  .replace(/\.mdx?$/i, '');
+
+const canonicalPath = cleanRoute ? `${SITE_BASE}/${cleanRoute}/` : `${SITE_BASE}/`;
+const canonicalUrl = `${SITE_ORIGIN}${canonicalPath}`;
+
+const mdRelativePath = cleanRoute
+  ? `${SITE_BASE}/${cleanRoute}.md`
+  : `${SITE_BASE}/index.md`;
+
+const localePrefix = locale ? `/${locale}` : '';
+const llmsIndexHref = `${SITE_BASE}${localePrefix}/llms.txt`;
+const rootLlmsHref = `${SITE_BASE}/llms.txt`;
+
+const isHome = cleanRoute === '' || cleanRoute === 'zh-cn' || cleanRoute === 'zh-tw' || entry.data.template === 'splash';
+const isFaq = cleanRoute.endsWith('faq/troubleshooting');
+
+const homeLabel =
+  lang === 'zh-CN' ? 'DNS Worker 文档' : lang === 'zh-TW' ? 'DNS Worker 文件' : 'DNS Worker Documentation';
+const homePath = localePrefix ? `${SITE_BASE}${localePrefix}/` : `${SITE_BASE}/`;
+
+// Build BreadcrumbList items dynamically from the clean route path
+const segments = cleanRoute.split('/').filter(Boolean);
+const routeSegments = localePrefix && segments[0] === locale ? segments.slice(1) : segments;
+const breadcrumbItems: Array<Record<string, unknown>> = [
+  {
+    '@type': 'ListItem',
+    position: 1,
+    name: homeLabel,
+    item: `${SITE_ORIGIN}${homePath}`,
+  },
+];
+
+if (!isHome) {
+  routeSegments.forEach((seg, idx) => {
+    const isLast = idx === routeSegments.length - 1;
+    const itemName = isLast
+      ? pageTitle
+      : seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
+    const itemObj: Record<string, unknown> = {
+      '@type': 'ListItem',
+      position: idx + 2,
+      name: itemName,
+    };
+    if (isLast) {
+      itemObj.item = canonicalUrl;
+    }
+    breadcrumbItems.push(itemObj);
+  });
+}
+
+// Extract FAQ Q&A pairs cleanly from `## <question>` headings when rendering the FAQ page
+const faqEntities: Array<Record<string, unknown>> = [];
+if (isFaq && typeof entry.body === 'string') {
+  const sections = entry.body.split(/\r?\n(?=##\s+)/);
+  for (const sec of sections) {
+    const match = sec.match(/^##\s+([^\r\n]+)\r?\n([\s\S]*)$/);
+    if (!match) continue;
+    const rawHeading = match[1].trim();
+    if (!/^\d+\.|[?？]$/.test(rawHeading)) continue;
+    const question = rawHeading.replace(/^\d+\.\s*/, '').trim();
+    const rawBody = match[2]
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/###\s+/g, '')
+      .replace(/[*`>#]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (question && rawBody) {
+      faqEntities.push({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: rawBody.slice(0, 600),
+        },
+      });
+    }
+  }
+}
+
+const graphNodes: Array<Record<string, unknown>> = [
+  {
+    '@type': 'WebSite',
+    '@id': `${SITE_ORIGIN}${SITE_BASE}/#website`,
+    name: 'DNS Worker Documentation',
+    url: `${SITE_ORIGIN}${SITE_BASE}/`,
+    inLanguage: ['en', 'zh-CN', 'zh-TW'],
+  },
+  {
+    '@type': 'SoftwareApplication',
+    '@id': `${SITE_ORIGIN}${SITE_BASE}/#software`,
+    name: 'DNS Worker',
+    applicationCategory: 'NetworkingApplication',
+    operatingSystem: 'Linux, Windows, macOS, Cloudflare Workers',
+    url: `${SITE_ORIGIN}${SITE_BASE}/`,
+    codeRepository: REPO_URL,
+    description: pageDescription,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems,
+  },
+];
+
+if (isHome) {
+  graphNodes.push({
+    '@type': 'WebPage',
+    '@id': `${canonicalUrl}#webpage`,
+    url: canonicalUrl,
+    name: pageTitle,
+    description: pageDescription,
+    inLanguage: lang,
+    isPartOf: { '@id': `${SITE_ORIGIN}${SITE_BASE}/#website` },
+    about: { '@id': `${SITE_ORIGIN}${SITE_BASE}/#software` },
+  });
+} else {
+  graphNodes.push({
+    '@type': 'TechArticle',
+    '@id': `${canonicalUrl}#article`,
+    headline: pageTitle,
+    description: pageDescription,
+    inLanguage: lang,
+    url: canonicalUrl,
+    mainEntityOfPage: canonicalUrl,
+    isPartOf: { '@id': `${SITE_ORIGIN}${SITE_BASE}/#website` },
+    about: { '@id': `${SITE_ORIGIN}${SITE_BASE}/#software` },
+    author: {
+      '@type': 'Organization',
+      name: 'Oppidi',
+      url: REPO_URL,
+    },
+  });
+}
+
+if (isFaq && faqEntities.length > 0) {
+  graphNodes.push({
+    '@type': 'FAQPage',
+    '@id': `${canonicalUrl}#faq`,
+    url: canonicalUrl,
+    inLanguage: lang,
+    mainEntity: faqEntities,
+  });
+}
+
+const jsonLdString = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': graphNodes,
+}).replace(/</g, '\\u003c');
+---
+
+<DefaultHead />
+<link rel="alternate" type="text/markdown" href={mdRelativePath} title={`${pageTitle} (Markdown)`} />
+<link rel="alternate" type="text/plain" href={llmsIndexHref} title="LLMs Index" />
+{localePrefix && <link rel="alternate" type="text/plain" href={rootLlmsHref} title="LLMs Root Index" />}
+<script type="application/ld+json" set:html={jsonLdString} />

@@ -12,10 +12,13 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'DNS Worker',
-      description: 'Privacy-First Protective DNS Resolver & DoH / DoT Server with Dual-Engine Architecture.',
+      description: 'Privacy-focused Protective DNS (domain-blocking system) supporting DoH, DoT, DoQ, Cloudflare Workers Edge, and standalone Serverfull deployment.',
       favicon: '/favicon.svg?v=2',
       logo: {
         src: './src/assets/logo.svg',
+      },
+      components: {
+        Head: './src/components/Head.astro',
       },
       social: [
         {
@@ -272,25 +275,6 @@ export default defineConfig({
             name: 'theme-color',
             content: '#3b82f6'
           }
-        },
-        {
-          tag: 'script',
-          attrs: {
-            type: 'application/ld+json'
-          },
-          content: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'SoftwareApplication',
-            name: 'DNS Worker',
-            operatingSystem: 'Linux, Windows, macOS, Cloudflare Workers',
-            applicationCategory: 'NetworkingApplication',
-            description: 'Privacy-First Protective DNS Resolver & DoH / DoT Server with Dual-Engine Architecture.',
-            offers: {
-              '@type': 'Offer',
-              price: '0',
-              priceCurrency: 'USD'
-            }
-          })
         }
       ],
       sidebar: [

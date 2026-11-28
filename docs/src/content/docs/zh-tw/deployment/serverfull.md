@@ -1,9 +1,9 @@
 ---
 title: 獨立伺服器 / VPS 部署指南
-description: 詳細講解在 Linux / Windows 物理機或 VPS 上獨立部署 DNS Worker。
+description: 在 Linux / macOS / Windows 物理機或 VPS 上使用 Node.js / Bun 獨立部署 DNS Worker，原生監聽 UDP 53、DoT 853、HTTP 10080 與 HTTPS 10443。
 ---
 
-DNS Worker 可以完全脫離 Cloudflare Workers，直接在 Linux、Windows、macOS 伺服器或虛擬機器上以獨立服務模式執行。
+**DNS Worker** 可脫離 Cloudflare Workers，在 Linux、Windows 或 macOS 主機上作為 Serverfull 獨立守護程序執行，提供經典 UDP `53`、DoT `853` 與 DoH / Web 控制台（`10080` / `10443`）。
 
 ## 系統要求
 - **執行時 (Node.js / Bun)**：

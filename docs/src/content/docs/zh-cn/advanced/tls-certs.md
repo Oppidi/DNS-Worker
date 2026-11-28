@@ -1,9 +1,9 @@
 ---
 title: TLS 证书配置与权限安全最佳实践
-description: 配置 Let's Encrypt 证书、普通用户权限安全、ssl-cert 组授权与通配符要求。
+description: 配置 DNS Worker Serverfull 模式的 TLS 证书（HTTPS 10443 与 DoT 853）、Let's Encrypt ssl-cert 组授权、非 root 最小权限与 *.domain 通配符要求。
 ---
 
-启用 HTTPS Web 控制台（端口 10443）与 DoT（端口 853）需要配置 TLS 证书。
+**DNS Worker** 在 Serverfull 独立部署模式下启用内置 HTTPS Web 控制台（端口 `10443`）与 DoT 服务（端口 `853`）时，需配置有效的 TLS 证书。
 
 > [!TIP]
 > 若您仅需要为 Web 管理面板与 DoH 提供 HTTPS 支持，可免去在 DNS Worker 内部配置证书的步骤，直接使用 **Caddy** 或 **Nginx** 反向代理 `10080`（HTTP）端口。详见 [使用 Caddy 或 Nginx 反向代理 HTTP](/DNS-Worker/zh-cn/deployment/serverfull/#使用-caddy-或-nginx-反向代理-http10080-端口)。
@@ -30,7 +30,7 @@ Certbot 默认生成的私钥文件权限为 `0600 (root:root)`，父目录为 `
 **绝不推荐将私钥设置为全局可读（如 `chmod 644`）**！这样会让主机上的其他进程或脚本都能窃取 TLS 私钥。
 :::
 
-### 推荐方案 1：使用标准 `ssl-cert` 用户组授权（最优雅）
+### 推荐方案 1：使用标准 `ssl-cert` 用户组授权（推荐）
 
 Debian / Ubuntu 原生提供了专用的 `ssl-cert` 组，可在不提升至 root 的前提下安全授权私钥：
 

@@ -1,9 +1,9 @@
 ---
 title: TLS Certificates & Permissions Best Practices
-description: Guidance on Let's Encrypt certificates, non-root permissions, ssl-cert group delegation, and wildcard DoT requirements.
+description: Configure TLS certificates for DNS Worker Serverfull HTTPS (port 10443) and DoT (port 853) with Let's Encrypt ssl-cert group permissions and wildcard SAN requirements.
 ---
 
-Enabling the HTTPS Web Dashboard (port 10443) and DoT (port 853) requires valid TLS certificates.
+Enabling the built-in HTTPS Web Dashboard (port `10443`) and DoT listener (port `853`) in **DNS Worker** Serverfull mode requires valid TLS certificates.
 
 > [!TIP]
 > If you only need HTTPS for the Web Dashboard and DoH, you can skip configuring certificates inside DNS Worker and instead reverse-proxy port `10080` (HTTP) with **Caddy** or **Nginx**. See [Reverse Proxying HTTP & DoH](/DNS-Worker/deployment/serverfull/#reverse-proxying-http--doh-caddy--nginx).

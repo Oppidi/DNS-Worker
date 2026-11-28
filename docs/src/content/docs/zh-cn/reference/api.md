@@ -11,14 +11,14 @@ DNS Worker 在与控制台 / Worker 相同的域名下同时提供 **根路径 `
 
 | 路径 / 传输方式 | 方法 / 协议 | 参数与格式要求 | 说明 |
 | --- | --- | --- | --- |
-| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或携带 `Accept: application/dns-message`；`POST` 请求体为原始 DNS 二进制报文（`application/dns-message`，Serverfull 模式上限 64 KB） | **DoH 接入端点（RFC 8484）**。优先匹配用户级 `access_points.token`（用于设备归因与动态 Profile 绑定路由），其次匹配 `profiles.profile_key` 或 `profiles.id`。若匹配的接入点处于未绑定状态（`profile_id IS NULL`），将直接回退至 `FAIL_OPEN_UPSTREAM` 解析（不匹配 `profile_key`，也不返回 `404` 且不记日志）；系统刻意不开放无密钥的 `/dns-query` 路径。响应返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 与全放行 CORS 头（`*`）。 |
+| `/:key` | `GET`、`POST`、`OPTIONS`（HTTPS / HTTP/1.1+，推荐 HTTP/2+） | `key` 匹配 `^[a-zA-Z0-9]{5,12}$`；`GET ?dns=<base64url>` 或携带 `Accept: application/dns-message`；`POST` 请求体为原始 DNS 二进制报文（`application/dns-message`，Serverfull 模式上限 64 KB） | **DoH 接入端点（RFC 8484）**。优先匹配用户级 `access_points.token`（用于设备归因与动态 Profile 绑定路由），其次匹配 `profiles.profile_key` 或 `profiles.id`。若匹配的接入点处于未绑定状态（`profile_id IS NULL`），将直接回退至 `FAIL_OPEN_UPSTREAM` 解析（不匹配 `profile_key`，也不返回 `404` 且不记日志）；系统刻意不开放无密钥的 `/dns-query` 路径。响应返回 `application/dns-message`、`Cache-Control: max-age=<ttl>` 与全放行 CORS 头（`*`）。 |
 | `/setup.sh` | `GET` | 查询参数 `key` 需匹配 `^[a-zA-Z0-9]{5,12}$`，且 `Host` 须为合法 HTTP/HTTPS 来源 | 动态生成 `text/plain` 格式的 Linux 一键安装脚本（安装 `cloudflared` 并注册 `systemd` 服务 `cloudflared-dns.service`，将 `--upstream <origin>/<key>` 映射到本地 `53` 端口）。 |
 | `/world-110m.json` | `GET` | 无 | GeoIP 世界地图 TopoJSON 代理接口，自动补全 3 位国家数字 ID 并启用边缘缓存（`max-age=2592000`，30 天），响应带 `Access-Control-Allow-Origin: *`。 |
 
 ### DoH 协议约束与响应说明（`/:key`）
 
 - **Access Key 校验与 Durable Objects 容灾**：合法的 Access Key（含 `access_points.token`、`profiles.profile_key` 与 `profiles.id`）会同步写入基于 SQLite 的 Durable Objects（`ACCESS_KEY_DO`，分为 16 个确定性分片）。已绑定的接入点按其当前 `profile_id` 路由，未绑定接入点（`profile_id = null`）直接回退至 `FAIL_OPEN_UPSTREAM`（零日志）；当 D1 或 Turso 下线或达到读取配额进入 `FAIL_OPEN` 状态时，合法 Access Key 仍可通过 DO 容灾继续完成解析，而未注册或已吊销的无效 Key 将被拒绝（`404 Invalid Profile Key`）。
-- **HTTP/2+ 强制校验（RFC 8484 §5.2）**：若请求以 `HTTP/1.0` 或 `HTTP/1.1` 到达（通过 `request.cf.httpProtocol` 或 `X-Http-Version` 检测），服务端将返回 `505 HTTP Version Not Supported`。
+- **HTTP 最低版本策略与协议升级引导（`MIN_HTTP_VERSION`）**：入站 DoH 版本下限由环境变量 `MIN_HTTP_VERSION` 控制，默认为 `1.1`（允许 `HTTP/1.1`、`HTTP/2`、`HTTP/3`，兼容仅支持 HTTP/1.1 的路由器与嵌入式客户端）。对允许通行的 `HTTP/1.x` 请求，响应会附带 `Alt-Svc`（通告 `h3` 与 `h2`）及 RFC 9110 §7.8 `Upgrade` / `Connection: Upgrade` 引导头部，鼓励客户端自动升级；若请求版本低于当前配置的 `MIN_HTTP_VERSION`（例如将下限严格设为 `2` 或 `3`，或默认拒收 `HTTP/1.0`），服务端将返回 `505 HTTP Version Not Supported` 并提示建议协议。
 - **CORS 预检（`OPTIONS`）**：返回 `204 No Content`，携带 `Access-Control-Allow-Origin: *`、`Access-Control-Allow-Methods: GET, POST, OPTIONS`、`Access-Control-Allow-Headers: Content-Type, Accept` 与 `Access-Control-Max-Age: 86400`。
 - **异常与故障开放（Fail-Open）**：
   - `400 Invalid DNS Query`：非标准或损坏的 DNS 线缆格式请求报文（要求 `QR=0`、`OPCODE=0`、`QDCOUNT=1`、`QNAME <= 253` 字符）。

@@ -1,15 +1,26 @@
 ---
 title: Local-First Architecture (OPFS)
-description: In-browser WebAssembly SQLite + Origin Private File System for zero-latency log analytics.
+description: How DNS Worker runs WebAssembly SQLite inside a Web Worker backed by Origin Private File System (OPFS) for 0ms local log queries and incremental sync.
 ---
 
-Traditional DNS dashboards continually send heavy analytical SQL queries to cloud databases, which increases latency and quickly consumes database billing quotas.
+**DNS Worker** implements a **Local-First** analytics architecture in its Web Dashboard using an in-browser **WebAssembly SQLite engine backed by the Origin Private File System (OPFS)**. High-frequency log filtering and chart aggregations execute locally inside a dedicated Web Worker rather than hitting the remote database on every filter change.
 
-## Architecture Highlights
+## Cloud Querying vs. Local-First OPFS
 
-* **Embedded In-Browser SQLite (WASM + OPFS)**:
-  The dashboard runs a compiled WebAssembly SQLite database inside a dedicated Web Worker, persisting data to the Origin Private File System (OPFS).
-* **0ms Real-Time Queries & Chart Aggregations**:
-  Filter tens of thousands of query logs and aggregate dimensions (client IPs, status codes, block reasons, countries) locally in 0 milliseconds.
-* **Bidirectional Delta Synchronization**:
-  Only newly recorded encrypted logs are incrementally fetched from the server and decrypted locally, minimizing bandwidth and database queries.
+| Dimension | Traditional Cloud-Only Querying | DNS Worker Local-First (WASM + OPFS) |
+| :--- | :--- | :--- |
+| **Execution Location** | Round-trip SQL query on every UI filter | Dedicated in-browser Web Worker |
+| **Local Persistence** | None (re-fetched per session) | Browser **Origin Private File System (OPFS)** |
+| **Filter Latency** | Bounded by WAN RTT and DB scan time | **0ms local SQL queries** across tens of thousands of logs |
+| **Database Read Quota** | Consumed on every chart toggle or scroll | Minimized via cursor-based incremental delta sync |
+
+## Core Mechanisms
+
+1. **Worker-Thread Isolation**: SQLite WASM executes off the main UI thread so heavy multi-dimensional aggregations (client IP, status code, block reason, destination country) never stall scrolling or charts.
+2. **OPFS Local Persistence**: Synced query records persist in the browser's private filesystem across reloads.
+3. **Incremental Delta Sync & Client-Side Decryption**: The dashboard fetches only newly recorded entries since the latest synced timestamp; when post-quantum E2EE is enabled, ciphertexts are decrypted locally in the client Web Worker before indexing.
+
+## Frequently Asked Questions
+
+### Does clearing browser site data permanently erase DNS logs?
+No. Your backend database (Cloudflare D1, Turso, or Serverfull SQLite) remains the persistent source of truth within your configured log retention window; logging back in re-syncs retained logs into OPFS.

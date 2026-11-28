@@ -1,7 +1,7 @@
 /**
  * @file check-docs.mjs
  * @description Validates Starlight documentation symmetry across locales (en, zh-cn, zh-tw),
- * sidebar.order consistency, and Mermaid node label quoting.
+ * sidebar.order consistency, Mermaid node label quoting, and per-page GEO prerequisites.
  */
 
 import fs from 'node:fs';
@@ -29,11 +29,24 @@ function collectDocs(dir, baseDir, results = new Map(), skipTopDirs = new Set())
   return results;
 }
 
-function extractSidebarOrder(content) {
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fmMatch) return null;
-  const orderMatch = fmMatch[1].match(/^\s*order:\s*(\d+)/m);
-  return orderMatch ? Number(orderMatch[1]) : null;
+function parseFrontmatter(content) {
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!fmMatch) {
+    return { title: '', description: '', template: '', order: null, body: content };
+  }
+  const fm = fmMatch[1];
+  const extract = (key) => {
+    const m = fm.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+    return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+  };
+  const orderMatch = fm.match(/^\s*order:\s*(\d+)/m);
+  return {
+    title: extract('title'),
+    description: extract('description'),
+    template: extract('template'),
+    order: orderMatch ? Number(orderMatch[1]) : null,
+    body: fmMatch[2],
+  };
 }
 
 function findUnquotedMermaidLabels(content) {
@@ -49,6 +62,27 @@ function findUnquotedMermaidLabels(content) {
       if (unquotedMatch) {
         issues.push(trimmed);
       }
+    }
+  }
+  return issues;
+}
+
+function validateGeoReadiness(locale, key, content) {
+  const issues = [];
+  const parsed = parseFrontmatter(content);
+  if (!parsed.title) {
+    issues.push(`Missing frontmatter title`);
+  }
+  const minDescLen = locale === 'en' ? 40 : 18;
+  if (!parsed.description || parsed.description.length < minDescLen) {
+    issues.push(`Description missing or too concise for GEO (< ${minDescLen} chars)`);
+  }
+  if (parsed.template !== 'splash') {
+    const beforeFirstH2 = parsed.body.split(/^##\s+/m)[0]
+      .replace(/^import\s+[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
+      .trim();
+    if (!beforeFirstH2 || !/dns\s*-?\s*worker/i.test(beforeFirstH2)) {
+      issues.push(`Opening summary before first H2 should explicitly name DNS Worker for standalone AI extraction`);
     }
   }
   return issues;
@@ -73,19 +107,25 @@ for (const key of Array.from(allKeys).sort()) {
   }
 }
 
-// 2. Check sidebar.order consistency & Mermaid syntax
+// 2. Check sidebar.order consistency, Mermaid syntax, and per-page GEO gates
 for (const key of Array.from(allKeys).sort()) {
   const orders = new Map();
   for (const locale of LOCALES) {
     const filePath = byLocale[locale].get(key);
     if (!filePath) continue;
     const content = fs.readFileSync(filePath, 'utf8');
-    const order = extractSidebarOrder(content);
-    orders.set(locale, order);
+    const parsed = parseFrontmatter(content);
+    orders.set(locale, parsed.order);
 
     const mermaidIssues = findUnquotedMermaidLabels(content);
     for (const issue of mermaidIssues) {
       console.error(`[docs-check] Unquoted Mermaid label with parentheses in ${locale}/${key}: ${issue}`);
+      errors++;
+    }
+
+    const geoIssues = validateGeoReadiness(locale, key, content);
+    for (const issue of geoIssues) {
+      console.error(`[docs-check] GEO check failed in ${locale}/${key}: ${issue}`);
       errors++;
     }
   }
@@ -101,4 +141,4 @@ if (errors > 0) {
   process.exit(1);
 }
 
-console.log(`[docs-check] Passed: ${allKeys.size} pages verified across ${LOCALES.join(', ')}.`);
+console.log(`[docs-check] Passed: ${allKeys.size} pages verified (symmetry, Mermaid, GEO) across ${LOCALES.join(', ')}.`);
