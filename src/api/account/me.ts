@@ -6,6 +6,7 @@ import { PasskeyModel } from "../../models/passkey";
 import { USERNAME_REGEX } from "../../utils/validator";
 import { verifyUserReauth, ReauthPayload } from "./security/reauth";
 import { ensureDemoDataSeeded } from "../../lib/demoMode";
+import { resolveLogRetentionLimits } from "../../constants/presets";
 
 /**
  * Handle requests to /api/account/me, /api/account/logs, /api/account/delete
@@ -26,15 +27,7 @@ export async function handleMeRequest(
     if (request.method === 'GET') {
       await ensureDemoDataSeeded(env, user.id);
       const dbUser = await userModel.getById(user.id);
-      const globalMaxRetention = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-        ? Number(env.MAX_LOG_RETENTION_DAYS)
-        : 30;
-      const adminMaxRetention = env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.ADMIN_USER_MAX_LOG_RETENTION_DAYS !== ''
-        ? Math.min(Number(env.ADMIN_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-        : globalMaxRetention;
-      const normalUserMax = env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== undefined && env.NORMAL_USER_MAX_LOG_RETENTION_DAYS !== ''
-        ? Math.min(Number(env.NORMAL_USER_MAX_LOG_RETENTION_DAYS), globalMaxRetention)
-        : Math.min(7, globalMaxRetention);
+      const { adminMaxRetention, normalUserMaxRetention: normalUserMax } = resolveLogRetentionLimits(env);
 
       const passkeyModel = new PasskeyModel(env.DB);
       const passkeysCount = await passkeyModel.countByUser(user.id);

@@ -18,6 +18,7 @@ import { verifyTOTPWithStep, findMatchingRecoveryKey, generateRecoveryKey, hashR
 import { UserModel } from "../../models/user";
 import { PasskeyModel } from "../../models/passkey";
 import { ActivityLogModel } from "../../models/activityLog";
+import { resolveAccessTokenExpirationMinutes } from "../../constants/presets";
 import { SystemSettingsModel } from "../../models/systemSettings";
 import { cacheUtils } from "../../utils/cache";
 import { verifyTurnstile } from "./utils";
@@ -369,7 +370,7 @@ export async function handleLoginRequest(request: Request, env: Env): Promise<Re
 
     const secret = await getOrCreateJwtSecret(env);
     const jwtKey = await importJwtSecret(secret);
-    const expMinutes = Number(env.ACCESS_TOKEN_EXPIRATION_MINUTES) || 10;
+    const expMinutes = resolveAccessTokenExpirationMinutes(env);
     const accessToken = await signJWT({ 
       userId: userId, 
       role: user.role, 

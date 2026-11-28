@@ -18,6 +18,7 @@ import { generateRecoveryKey, hashRecoveryKey } from "../../lib/totp";
 import { cacheUtils } from "../../utils/cache";
 import { PASSWORD_REGEX, USERNAME_REGEX, normalizeInviteCode } from "../../utils/validator";
 import { verifyTurnstile } from "./utils";
+import { resolveAccessTokenExpirationMinutes } from "../../constants/presets";
 import { getDefaultUpstreamUrl } from "../../constants/presets";
 import { syncProfileKeysToDo } from "../../lib/accessKeyRegistry";
 import { ensureDemoDataSeeded } from "../../lib/demoMode";
@@ -227,7 +228,7 @@ export async function handleAuthRegisterRequest(request: Request, env: Env): Pro
     const csrfToken = generateId(32);
     const csrfCookie = createCsrfCookie(csrfToken, env, false);
 
-    const expMinutes = Number(env.ACCESS_TOKEN_EXPIRATION_MINUTES) || 10;
+    const expMinutes = resolveAccessTokenExpirationMinutes(env);
     const accessToken = await signJWT({ 
       userId: userId, 
       role: role, 

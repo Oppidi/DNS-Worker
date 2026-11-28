@@ -9,6 +9,7 @@ import {
   isDemoMode,
 } from "../../lib/demoConfig";
 import { ensureDemoLogsForWindow } from "../../lib/demoMode";
+import { resolveLogRetentionLimits } from "../../constants/presets";
 
 /**
  * Handle logs and analytics requests to /api/profiles/:id/logs and /api/profiles/:id/analytics
@@ -79,9 +80,7 @@ export async function handleProfileLogsAndAnalyticsRequest(
     
     let since: number;
     let until = Math.floor(Date.now() / 1000);
-    const globalMaxRetention = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-      ? Number(env.MAX_LOG_RETENTION_DAYS)
-      : 30;
+    const { globalMaxRetention } = resolveLogRetentionLimits(env);
     const settings: ProfileSettings = JSON.parse(profile.settings);
     const logRetentionDays = settings.log_retention_days !== undefined
       ? Math.min(Number(settings.log_retention_days), globalMaxRetention)

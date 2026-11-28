@@ -18,6 +18,9 @@ export type HttpVersionCode = 10 | 11 | 20 | 30;
 /** Default minimum allowed HTTP version (`1.1`). */
 export const DEFAULT_MIN_HTTP_VERSION: HttpVersionCode = 11;
 
+/** String representation of `DEFAULT_MIN_HTTP_VERSION` for config defaults. */
+export const DEFAULT_MIN_HTTP_VERSION_STRING = '1.1';
+
 /**
  * Parses a raw HTTP protocol label or numeric version string into a normalized `HttpVersionCode`.
  *

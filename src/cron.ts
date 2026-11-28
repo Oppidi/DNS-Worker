@@ -8,6 +8,7 @@ import { cacheUtils } from './utils/cache';
 import { syncAllAccessKeysSnapshotToDo } from './lib/accessKeyRegistry';
 
 import { SystemSettingsModel } from './models/systemSettings';
+import { resolveLogRetentionLimits } from './constants/presets';
 
 /** In-memory throttle tracker for cron cleanup phase across executions in the same isolate */
 let lastCleanupMemoryTs = 0;
@@ -109,15 +110,11 @@ export async function handleScheduled(
 
       try {
         const logModel = new LogModel(env.DB);
-        const maxRetentionDays = env.MAX_LOG_RETENTION_DAYS !== undefined && env.MAX_LOG_RETENTION_DAYS !== ''
-          ? Number(env.MAX_LOG_RETENTION_DAYS)
-          : 30;
-        const cleanupBatchLimit = env.LOG_CLEANUP_BATCH_LIMIT !== undefined && env.LOG_CLEANUP_BATCH_LIMIT !== ''
-          ? Number(env.LOG_CLEANUP_BATCH_LIMIT)
-          : 1000;
-        const cleanupDailyBudget = env.LOG_CLEANUP_DAILY_BUDGET !== undefined && env.LOG_CLEANUP_DAILY_BUDGET !== ''
-          ? Number(env.LOG_CLEANUP_DAILY_BUDGET)
-          : 20000;
+        const {
+          globalMaxRetention: maxRetentionDays,
+          cleanupBatchLimit,
+          cleanupDailyBudget
+        } = resolveLogRetentionLimits(env);
         await logModel.cleanupGlobal(maxRetentionDays, cleanupBatchLimit, cleanupDailyBudget);
       } catch (e) {
         console.error("[Cron] Global log cleanup failed:", e);
