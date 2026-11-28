@@ -17,7 +17,7 @@ DNS Worker 作为兼顾 Cloudflare Workers 边缘计算（Serverless）与独立
 
 | 等级标签 | 适用范围与约束力 | 裁量原则 |
 | :--- | :--- | :--- |
-| <Badge text="严格" variant="danger" /> | **核心底线规范**。<br/>直接关乎系统安全边界（如 SSRF、越权）、数据完整性（如破坏迁移版本哈希、存储文本时间造成解析歧义）、协议硬违规（如 RFC 8484 强制最低 HTTP/2）或编译期失效（如滥用 `any` 击穿全链路类型）。 | 聚焦关键底线并保持克制，代码合并时进行常规校验；如遇特殊场景确需例外，需经核心维护者评审确认。 |
+| <Badge text="严格" variant="danger" /> | **核心底线规范**。<br/>直接关乎系统安全边界（如 SSRF、越权）、数据完整性（如破坏迁移版本哈希、存储文本时间造成解析歧义）、协议硬违规（如违反 RFC 8484）或编译期失效（如滥用 `any` 击穿全链路类型）。 | 聚焦关键底线并保持克制，代码合并时进行常规校验；如遇特殊场景确需例外，需经核心维护者评审确认。 |
 | <Badge text="推荐" variant="tip" /> | **团队核心工程标准与最佳实践**。<br/>涵盖架构分层隔离、模块化解耦、防御性重试、临时表迁移模式及自动化测试覆盖等。 | 绝大多数场景下必须遵守；若因极端性能优化或特定硬件底层限制需要突破，必须在 PR 中提供详尽的技术论证与评审记录。 |
 | <Badge text="参考" variant="note" /> | **工程风格统一与进阶调优建议**。<br/>涵盖命名惯例、人机协作标记（`TODO: [HUMAN]`）、高 QPS 场景下的内存与 GC 调优等。 | 引导代码呈现更高的自解释性与一致体验，鼓励在日常编码与评审中积极采纳。 |
 
@@ -273,30 +273,19 @@ flowchart LR
   }
   ```
 
-### 5.2 DoH 协议优先 HTTP/3 且限定最低 HTTP/2 版本 <Badge text="严格" variant="danger" />
+### 5.2 DoH 协议优先 HTTP/3，推荐最低 HTTP/2 版本 <Badge text="严格" variant="danger" />
 
 * **制定理由**：
   * **HTTP/3 为首选优先协议**：基于 UDP/QUIC 的 HTTP/3（DoH3 / RFC 9114）具备 0-RTT 极速握手连接、彻底消除传输层队头阻塞以及原生抵抗移动弱网丢包抖动的能力，是保护性 DNS 与高并发解析的最佳传输协议。系统与服务端应尽量使用并优先引导客户端协商 HTTP/3。
-  * **HTTP/2 为兼容底线与最低限制 (RFC 8484 §5.2)**：根据 RFC 8484 第 5.2 节标准（“Clients and servers MUST NOT negotiate HTTP/1.1 for DoH”），HTTP/2 仅作为保证向后兼容的最低下限，DoH 绝不得使用缺乏单连接多路复用能力的 HTTP/1.1 传输。
-  * **禁止静默降级与错误透明回显**：若收到 HTTP/1.1 的 DoH 请求，服务端必须严格拒绝并回显 `HTTP 505 (HTTP Version Not Supported)`。同时，外部或上游 DoH 请求失败时必须如实暴露具体错误原因与状态码，杜绝未经用户显式配置的私自降级或静默回退。
+  * **HTTP/2 为推荐的最低版本 (RFC 8484 §5.2)**：RFC 8484 第 5.2 节规定“HTTP/2 [RFC7540] is the minimum RECOMMENDED version of HTTP for use with DoH”，并指出更早的 HTTP 版本“能够满足 DoH 的语义要求，但性能可能很差”。因此 HTTP/1.1 是允许的，部分 DoH 客户端（路由器与嵌入式解析器）仅支持 HTTP/1.1。
+  * **禁止静默降级与错误透明回显**：通过 HTTP/1.1 发起的 DoH 请求照常处理，确保无法协商 HTTP/2 的客户端仍可正常使用。同时，外部或上游 DoH 请求失败时必须如实暴露具体错误原因与状态码，杜绝未经用户显式配置的私自降级或静默回退。
 * **正例**：
   ```typescript
   // 1. 优先宣告 HTTP/3 支持，引导客户端自动升级至 HTTP/3 (DoH3)
   res.setHeader('Alt-Svc', `h3=":${port}"; ma=86400`);
-
-  // 2. 兼容 HTTP/2，严格拦截低于 HTTP/2 的过时请求 (RFC 8484 §5.2)
-  const httpProto = request.headers.get('X-Http-Version');
-  if (httpProto && (httpProto === 'HTTP/1.0' || httpProto === 'HTTP/1.1' || httpProto === '1.0' || httpProto === '1.1')) {
-    return new Response('DoH requires HTTP/2 or later in accordance with RFC 8484 §5.2', {
-      status: 505,
-      statusText: 'HTTP Version Not Supported',
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
-  }
   ```
 * **反例**：
   * 仅支持或默认停留在 HTTP/2，未宣告或未优先考虑 HTTP/3；
-  * 允许客户端通过没有多路复用的 HTTP/1.1 管道持续轮询发起 DoH 查询；
   * 在 DoH 解析遇到错误时，未回显失败原因而是私自静默降级为明文 UDP。
 
 ### 5.3 零知识后量子密文日志隔离 <Badge text="推荐" variant="tip" />
